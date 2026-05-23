@@ -27,6 +27,8 @@ function handleProducerEvents(socket, io) {
       muted: false,
     };
 
+    const isFirstProducer = room.getProducersForUser(socket.id).length === 0;
+
     room.addProducer(producer.id, producerInfo);
     room.audioObserver.addProducer({ producerId: producer.id });
 
@@ -39,13 +41,30 @@ function handleProducerEvents(socket, io) {
       kind,
     });
 
+    if (isFirstProducer) {
+      room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_JOINED, {
+        userId: conn.userId,
+        nickname: conn.nickname,
+        deviceId: conn.deviceId,
+      });
+    }
+
     producer.on('transportclose', () => {
+      const remaining = room.getProducersForUser(socket.id).length;
+      const wasLastProducer = remaining === 1;
       room.removeProducer(producer.id);
       room.removeConsumersForProducer(producer.id);
       room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
         producerId: producer.id,
         deviceId: conn.deviceId,
       });
+      if (wasLastProducer) {
+        room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
+          userId: conn.userId,
+          deviceId: conn.deviceId,
+          nickname: conn.nickname,
+        });
+      }
     });
   });
 
@@ -54,6 +73,8 @@ function handleProducerEvents(socket, io) {
     if (!conn || !conn.currentRoom) return;
     const room = getRoom(conn.currentRoom);
     if (!room) return;
+
+    const wasLastProducer = room.getProducersForUser(socket.id).length === 1;
 
     const info = room.removeProducer(producerId);
     if (info?.instance) {
@@ -64,6 +85,14 @@ function handleProducerEvents(socket, io) {
       producerId,
       deviceId: conn.deviceId,
     });
+
+    if (wasLastProducer) {
+      room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
+        userId: conn.userId,
+        deviceId: conn.deviceId,
+        nickname: conn.nickname,
+      });
+    }
   });
 
   socket.on(EVENTS.CLIENT.PRODUCER_REPLACE_TRACK, async ({ producerId }) => {

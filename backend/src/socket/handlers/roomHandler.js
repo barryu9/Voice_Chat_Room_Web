@@ -34,14 +34,14 @@ function handleRoomEvents(socket, io) {
     room.addUser(socket.id, { socketId: socket.id, userId: conn.userId, nickname: conn.nickname, deviceId: conn.deviceId });
     socket.join(roomId);
 
-    room.broadcast(roomId, EVENTS.SERVER.USER_JOINED, {
-      userId: conn.userId,
-      nickname: conn.nickname,
-      deviceId: conn.deviceId,
-    });
-
-    const users = Array.from(room.users.values());
-    socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId, users, count: room.getUserCount() });
+    // Only send voice-connected users (those with active producers)
+    const voiceUsers = [];
+    for (const [sid, user] of room.users) {
+      if (room.getProducersForUser(sid).length > 0) {
+        voiceUsers.push(user);
+      }
+    }
+    socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId, users: voiceUsers, count: voiceUsers.length });
 
     const { getAnnouncement, getSiteName } = require('../../services/channelService');
     const announcement = await getAnnouncement();
@@ -74,6 +74,8 @@ function leaveCurrentRoom(socket, io) {
   if (!room) return;
 
   const producers = room.getProducersForUser(socket.id);
+  const hadProducers = producers.length > 0;
+
   for (const p of producers) {
     const info = room.removeProducer(p.producerId);
     if (info?.instance) {
@@ -101,11 +103,13 @@ function leaveCurrentRoom(socket, io) {
   room.removeUser(socket.id);
   socket.leave(roomId);
 
-  room.broadcast(roomId, EVENTS.SERVER.USER_LEFT, {
-    userId: conn.userId,
-    deviceId: conn.deviceId,
-    nickname: conn.nickname,
-  });
+  if (hadProducers) {
+    room.broadcast(roomId, EVENTS.SERVER.USER_LEFT, {
+      userId: conn.userId,
+      deviceId: conn.deviceId,
+      nickname: conn.nickname,
+    });
+  }
 
   conn.currentRoom = null;
 }

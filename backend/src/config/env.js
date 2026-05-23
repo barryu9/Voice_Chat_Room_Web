@@ -4,7 +4,7 @@ const envFile = process.env.NODE_ENV === 'production'
   ? '.env.production'
   : '.env.development';
 
-require('dotenv').config({ path: path.resolve(__dirname, '..', envFile) });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '..', envFile) });
 
 const required = ['MONGODB_URI', 'MEDIASOUP_LISTEN_IP', 'MEDIASOUP_ANNOUNCED_IP', 'ADMIN_PASSWORD'];
 for (const key of required) {

@@ -1,6 +1,6 @@
-const { isBanned } = require('../services/banService');
-const { getAllChannels } = require('../services/channelService');
-const { EVENTS } = require('./events');
+const { isBanned } = require('../../services/banService');
+const { getAllChannels } = require('../../services/channelService');
+const { EVENTS } = require('../events');
 
 const connections = new Map();
 
@@ -41,12 +41,14 @@ function handleConnection(socket, io) {
   socket.on('disconnect', () => {
     const conn = connections.get(socket.id);
     if (conn && conn.currentRoom) {
-      const { getRoom } = require('../mediasoup/roomManager');
+      const { getRoom } = require('../../mediasoup/roomManager');
       const room = getRoom(conn.currentRoom);
       if (room) {
         room.removeUser(socket.id);
 
         const producers = room.getProducersForUser(socket.id);
+        const hadProducers = producers.length > 0;
+
         for (const p of producers) {
           const producerInfo = room.removeProducer(p.producerId);
           if (producerInfo?.instance) {
@@ -59,11 +61,13 @@ function handleConnection(socket, io) {
           });
         }
 
-        room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
-          userId: conn.userId,
-          deviceId: conn.deviceId,
-          nickname: conn.nickname,
-        });
+        if (hadProducers) {
+          room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
+            userId: conn.userId,
+            deviceId: conn.deviceId,
+            nickname: conn.nickname,
+          });
+        }
 
         const transportsToRemove = [];
         for (const [tid, t] of room.transports) {
@@ -80,7 +84,7 @@ function handleConnection(socket, io) {
     }
 
     connections.delete(socket.id);
-    const { adminSessions } = require('../services/adminService');
+    const { adminSessions } = require('../../services/adminService');
     adminSessions.delete(socket.id);
   });
 }

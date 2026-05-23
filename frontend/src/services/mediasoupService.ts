@@ -60,7 +60,6 @@ export async function createProducerTransport(device: mediasoup.Device): Promise
     const onCreated = (data: any) => {
       getSocket()?.off(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
       cb({ id: data.producerId });
-      useMediaStore.getState().setProducer(transport);
     };
     getSocket()?.on(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
   });

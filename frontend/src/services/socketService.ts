@@ -3,8 +3,9 @@ import { EVENTS } from '../utils/constants';
 import { useRoomStore } from '../stores/roomStore';
 import { useUserStore } from '../stores/userStore';
 import { useAdminStore } from '../stores/adminStore';
+import { useMediaStore } from '../stores/mediaStore';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 
 let socket: Socket | null = null;
 
@@ -50,6 +51,7 @@ function registerListeners() {
   });
 
   socket.on(EVENTS.SERVER.ROOM_USERS, (data) => {
+    useUserStore.getState().setCurrentRoom(data.roomId);
     useRoomStore.getState().setRoomUsers(data.users || []);
   });
 
@@ -62,7 +64,9 @@ function registerListeners() {
   });
 
   socket.on(EVENTS.SERVER.ACTIVE_SPEAKER, (data) => {
-    useRoomStore.getState().setActiveSpeaker(data.deviceId, data.level, data.isSpeaking);
+    const threshold = useMediaStore.getState().noiseGateThreshold;
+    const isSpeaking = data.isSpeaking && data.level > threshold;
+    useRoomStore.getState().setActiveSpeaker(data.deviceId, data.level, isSpeaking);
   });
 
   socket.on(EVENTS.SERVER.ANNOUNCEMENT, (data) => {
@@ -94,6 +98,20 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.SELF_MUTED, (data) => {
     const store = useRoomStore.getState();
     store.setActiveSpeaker(data.deviceId, -100, false);
+  });
+
+  socket.on(EVENTS.SERVER.NEW_PRODUCER, (data) => {
+    useMediaStore.getState().addRemoteProducer({
+      producerId: data.producerId,
+      userId: data.userId,
+      deviceId: data.deviceId,
+      kind: data.kind,
+    });
+  });
+
+  socket.on(EVENTS.SERVER.PRODUCER_CLOSED, (data) => {
+    useMediaStore.getState().removeRemoteProducer(data.producerId);
+    useMediaStore.getState().removeConsumer(data.producerId);
   });
 
   socket.on(EVENTS.SERVER.ADMIN_AUTH_RESULT, (data) => {

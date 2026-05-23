@@ -20,7 +20,12 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
 
     setLoading(true);
     const socket = getSocket();
-    socket?.emit(EVENTS.CLIENT.USER_LOGIN, {
+    if (!socket?.connected) {
+      setLoading(false);
+      return;
+    }
+
+    socket.emit(EVENTS.CLIENT.USER_LOGIN, {
       nickname: nickname.trim(),
       deviceId,
     });
@@ -31,8 +36,8 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
       onClose();
     };
 
-    socket?.once(EVENTS.SERVER.LOGIN_SUCCESS, onSuccess);
-    socket?.once(EVENTS.SERVER.LOGIN_ERROR, () => setLoading(false));
+    socket.once(EVENTS.SERVER.LOGIN_SUCCESS, onSuccess);
+    socket.once(EVENTS.SERVER.LOGIN_ERROR, () => setLoading(false));
   };
 
   return (

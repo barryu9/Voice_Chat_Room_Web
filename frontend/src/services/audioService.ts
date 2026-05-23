@@ -1,29 +1,27 @@
-import { useMediaStore } from '../stores/mediaStore';
-
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let micGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -60;
-let remoteGainNodes: Map<string, GainNode> = new Map();
+const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 
 export function getAudioContext(): AudioContext | null {
   return audioContext;
 }
 
-export function initAudioContext(): AudioContext {
+export async function initAudioContext(): Promise<AudioContext> {
   if (!audioContext) {
     audioContext = new AudioContext();
   }
   if (audioContext.state === 'suspended') {
-    audioContext.resume();
+    await audioContext.resume();
   }
   return audioContext;
 }
 
 export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
-  const ctx = initAudioContext();
+  const ctx = await initAudioContext();
   localStream = stream;
 
   localAudioSource = ctx.createMediaStreamSource(stream);
@@ -71,32 +69,45 @@ export function getAudioLevel(): number {
 }
 
 export async function setupRemoteAudio(consumer: any, producerId: string): Promise<void> {
-  const ctx = initAudioContext();
+  cleanupRemoteAudio(producerId);
+
   const { track } = consumer;
-
   const stream = new MediaStream([track]);
-  const source = ctx.createMediaStreamSource(stream);
-  const gainNode = ctx.createGain();
-  gainNode.gain.value = 1.0;
+  const audio = document.createElement('audio');
+  audio.srcObject = stream;
+  audio.autoplay = true;
+  audio.setAttribute('playsinline', 'true');
+  audio.volume = 1.0;
+  audio.style.display = 'none';
+  document.body.appendChild(audio);
 
-  source.connect(gainNode);
-  gainNode.connect(ctx.destination);
+  audio.play().catch((e) => {
+    console.warn('[Audio] autoplay blocked for', producerId);
+    const resume = () => {
+      audio.play().catch(() => {});
+      document.removeEventListener('click', resume);
+      document.removeEventListener('touchend', resume);
+    };
+    document.addEventListener('click', resume, { once: true });
+    document.addEventListener('touchend', resume, { once: true });
+  });
 
-  remoteGainNodes.set(producerId, gainNode);
+  remoteAudioElements.set(producerId, audio);
 }
 
 export function setRemoteVolume(producerId: string, volume: number) {
-  const node = remoteGainNodes.get(producerId);
-  if (node) {
-    node.gain.value = Math.max(0, Math.min(volume, 2));
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) {
+    audio.volume = Math.max(0, Math.min(volume, 2));
   }
 }
 
 export function cleanupRemoteAudio(producerId: string) {
-  const node = remoteGainNodes.get(producerId);
-  if (node) {
-    node.disconnect();
-    remoteGainNodes.delete(producerId);
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) {
+    audio.srcObject = null;
+    audio.remove();
+    remoteAudioElements.delete(producerId);
   }
 }
 
@@ -118,10 +129,11 @@ export function cleanupLocalAudio() {
 
 export function destroyAudioGraph() {
   cleanupLocalAudio();
-  for (const [, node] of remoteGainNodes) {
-    node.disconnect();
+  for (const [, audio] of remoteAudioElements) {
+    audio.srcObject = null;
+    audio.remove();
   }
-  remoteGainNodes.clear();
+  remoteAudioElements.clear();
   if (audioContext) {
     audioContext.close();
     audioContext = null;

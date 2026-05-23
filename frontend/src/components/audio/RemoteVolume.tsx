@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMediaStore } from '../../stores/mediaStore';
+import { setRemoteVolume } from '../../services/audioService';
 
 interface RemoteVolumeProps {
   producerDeviceId: string;
@@ -14,6 +15,7 @@ export const RemoteVolume: React.FC<RemoteVolumeProps> = ({ producerDeviceId }) 
   const handleChange = (v: number) => {
     setValue(v);
     setRemoteAudioGain(producerDeviceId, v);
+    setRemoteVolume(producerDeviceId, v);
   };
 
   return (
