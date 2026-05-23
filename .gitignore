@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.production
+.env.development.local
+*.log
+.DS_Store
+mongo-data/

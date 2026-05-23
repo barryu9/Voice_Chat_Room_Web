@@ -1,0 +1,124 @@
+import React, { useState } from 'react';
+import { useRoomStore } from '../../stores/roomStore';
+import type { UserInfo } from '../../utils/constants';
+import { getAvatarColor, getInitial } from '../../utils/helpers';
+import { SpeakingIndicator } from './SpeakingIndicator';
+import { RemoteVolume } from '../audio/RemoteVolume';
+import { useUserStore } from '../../stores/userStore';
+import { useAdminStore } from '../../stores/adminStore';
+import { getSocket } from '../../services/socketService';
+import { EVENTS } from '../../utils/constants';
+
+interface UserCardProps {
+  user: UserInfo;
+}
+
+export const UserCard: React.FC<UserCardProps> = ({ user }) => {
+  const activeSpeakers = useRoomStore((s) => s.activeSpeakers);
+  const isAdmin = useAdminStore((s) => s.isAdmin);
+  const currentDeviceId = useUserStore((s) => s.deviceId);
+  const [showVolume, setShowVolume] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+
+  const speaker = activeSpeakers.get(user.deviceId);
+  const isSpeaking = !!speaker?.isSpeaking;
+  const isSelf = user.deviceId === currentDeviceId;
+
+  const color = getAvatarColor(user.userId);
+  const initial = getInitial(user.nickname);
+
+  const handleKick = () => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_KICK, { targetDeviceId: user.deviceId });
+    setShowMenu(false);
+  };
+
+  const handleBan = () => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_BAN, { targetDeviceId: user.deviceId, reason: '违反规则' });
+    setShowMenu(false);
+  };
+
+  const handleMute = () => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_MUTE_TARGET, { targetDeviceId: user.deviceId });
+    setShowMenu(false);
+  };
+
+  const handleUnmute = () => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_UNMUTE_TARGET, { targetDeviceId: user.deviceId });
+    setShowMenu(false);
+  };
+
+  return (
+    <div
+      className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 ${
+        isSpeaking ? 'ring-1 ring-green-500/50 shadow-lg shadow-green-500/10' : ''
+      } ${isSelf ? 'ring-1 ring-primary-500/30' : ''}`}
+      onMouseEnter={() => setShowVolume(true)}
+      onMouseLeave={() => { setShowVolume(false); setShowMenu(false); }}
+    >
+      {/* Avatar */}
+      <div className="relative">
+        <div
+          className="rounded-full flex items-center justify-center text-white font-bold text-lg select-none"
+          style={{
+            width: 56,
+            height: 56,
+            backgroundColor: color,
+            boxShadow: isSpeaking ? `0 0 20px ${color}80` : 'none',
+          }}
+        >
+          {initial}
+        </div>
+        <SpeakingIndicator isSpeaking={isSpeaking} level={speaker?.level ?? -100} />
+      </div>
+
+      {/* Name + Badge */}
+      <div className="text-center">
+        <p className="text-sm font-medium text-white truncate max-w-[100px]">
+          {user.nickname}
+          {isSelf && <span className="text-gray-500 text-xs ml-1">(我)</span>}
+        </p>
+        {isSpeaking && (
+          <div className="flex items-center justify-center gap-1 mt-1">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="w-0.5 bg-green-400 rounded-full animate-audio-bar"
+                style={{
+                  height: `${4 + Math.random() * 12}px`,
+                  animationDelay: `${i * 0.1}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Volume slider on hover */}
+      {showVolume && !isSelf && (
+        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <RemoteVolume producerDeviceId={user.deviceId} />
+        </div>
+      )}
+
+      {/* Admin menu */}
+      {isAdmin && !isSelf && (
+        <div className="absolute top-1 right-1">
+          <button
+            onClick={() => setShowMenu(!showMenu)}
+            className="text-gray-500 hover:text-white text-xs px-1.5 py-0.5 rounded transition-colors"
+          >
+            ···
+          </button>
+          {showMenu && (
+            <div className="absolute right-0 top-6 glass-panel p-1.5 flex flex-col gap-1 min-w-[80px] z-20">
+              <button onClick={handleMute} className="text-xs text-yellow-300 hover:bg-yellow-500/10 px-2 py-1 rounded text-left">禁言</button>
+              <button onClick={handleUnmute} className="text-xs text-green-300 hover:bg-green-500/10 px-2 py-1 rounded text-left">解禁</button>
+              <button onClick={handleKick} className="text-xs text-orange-300 hover:bg-orange-500/10 px-2 py-1 rounded text-left">踢出</button>
+              <button onClick={handleBan} className="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded text-left">封禁</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

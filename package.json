@@ -1,0 +1,14 @@
+{
+  "name": "voice-chat-room",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebRTC SFU-based real-time voice chat room",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
