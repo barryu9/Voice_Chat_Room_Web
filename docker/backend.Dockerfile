@@ -3,6 +3,7 @@ WORKDIR /app
 COPY backend/package*.json ./
 RUN npm ci --only=production && npm cache clean --force
 COPY backend/src ./src
+COPY backend/.env.production ./.env.production
 EXPOSE 3001
 EXPOSE 40000-49999/udp
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \

@@ -1,10 +1,16 @@
 const path = require('path');
+const fs = require('fs');
 
 const envFile = process.env.NODE_ENV === 'production'
   ? '.env.production'
   : '.env.development';
 
-require('dotenv').config({ path: path.resolve(__dirname, '..', '..', envFile) });
+const envPath = path.resolve(__dirname, '..', '..', envFile);
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+} else {
+  console.log(`[Config] No ${envFile} found, using process env vars`);
+}
 
 const required = ['MONGODB_URI', 'MEDIASOUP_LISTEN_IP', 'MEDIASOUP_ANNOUNCED_IP', 'ADMIN_PASSWORD'];
 for (const key of required) {

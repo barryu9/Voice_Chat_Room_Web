@@ -1,12 +1,10 @@
-version: "3.8"
-
 services:
   mongo:
     image: mongo:7.0
     container_name: vc-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - mongo-data:/data/db
       - /etc/localtime:/etc/localtime:ro
@@ -48,6 +46,7 @@ services:
       - "443:443"
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
