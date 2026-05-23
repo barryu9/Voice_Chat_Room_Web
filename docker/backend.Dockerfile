@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
 COPY backend/package*.json ./
 RUN npm ci --only=production && npm cache clean --force
