@@ -8,7 +8,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 WORKDIR /app
 COPY backend/package*.json ./
 RUN npm install --production --ignore-scripts && npm cache clean --force
-RUN node node_modules/mediasoup/worker/scripts/postinstall.mjs
+RUN node node_modules/mediasoup/worker/scripts/postinstall.js
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
 EXPOSE 3001
