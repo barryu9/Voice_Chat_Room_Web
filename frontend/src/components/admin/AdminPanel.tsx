@@ -61,6 +61,9 @@ export const AdminPanel: React.FC = () => {
 
   const handleDeleteAnnouncement = (id: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, { id });
+    setAdminAnnouncements((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, active: false } : a))
+    );
   };
 
   const refreshAnnouncements = () => {

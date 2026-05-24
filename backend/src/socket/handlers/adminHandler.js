@@ -68,6 +68,9 @@ function handleAdminEvents(socket, io) {
     }
 
     socket.emit(EVENTS.SERVER.SETTINGS_UPDATED, { key, value });
+    if (key === 'siteName') {
+      io.emit(EVENTS.SERVER.ANNOUNCEMENT, { siteName: value });
+    }
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, async ({ message }) => {
