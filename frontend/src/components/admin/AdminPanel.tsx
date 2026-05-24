@@ -3,6 +3,7 @@ import { getSocket } from '../../services/socketService';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { EVENTS } from '../../utils/constants';
+import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
 
 export const AdminPanel: React.FC = () => {
@@ -41,22 +42,27 @@ export const AdminPanel: React.FC = () => {
     if (!newName.trim()) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, { name: newName.trim(), maxUsers: newMax });
     setNewName('');
+    showToast(`频道 "${newName.trim()}" 已创建`, 'success');
   };
 
   const handleUpdate = () => {
     if (!editRoomId || !editName.trim()) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, { roomId: editRoomId, name: editName.trim(), maxUsers: editMax });
     setEditRoomId('');
+    showToast(`频道 "${editName.trim()}" 已更新`, 'success');
   };
 
   const handleDelete = (roomId: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
+    showToast('频道已删除', 'success');
   };
 
   const handleAnnouncement = () => {
     if (!announcementText.trim()) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, { message: announcementText.trim() });
     setAnnouncementText('');
+    showToast('公告已发布', 'success');
+    setTimeout(() => refreshAnnouncements(), 500);
   };
 
   const handleDeleteAnnouncement = (id: string) => {
@@ -64,15 +70,17 @@ export const AdminPanel: React.FC = () => {
     setAdminAnnouncements((prev) =>
       prev.map((a) => (a.id === id ? { ...a, active: false } : a))
     );
-  };
-
-  const refreshAnnouncements = () => {
-    getSocket()?.emit('admin:announcements:list');
+    showToast('公告已删除', 'success');
   };
 
   const handleSiteName = () => {
     if (!siteNameText.trim()) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'siteName', value: siteNameText.trim() });
+    showToast('站点名称已更新', 'success');
+  };
+
+  const refreshAnnouncements = () => {
+    getSocket()?.emit('admin:announcements:list');
   };
 
   return (
