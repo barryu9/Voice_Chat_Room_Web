@@ -4,10 +4,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certifi
 RUN npm config set registry https://registry.npmmirror.com
 WORKDIR /app
 COPY backend/package*.json ./
+RUN npm install --production --ignore-scripts && npm cache clean --force
 
-# mediasoup worker 预编译二进制走官方源，其余走镜像
-RUN npm config set '@aspect-build:registry' https://registry.npmjs.org
-RUN npm install --production && npm cache clean --force
+# 手动下载预编译 worker（走 GitHub 代理，免编译）
+RUN KERNEL_VER=$(uname -r | cut -d. -f1) && \
+    mkdir -p /app/node_modules/mediasoup/worker/prebuild && \
+    for proxy in "https://ghproxy.com/" ""; do \
+      wget -q --show-progress --timeout=30 --tries=2 \
+        "${proxy}https://github.com/versatica/mediasoup/releases/download/3.19.22/mediasoup-worker-3.19.22-linux-x64-kernel${KERNEL_VER}.tgz" \
+        -O /tmp/worker.tgz 2>/dev/null && break; \
+    done && \
+    tar -xzf /tmp/worker.tgz -C /app/node_modules/mediasoup/worker/prebuild/ && \
+    rm /tmp/worker.tgz && \
+    chmod +x /app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
+
+ENV MEDIASOUP_WORKER_BIN=/app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
 EXPOSE 3001
