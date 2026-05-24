@@ -13,6 +13,7 @@ import { useDevices } from '../../hooks/useDevices';
 import { showToast } from '../common/Toast';
 import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes } from '../../services/audioService';
 import { Announcement } from '../common/Announcement';
+import { TechBackground } from '../common/TechBackground';
 import { LatencyIndicator } from './LatencyIndicator';
 
 export const RoomPanel: React.FC = () => {
@@ -114,7 +115,8 @@ export const RoomPanel: React.FC = () => {
   if (!currentRoom) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="min-h-screen relative bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950">
+      <TechBackground />
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -203,7 +205,7 @@ export const RoomPanel: React.FC = () => {
             <button
               onClick={handleVoiceConnect}
               disabled={connecting}
-              className="bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
+              className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
               {connecting ? '连接中...' : '加入语音'}
             </button>

@@ -143,7 +143,7 @@ export const AdminPanel: React.FC = () => {
                   <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="频道名称" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
                   <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="简称（可选）" className="w-28 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
                   <input type="number" value={newMax} onChange={(e) => setNewMax(parseInt(e.target.value) || 20)} min={2} max={100} className="w-20 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-                  <button onClick={handleCreate} className="bg-green-600 hover:bg-green-500 text-white text-sm px-4 py-2 rounded-lg transition-all">创建</button>
+                  <button onClick={handleCreate} className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all">创建</button>
                 </div>
               </div>
 

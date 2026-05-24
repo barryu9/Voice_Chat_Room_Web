@@ -41,10 +41,10 @@ export const Announcement: React.FC<AnnouncementListProps> = ({ announcements })
       {visible.map((a) => (
         <div
           key={a.id}
-          className="bg-blue-500/10 border border-blue-500/30 text-blue-300 px-4 py-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2"
+          className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 px-4 py-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2"
         >
           <span className="text-sm">
-            <span className="text-blue-400/70 mr-2">{formatTime(a.createdAt)}</span>
+            <span className="text-cyan-400/70 mr-2">{formatTime(a.createdAt)}</span>
             {a.message}
           </span>
           <button

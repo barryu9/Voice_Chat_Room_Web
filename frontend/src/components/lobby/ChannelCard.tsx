@@ -39,7 +39,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({ channel, onJoin, disab
         <button
           onClick={() => onJoin(channel.roomId)}
           disabled={disabled}
-          className="bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all active:scale-95"
+          className="bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-all active:scale-95"
         >
           加入
         </button>

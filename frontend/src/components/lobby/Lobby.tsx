@@ -10,6 +10,7 @@ import { ChannelCard } from './ChannelCard';
 import { NicknameModal } from './NicknameModal';
 import { AdminLogin } from '../admin/AdminLogin';
 import { Announcement } from '../common/Announcement';
+import { TechBackground } from '../common/TechBackground';
 
 export const Lobby: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
@@ -67,7 +68,8 @@ export const Lobby: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+    <div className="min-h-screen relative bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950">
+      <TechBackground />
       <div className="max-w-5xl mx-auto px-4 py-8">
         <header className="flex items-center justify-between mb-8">
           <div>
@@ -101,7 +103,7 @@ export const Lobby: React.FC = () => {
           <div className="flex gap-3">
             <button
               onClick={handleLogout}
-              className="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-all"
+              className="text-sm bg-white/10 hover:bg-white/20 text-gray-300 px-4 py-2 rounded-lg transition-all border border-white/10"
             >
               退出登录
             </button>
