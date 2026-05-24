@@ -1,7 +1,21 @@
 FROM node:22-slim
+
+# apt 阿里云镜像 + mediasoup 编译依赖
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip make g++ \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && rm -rf /var/lib/apt/lists/*
+
+# npm 淘宝镜像 + pip 阿里云镜像
+RUN npm config set registry https://registry.npmmirror.com
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
 WORKDIR /app
 COPY backend/package*.json ./
 RUN npm install --omit=dev && npm cache clean --force
+
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
 EXPOSE 3001
