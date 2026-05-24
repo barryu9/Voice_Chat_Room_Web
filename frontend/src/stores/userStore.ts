@@ -24,5 +24,5 @@ export const useUserStore = create<UserState>((set) => ({
   setCurrentRoom: (roomId) => set({ currentRoom: roomId }),
   setNickname: (n) => set({ nickname: n }),
   setDeviceId: (id) => set({ deviceId: id }),
-  logout: () => set({ userId: null, nickname: '', deviceId: null, currentRoom: null, isLoggedIn: false }),
+  logout: () => set({ userId: null, nickname: '', currentRoom: null, isLoggedIn: false }),
 }));

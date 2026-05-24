@@ -3,7 +3,7 @@ import { useRoomStore } from '../../stores/roomStore';
 import { useUserStore } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { useMediaStore } from '../../stores/mediaStore';
-import { getSocket, disconnectSocket } from '../../services/socketService';
+import { getSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
 import { deleteCookie, getCookie, setCookie } from '../../utils/cookies';
 import { ChannelCard } from './ChannelCard';
@@ -42,7 +42,6 @@ export const Lobby: React.FC = () => {
     }
     deleteCookie('vc_nickname');
     useMediaStore.getState().reset();
-    disconnectSocket();
     logout();
   };
 
