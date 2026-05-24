@@ -11,7 +11,7 @@ RUN echo "registry=https://registry.npmmirror.com" > .npmrc && \
     echo "@aspect-build:registry=https://registry.npmjs.org" >> .npmrc
 
 COPY backend/package*.json ./
-RUN npm install --omit=dev --loglevel=verbose && npm cache clean --force
+RUN npm install --omit=dev --loglevel=verbose
 
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
