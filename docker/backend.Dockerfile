@@ -1,12 +1,12 @@
 FROM node:22-slim
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-setuptools make g++ wget \
+RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 RUN npm config set registry https://registry.npmmirror.com
-ENV PIP_BREAK_SYSTEM_PACKAGES=1
 WORKDIR /app
 COPY backend/package*.json ./
+
+# mediasoup worker 预编译二进制走官方源，其余走镜像
+RUN npm config set '@aspect-build:registry' https://registry.npmjs.org
 RUN npm install --production && npm cache clean --force
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
