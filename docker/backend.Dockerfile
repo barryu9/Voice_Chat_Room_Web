@@ -6,17 +6,17 @@ WORKDIR /app
 COPY backend/package*.json ./
 RUN npm install --production --ignore-scripts && npm cache clean --force
 
-# 手动下载预编译 worker（走 GitHub 代理，免编译）
+# 通过 ghproxy 下载预编译 worker（免编译）
 RUN KERNEL_VER=$(uname -r | cut -d. -f1) && \
+    URL="https://ghproxy.com/https://github.com/versatica/mediasoup/releases/download/3.19.22/mediasoup-worker-3.19.22-linux-x64-kernel${KERNEL_VER}.tgz" && \
+    echo "Downloading worker: $URL" && \
+    wget -q --show-progress --timeout=60 --tries=3 "$URL" -O /tmp/worker.tgz && \
+    file /tmp/worker.tgz && \
     mkdir -p /app/node_modules/mediasoup/worker/prebuild && \
-    for proxy in "https://ghproxy.com/" ""; do \
-      wget -q --show-progress --timeout=30 --tries=2 \
-        "${proxy}https://github.com/versatica/mediasoup/releases/download/3.19.22/mediasoup-worker-3.19.22-linux-x64-kernel${KERNEL_VER}.tgz" \
-        -O /tmp/worker.tgz 2>/dev/null && break; \
-    done && \
     tar -xzf /tmp/worker.tgz -C /app/node_modules/mediasoup/worker/prebuild/ && \
     rm /tmp/worker.tgz && \
-    chmod +x /app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
+    chmod +x /app/node_modules/mediasoup/worker/prebuild/mediasoup-worker && \
+    file /app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
 
 ENV MEDIASOUP_WORKER_BIN=/app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
 COPY backend/src ./src
