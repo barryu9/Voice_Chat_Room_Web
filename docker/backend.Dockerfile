@@ -14,7 +14,7 @@ ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /app
 COPY backend/package*.json ./
-RUN npm install --production && npm cache clean --force
+RUN npm install --omit=dev && npm cache clean --force
 
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
