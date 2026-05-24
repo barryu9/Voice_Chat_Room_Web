@@ -25,6 +25,8 @@ export const EVENTS = {
     ADMIN_BANLIST:         'admin:banlist',
     ADMIN_MUTE_TARGET:     'admin:mute-target',
     ADMIN_UNMUTE_TARGET:   'admin:unmute-target',
+    ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
+    ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
   },
   SERVER: {
     LOGIN_SUCCESS:       'user:login-success',
@@ -36,6 +38,7 @@ export const EVENTS = {
     USER_JOINED:         'room:user-joined',
     USER_LEFT:           'room:user-left',
     ROOM_INFO_UPDATED:   'room:info-updated',
+    ROOM_ONLINE_UPDATED: 'room:online-updated',
     ANNOUNCEMENT:        'announcement',
     RTP_CAPABILITIES:    'rtp:capabilities',
     TRANSPORT_CREATED:   'transport:created',
@@ -53,6 +56,7 @@ export const EVENTS = {
     ADMIN_AUTH_RESULT:   'admin:auth-result',
     ADMIN_BANLIST:       'admin:banlist',
     SETTINGS_UPDATED:    'admin:settings-updated',
+    ANNOUNCEMENTS_UPDATED: 'announcements:updated',
   },
 } as const;
 
@@ -61,6 +65,15 @@ export type Channel = {
   name: string;
   maxUsers: number;
   isDefault?: boolean;
+  onlineCount?: number;
+  voiceCount?: number;
+};
+
+export type Announcement = {
+  id: string;
+  message: string;
+  createdAt: string;
+  active?: boolean;
 };
 
 export type UserInfo = {

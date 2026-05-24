@@ -11,22 +11,31 @@ import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
 import { showToast } from '../common/Toast';
+import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes } from '../../services/audioService';
+import { Announcement } from '../common/Announcement';
+import { LatencyIndicator } from './LatencyIndicator';
 
 export const RoomPanel: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
   const setCurrentRoom = useUserStore((s) => s.setCurrentRoom);
+  const myDeviceId = useUserStore((s) => s.deviceId);
   const channels = useRoomStore((s) => s.channels);
-  const announcement = useRoomStore((s) => s.roomAnnouncement);
+  const notification = useRoomStore((s) => s.notification);
+  const announcements = useRoomStore((s) => s.announcements);
+  const peerLatencies = useRoomStore((s) => s.peerLatencies);
   const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
   const setVoiceConnected = useMediaStore((s) => s.setVoiceConnected);
   const isMicMuted = useMediaStore((s) => s.isMicMuted);
+  const isAllMuted = useMediaStore((s) => s.isAllMuted);
+  const toggleMuteAll = useMediaStore((s) => s.toggleMuteAll);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
   const { gain, muted, threshold, toggleMute, updateGain, updateThreshold, cleanup } = useAudioGraph();
-  const { selectedInput, setSelectedInput, audioInputs, getTrack } = useDevices();
+  const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack } = useDevices();
 
   const [connecting, setConnecting] = useState(false);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
+  const selfLatency = myDeviceId ? peerLatencies.get(myDeviceId) : undefined;
 
   const handleVoiceConnect = useCallback(async () => {
     if (connecting) return;
@@ -79,6 +88,24 @@ export const RoomPanel: React.FC = () => {
     getSocket()?.emit(EVENTS.CLIENT.USER_MUTE_SELF, { muted: newMuted });
   }, [toggleMute]);
 
+  const handleOutputChange = useCallback(async (deviceId: string) => {
+    setSelectedOutput(deviceId);
+    try {
+      await setAllSinkIds(deviceId);
+    } catch (e) {
+      console.warn('[RoomPanel] setSinkId failed:', e);
+    }
+  }, [setSelectedOutput]);
+
+  const handleToggleMuteAll = useCallback(() => {
+    if (isAllMuted) {
+      unmuteAllRemotes();
+    } else {
+      muteAllRemotes();
+    }
+    toggleMuteAll();
+  }, [isAllMuted, toggleMuteAll]);
+
   if (!currentRoom) return null;
 
   return (
@@ -97,10 +124,15 @@ export const RoomPanel: React.FC = () => {
           </button>
         </div>
 
-        {announcement && (
+        {announcements.length > 0 && (
+          <div className="mb-4">
+            <Announcement announcements={announcements} />
+          </div>
+        )}
+        {notification && (
           <div className="mb-4">
             <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 px-4 py-2 rounded-xl text-sm">
-              {announcement}
+              {notification}
             </div>
           </div>
         )}
@@ -123,9 +155,25 @@ export const RoomPanel: React.FC = () => {
 
           <DeviceSelector
             inputs={audioInputs}
+            outputs={audioOutputs}
             selectedInput={selectedInput}
+            selectedOutput={selectedOutput}
             onInputChange={handleDeviceChange}
+            onOutputChange={handleOutputChange}
           />
+
+          {selfLatency != null && <LatencyIndicator latency={selfLatency} />}
+
+          <button
+            onClick={handleToggleMuteAll}
+            className={`text-sm px-4 py-2 rounded-xl transition-all ${
+              isAllMuted
+                ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
+                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+            }`}
+          >
+            {isAllMuted ? '取消静音' : '全部静音'}
+          </button>
 
           <div className="flex-1" />
 

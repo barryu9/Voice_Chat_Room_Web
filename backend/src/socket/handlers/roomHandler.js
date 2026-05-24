@@ -1,4 +1,4 @@
-const { getRoom } = require('../../mediasoup/roomManager');
+const { getRoom, getRooms, broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
 const { getConnection } = require('./connection');
 const { EVENTS } = require('../events');
 
@@ -7,8 +7,17 @@ function handleRoomEvents(socket, io) {
   socket.on(EVENTS.CLIENT.ROOM_LIST, async (_, cb) => {
     const { getAllChannels } = require('../../services/channelService');
     const channels = await getAllChannels();
-    socket.emit(EVENTS.SERVER.ROOM_LIST, { rooms: channels });
-    if (typeof cb === 'function') cb(channels);
+    const rooms = getRooms();
+    const enriched = channels.map((ch) => {
+      const room = rooms.get(ch.roomId);
+      return {
+        ...ch,
+        onlineCount: room ? room.users.size : 0,
+        voiceCount: room ? room.getVoiceUserCount() : 0,
+      };
+    });
+    socket.emit(EVENTS.SERVER.ROOM_LIST, { rooms: enriched });
+    if (typeof cb === 'function') cb(enriched);
   });
 
   socket.on(EVENTS.CLIENT.ROOM_JOIN, async ({ roomId }) => {
@@ -43,10 +52,13 @@ function handleRoomEvents(socket, io) {
     }
     socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId, users: voiceUsers, count: voiceUsers.length });
 
-    const { getAnnouncement, getSiteName } = require('../../services/channelService');
+    const { getAnnouncement, getSiteName, getAnnouncements } = require('../../services/channelService');
     const announcement = await getAnnouncement();
     const siteName = await getSiteName();
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: announcement, type: 'info', siteName });
+
+    const announcements = await getAnnouncements();
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements });
 
     for (const [pid, info] of room.producers) {
       if (info.socketId !== socket.id) {
@@ -58,6 +70,8 @@ function handleRoomEvents(socket, io) {
         });
       }
     }
+
+    broadcastAllRoomOnlineCounts(io);
   });
 
   socket.on(EVENTS.CLIENT.ROOM_LEAVE, () => {
@@ -112,6 +126,7 @@ function leaveCurrentRoom(socket, io) {
   }
 
   conn.currentRoom = null;
+  broadcastAllRoomOnlineCounts(io);
 }
 
 module.exports = { handleRoomEvents, leaveCurrentRoom };

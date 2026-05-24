@@ -1,9 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import { useUserStore } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
-import { getSocket } from '../../services/socketService';
+import { useMediaStore } from '../../stores/mediaStore';
+import { getSocket, disconnectSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
+import { deleteCookie, getCookie, setCookie } from '../../utils/cookies';
 import { ChannelCard } from './ChannelCard';
 import { NicknameModal } from './NicknameModal';
 import { AdminLogin } from '../admin/AdminLogin';
@@ -15,10 +17,16 @@ export const Lobby: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
   const userId = useUserStore((s) => s.userId);
   const nickname = useUserStore((s) => s.nickname);
-  const announcement = useRoomStore((s) => s.roomAnnouncement);
+  const deviceId = useUserStore((s) => s.deviceId);
+  const setNickname = useUserStore((s) => s.setNickname);
+  const logout = useUserStore((s) => s.logout);
+  const announcement = useRoomStore((s) => s.notification);
+  const announcements = useRoomStore((s) => s.announcements);
   const siteName = useRoomStore((s) => s.siteName);
   const showAdmin = useAdminStore((s) => s.isAdmin);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [newNickname, setNewNickname] = useState('');
 
   useEffect(() => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_LIST);
@@ -26,6 +34,33 @@ export const Lobby: React.FC = () => {
 
   const handleJoin = (roomId: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId });
+  };
+
+  const handleLogout = () => {
+    if (currentRoom) {
+      getSocket()?.emit(EVENTS.CLIENT.ROOM_LEAVE);
+    }
+    deleteCookie('vc_nickname');
+    useMediaStore.getState().reset();
+    disconnectSocket();
+    logout();
+  };
+
+  const handleStartEditNickname = () => {
+    setNewNickname(nickname);
+    setEditingNickname(true);
+  };
+
+  const handleSaveNickname = () => {
+    const trimmed = newNickname.trim();
+    if (!trimmed || trimmed === nickname) {
+      setEditingNickname(false);
+      return;
+    }
+    getSocket()?.emit('user:updateNickname', { nickname: trimmed });
+    setNickname(trimmed);
+    setCookie('vc_nickname', trimmed);
+    setEditingNickname(false);
   };
 
   if (!isLoggedIn) {
@@ -40,11 +75,37 @@ export const Lobby: React.FC = () => {
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
               {siteName}
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
               已登录: <span className="text-gray-300">{nickname}</span>
+              <button
+                onClick={handleStartEditNickname}
+                className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
+              >
+                编辑
+              </button>
             </p>
+            {editingNickname && (
+              <div className="flex items-center gap-1 mt-1">
+                <input
+                  value={newNickname}
+                  onChange={(e) => setNewNickname(e.target.value)}
+                  maxLength={16}
+                  className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary-500/50 w-36"
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNickname(); if (e.key === 'Escape') setEditingNickname(false); }}
+                />
+                <button onClick={handleSaveNickname} className="text-xs bg-primary-600 hover:bg-primary-500 text-white px-2 py-1 rounded-lg">保存</button>
+                <button onClick={() => setEditingNickname(false)} className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded-lg">取消</button>
+              </div>
+            )}
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={handleLogout}
+              className="text-sm bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-all"
+            >
+              退出登录
+            </button>
             {!showAdmin && <AdminLogin />}
             {showAdmin && (
               <button
@@ -57,9 +118,16 @@ export const Lobby: React.FC = () => {
           </div>
         </header>
 
+        {announcements.length > 0 && (
+          <div className="mb-6">
+            <Announcement announcements={announcements} />
+          </div>
+        )}
         {announcement && (
           <div className="mb-6">
-            <Announcement message={announcement} onDismiss={() => {}} />
+            <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 px-4 py-3 rounded-xl text-sm">
+              {announcement}
+            </div>
           </div>
         )}
 

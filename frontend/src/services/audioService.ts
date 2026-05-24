@@ -111,6 +111,49 @@ export function cleanupRemoteAudio(producerId: string) {
   }
 }
 
+export async function setAllSinkIds(deviceId: string): Promise<void> {
+  const promises: Promise<void>[] = [];
+  for (const [, audio] of remoteAudioElements) {
+    if ('setSinkId' in (audio as any)) {
+      promises.push((audio as any).setSinkId(deviceId));
+    }
+  }
+  try {
+    await Promise.all(promises);
+  } catch (e) {
+    console.warn('[Audio] setSinkId failed for some elements:', e);
+  }
+}
+
+export function muteRemote(producerId: string) {
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) audio.volume = 0;
+}
+
+export function unmuteRemote(producerId: string) {
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) audio.volume = 1.0;
+}
+
+export function muteAllRemotes() {
+  for (const [, audio] of remoteAudioElements) {
+    audio.volume = 0;
+  }
+}
+
+export function unmuteAllRemotes() {
+  for (const [, audio] of remoteAudioElements) {
+    audio.volume = 1.0;
+  }
+}
+
+export function applyMuteState(producerId: string, isGloballyMuted: boolean, isPerUserMuted: boolean) {
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) {
+    audio.volume = (isGloballyMuted || isPerUserMuted) ? 0 : 1.0;
+  }
+}
+
 export function cleanupLocalAudio() {
   if (localAudioSource) {
     localAudioSource.disconnect();

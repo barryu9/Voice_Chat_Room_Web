@@ -1,12 +1,14 @@
 import { create } from 'zustand';
-import type { Channel, UserInfo } from '../utils/constants';
+import type { Channel, UserInfo, Announcement } from '../utils/constants';
 
 interface RoomState {
   channels: Channel[];
   roomUsers: Map<string, UserInfo>;
   userCount: number;
   activeSpeakers: Map<string, { level: number; isSpeaking: boolean }>;
-  roomAnnouncement: string;
+  peerLatencies: Map<string, number>;
+  announcements: Announcement[];
+  notification: string;
   siteName: string;
   setChannels: (ch: Channel[]) => void;
   addChannel: (ch: Channel) => void;
@@ -15,8 +17,11 @@ interface RoomState {
   setRoomUsers: (users: UserInfo[]) => void;
   addUser: (user: UserInfo) => void;
   removeUser: (userId: string) => void;
+  updateUserNickname: (userId: string, nickname: string) => void;
   setActiveSpeaker: (deviceId: string, level: number, isSpeaking: boolean) => void;
-  setAnnouncement: (msg: string) => void;
+  setPeerLatency: (deviceId: string, latency: number) => void;
+  setAnnouncements: (list: Announcement[]) => void;
+  setNotification: (msg: string) => void;
   setSiteName: (name: string) => void;
 }
 
@@ -25,7 +30,9 @@ export const useRoomStore = create<RoomState>((set) => ({
   roomUsers: new Map(),
   userCount: 0,
   activeSpeakers: new Map(),
-  roomAnnouncement: '',
+  peerLatencies: new Map(),
+  announcements: [],
+  notification: '',
   siteName: '语音聊天室',
 
   setChannels: (ch) => set({ channels: ch }),
@@ -53,6 +60,16 @@ export const useRoomStore = create<RoomState>((set) => ({
       m.delete(userId);
       return { roomUsers: m, userCount: m.size };
     }),
+  updateUserNickname: (userId, nickname) =>
+    set((s) => {
+      const m = new Map(s.roomUsers);
+      const u = m.get(userId);
+      if (u) {
+        m.set(userId, { ...u, nickname });
+        return { roomUsers: m };
+      }
+      return {};
+    }),
 
   setActiveSpeaker: (deviceId, level, isSpeaking) =>
     set((s) => {
@@ -61,6 +78,14 @@ export const useRoomStore = create<RoomState>((set) => ({
       return { activeSpeakers: m };
     }),
 
-  setAnnouncement: (msg) => set({ roomAnnouncement: msg }),
+  setPeerLatency: (deviceId, latency) =>
+    set((s) => {
+      const m = new Map(s.peerLatencies);
+      m.set(deviceId, latency);
+      return { peerLatencies: m };
+    }),
+
+  setAnnouncements: (list) => set({ announcements: list }),
+  setNotification: (msg) => set({ notification: msg }),
   setSiteName: (name) => set({ siteName: name }),
 }));

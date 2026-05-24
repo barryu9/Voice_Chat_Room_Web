@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { Channel } from '../utils/constants';
 
 interface UserState {
   userId: string | null;
@@ -11,6 +10,7 @@ interface UserState {
   setCurrentRoom: (roomId: string | null) => void;
   setNickname: (n: string) => void;
   setDeviceId: (id: string) => void;
+  logout: () => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -24,4 +24,5 @@ export const useUserStore = create<UserState>((set) => ({
   setCurrentRoom: (roomId) => set({ currentRoom: roomId }),
   setNickname: (n) => set({ nickname: n }),
   setDeviceId: (id) => set({ deviceId: id }),
+  logout: () => set({ userId: null, nickname: '', deviceId: null, currentRoom: null, isLoggedIn: false }),
 }));

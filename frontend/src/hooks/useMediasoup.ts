@@ -14,6 +14,7 @@ import {
   setupRemoteAudio,
   destroyAudioGraph,
   cleanupRemoteAudio,
+  applyMuteState,
 } from '../services/audioService';
 import { EVENTS } from '../utils/constants';
 
@@ -77,6 +78,8 @@ export function useMediasoup() {
           await setupRemoteAudio(consumer, producerId);
           useMediaStore.getState().markConsumed(producerId);
           useMediaStore.getState().addConsumer(producerId, consumer);
+          const ms = useMediaStore.getState();
+          applyMuteState(producerId, ms.isAllMuted, ms.mutedUsers.has(info.deviceId));
         }
       } catch (e) {
         console.warn('[useMediasoup] consume failed for', producerId, e);
@@ -94,6 +97,8 @@ export function useMediasoup() {
           await setupRemoteAudio(consumer, data.producerId);
           useMediaStore.getState().markConsumed(data.producerId);
           useMediaStore.getState().addConsumer(data.producerId, consumer);
+          const ms = useMediaStore.getState();
+          applyMuteState(data.producerId, ms.isAllMuted, ms.mutedUsers.has(data.deviceId));
         }
       } catch (e) {
         console.warn('[useMediasoup] consume failed for new producer', data.producerId, e);

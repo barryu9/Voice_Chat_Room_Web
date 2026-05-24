@@ -1,27 +1,60 @@
-import React from 'react';
+import React, { useState } from 'react';
+import type { Announcement as AnnouncementType } from '../../utils/constants';
 
-interface AnnouncementProps {
-  message: string;
-  type?: 'info' | 'success' | 'warning' | 'error';
-  onDismiss?: () => void;
+interface AnnouncementListProps {
+  announcements: AnnouncementType[];
 }
 
-export const Announcement: React.FC<AnnouncementProps> = ({ message, type = 'info', onDismiss }) => {
-  if (!message) return null;
+function getDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem('vc_dismissed_announcements');
+    if (raw) return new Set(JSON.parse(raw));
+  } catch { /* ignore */ }
+  return new Set();
+}
 
-  const colors = {
-    info: 'bg-blue-500/10 border-blue-500/30 text-blue-300',
-    success: 'bg-green-500/10 border-green-500/30 text-green-300',
-    warning: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300',
-    error: 'bg-red-500/10 border-red-500/30 text-red-300',
+function persistDismissed(ids: Set<string>) {
+  localStorage.setItem('vc_dismissed_announcements', JSON.stringify([...ids]));
+}
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export const Announcement: React.FC<AnnouncementListProps> = ({ announcements }) => {
+  const [dismissed, setDismissed] = useState<Set<string>>(getDismissed);
+
+  const visible = announcements.filter((a) => !dismissed.has(a.id));
+  if (visible.length === 0) return null;
+
+  const handleDismiss = (id: string) => {
+    const next = new Set(dismissed);
+    next.add(id);
+    setDismissed(next);
+    persistDismissed(next);
   };
 
   return (
-    <div className={`${colors[type]} border px-4 py-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2`}>
-      <span className="text-sm">{message}</span>
-      {onDismiss && (
-        <button onClick={onDismiss} className="ml-3 opacity-60 hover:opacity-100 transition-opacity text-lg leading-none">&times;</button>
-      )}
+    <div className="space-y-2">
+      {visible.map((a) => (
+        <div
+          key={a.id}
+          className="bg-blue-500/10 border border-blue-500/30 text-blue-300 px-4 py-3 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2"
+        >
+          <span className="text-sm">
+            <span className="text-blue-400/70 mr-2">{formatTime(a.createdAt)}</span>
+            {a.message}
+          </span>
+          <button
+            onClick={() => handleDismiss(a.id)}
+            className="ml-3 opacity-60 hover:opacity-100 transition-opacity text-lg leading-none shrink-0"
+          >
+            &times;
+          </button>
+        </div>
+      ))}
     </div>
   );
 };

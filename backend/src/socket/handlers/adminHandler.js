@@ -10,7 +10,8 @@ const { EVENTS } = require('../events');
 function handleAdminEvents(socket, io) {
 
   socket.on(EVENTS.CLIENT.ADMIN_AUTH, ({ password }) => {
-    const success = authenticate(password, socket.id);
+    const conn = getConnection(socket.id);
+    const success = authenticate(password, socket.id, conn?.deviceId || '');
     socket.emit(EVENTS.SERVER.ADMIN_AUTH_RESULT, { success, message: success ? 'Authenticated' : 'Wrong password' });
   });
 
@@ -67,6 +68,57 @@ function handleAdminEvents(socket, io) {
     }
 
     socket.emit(EVENTS.SERVER.SETTINGS_UPDATED, { key, value });
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, async ({ message }) => {
+    if (!isAdmin(socket.id)) return;
+    if (!message || !message.trim()) return;
+
+    const doc = await SiteSettings.findOne({ key: 'announcements' });
+    const list = doc?.value ? JSON.parse(doc.value) : [];
+    const entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      message: message.trim(),
+      createdAt: new Date().toISOString(),
+      active: true,
+    };
+    list.push(entry);
+
+    await SiteSettings.findOneAndUpdate(
+      { key: 'announcements' },
+      { key: 'announcements', value: JSON.stringify(list) },
+      { upsert: true, new: true }
+    );
+
+    const active = list.filter((a) => a.active);
+    io.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements: active });
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, async ({ id }) => {
+    if (!isAdmin(socket.id)) return;
+
+    const doc = await SiteSettings.findOne({ key: 'announcements' });
+    if (!doc?.value) return;
+
+    const list = JSON.parse(doc.value);
+    const idx = list.findIndex((a) => a.id === id);
+    if (idx === -1) return;
+    list[idx].active = false;
+
+    await SiteSettings.findOneAndUpdate(
+      { key: 'announcements' },
+      { value: JSON.stringify(list) }
+    );
+
+    const active = list.filter((a) => a.active);
+    io.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements: active });
+  });
+
+  socket.on('admin:announcements:list', async () => {
+    if (!isAdmin(socket.id)) return;
+    const doc = await SiteSettings.findOne({ key: 'announcements' });
+    const list = doc?.value ? JSON.parse(doc.value) : [];
+    socket.emit('admin:announcements:list', { announcements: list });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_KICK, ({ targetDeviceId }) => {

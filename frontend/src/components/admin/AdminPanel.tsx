@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getSocket } from '../../services/socketService';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
@@ -19,6 +19,21 @@ export const AdminPanel: React.FC = () => {
   const [editMax, setEditMax] = useState(20);
   const [announcementText, setAnnouncementText] = useState('');
   const [siteNameText, setSiteNameText] = useState(siteName);
+  const [adminAnnouncements, setAdminAnnouncements] = useState<Array<{ id: string; message: string; createdAt: string; active: boolean }>>([]);
+
+  useEffect(() => {
+    if (showPanel && tab === 'announcement') {
+      const socket = getSocket();
+      const handler = (data: { announcements: Array<{ id: string; message: string; createdAt: string; active: boolean }> }) => {
+        setAdminAnnouncements(data.announcements || []);
+      };
+      socket?.on('admin:announcements:list', handler);
+      socket?.emit('admin:announcements:list');
+      return () => {
+        socket?.off('admin:announcements:list', handler);
+      };
+    }
+  }, [showPanel, tab]);
 
   if (!showPanel) return null;
 
@@ -31,6 +46,7 @@ export const AdminPanel: React.FC = () => {
   const handleUpdate = () => {
     if (!editRoomId || !editName.trim()) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, { roomId: editRoomId, name: editName.trim(), maxUsers: editMax });
+    setEditRoomId('');
   };
 
   const handleDelete = (roomId: string) => {
@@ -38,8 +54,17 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleAnnouncement = () => {
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'announcement', value: announcementText });
+    if (!announcementText.trim()) return;
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, { message: announcementText.trim() });
     setAnnouncementText('');
+  };
+
+  const handleDeleteAnnouncement = (id: string) => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, { id });
+  };
+
+  const refreshAnnouncements = () => {
+    getSocket()?.emit('admin:announcements:list');
   };
 
   const handleSiteName = () => {
@@ -132,15 +157,39 @@ export const AdminPanel: React.FC = () => {
               </div>
 
               <div className="glass-card p-4 space-y-3">
-                <h4 className="text-sm font-medium text-gray-300">全站公告</h4>
-                <textarea
-                  value={announcementText}
-                  onChange={(e) => setAnnouncementText(e.target.value)}
-                  placeholder="输入公告内容..."
-                  rows={3}
-                  className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 resize-none"
-                />
-                <button onClick={handleAnnouncement} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all">发布公告</button>
+                <h4 className="text-sm font-medium text-gray-300">发布新公告</h4>
+                <div className="flex gap-2">
+                  <input
+                    value={announcementText}
+                    onChange={(e) => setAnnouncementText(e.target.value)}
+                    placeholder="输入公告内容..."
+                    className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50"
+                  />
+                  <button onClick={handleAnnouncement} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all">发布</button>
+                </div>
+              </div>
+
+              <div className="glass-card p-4 space-y-3">
+                <h4 className="text-sm font-medium text-gray-300">公告列表</h4>
+                {adminAnnouncements.length === 0 && (
+                  <p className="text-sm text-gray-500">暂无公告</p>
+                )}
+                {adminAnnouncements.filter((a) => a.active).map((a) => (
+                  <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-700/30 last:border-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white truncate">{a.message}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(a.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteAnnouncement(a.id)}
+                      className="text-xs text-red-400 hover:text-red-300 ml-2 shrink-0"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           )}

@@ -6,7 +6,10 @@ import { SpeakingIndicator } from './SpeakingIndicator';
 import { RemoteVolume } from '../audio/RemoteVolume';
 import { useUserStore } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
+import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
+import { muteRemote, unmuteRemote } from '../../services/audioService';
+import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS } from '../../utils/constants';
 
 interface UserCardProps {
@@ -17,12 +20,28 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const activeSpeakers = useRoomStore((s) => s.activeSpeakers);
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const currentDeviceId = useUserStore((s) => s.deviceId);
-  const [showVolume, setShowVolume] = useState(false);
+  const mutedUsers = useMediaStore((s) => s.mutedUsers);
+  const toggleMuteUser = useMediaStore((s) => s.toggleMuteUser);
+  const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
+  const peerLatencies = useRoomStore((s) => s.peerLatencies);
   const [showMenu, setShowMenu] = useState(false);
 
   const speaker = activeSpeakers.get(user.deviceId);
   const isSpeaking = !!speaker?.isSpeaking;
   const isSelf = user.deviceId === currentDeviceId;
+  const isMuted = mutedUsers.has(user.deviceId);
+  const peerLatency = peerLatencies.get(user.deviceId);
+
+  const handleToggleLocalMute = () => {
+    const pid = getProducerIdByDeviceId(user.deviceId);
+    if (!pid) return;
+    if (isMuted) {
+      unmuteRemote(pid);
+    } else {
+      muteRemote(pid);
+    }
+    toggleMuteUser(user.deviceId);
+  };
 
   const color = getAvatarColor(user.userId);
   const initial = getInitial(user.nickname);
@@ -49,11 +68,10 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
   return (
     <div
-      className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 ${
+      className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 group/hover ${
         isSpeaking ? 'ring-1 ring-green-500/50 shadow-lg shadow-green-500/10' : ''
       } ${isSelf ? 'ring-1 ring-primary-500/30' : ''}`}
-      onMouseEnter={() => setShowVolume(true)}
-      onMouseLeave={() => { setShowVolume(false); setShowMenu(false); }}
+      onMouseLeave={() => { setShowMenu(false); }}
     >
       {/* Avatar */}
       <div className="relative">
@@ -91,11 +109,33 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
             ))}
           </div>
         )}
+        {peerLatency != null && (
+          <div className="mt-1 flex justify-center">
+            <LatencyIndicator latency={peerLatency} />
+          </div>
+        )}
       </div>
 
       {/* Volume slider on hover */}
-      {showVolume && !isSelf && (
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 z-10">
+      {!isSelf && (
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/hover:pointer-events-auto z-10 flex items-center gap-1">
+          <button
+            onClick={handleToggleLocalMute}
+            className="text-gray-400 hover:text-white transition-colors"
+            title={isMuted ? '取消静音' : '静音'}
+          >
+            {isMuted ? (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" strokeWidth="2" />
+                <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+            )}
+          </button>
           <RemoteVolume producerDeviceId={user.deviceId} />
         </div>
       )}

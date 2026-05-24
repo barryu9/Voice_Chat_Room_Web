@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useUserStore } from '../../stores/userStore';
-import { useDeviceId } from '../../hooks/useDeviceId';
 import { getSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
+import { setCookie } from '../../utils/cookies';
 
 interface NicknameModalProps {
   onClose: () => void;
@@ -11,7 +11,7 @@ interface NicknameModalProps {
 export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
-  const deviceId = useDeviceId();
+  const deviceId = useUserStore((s) => s.deviceId);
   const setLogin = useUserStore((s) => s.setLogin);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,6 +32,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
 
     const onSuccess = (data: any) => {
       setLogin(data.userId, data.nickname, data.deviceId);
+      setCookie('vc_nickname', data.nickname);
       setLoading(false);
       onClose();
     };

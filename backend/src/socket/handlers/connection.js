@@ -36,6 +36,38 @@ function handleConnection(socket, io) {
       deviceId,
       rooms: channels,
     });
+
+    const { getAnnouncements } = require('../../services/channelService');
+    const announcements = await getAnnouncements();
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements });
+  });
+
+  socket.on('latency:ping', (cb) => {
+    if (typeof cb === 'function') cb({ time: Date.now() });
+  });
+
+  socket.on('latency:report', ({ deviceId, latency }) => {
+    const conn = connections.get(socket.id);
+    if (!conn) return;
+    if (conn.currentRoom) {
+      socket.to(conn.currentRoom).emit('latency:update', { deviceId, latency });
+    }
+  });
+    if (!nickname || !nickname.trim()) return;
+    const conn = connections.get(socket.id);
+    if (!conn) return;
+    conn.nickname = nickname.trim();
+    if (conn.currentRoom) {
+      const { getRoom } = require('../../mediasoup/roomManager');
+      const room = getRoom(conn.currentRoom);
+      if (room) {
+        room.broadcast(conn.currentRoom, 'user:nickname-changed', {
+          userId: conn.userId,
+          deviceId: conn.deviceId,
+          nickname: conn.nickname,
+        });
+      }
+    }
   });
 
   socket.on('disconnect', () => {
@@ -81,11 +113,13 @@ function handleConnection(socket, io) {
           room.removeTransport(tid);
         }
       }
+      const { broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
+      broadcastAllRoomOnlineCounts(io);
     }
 
+    const { removeAdmin } = require('../../services/adminService');
+    removeAdmin(socket.id);
     connections.delete(socket.id);
-    const { adminSessions } = require('../../services/adminService');
-    adminSessions.delete(socket.id);
   });
 }
 

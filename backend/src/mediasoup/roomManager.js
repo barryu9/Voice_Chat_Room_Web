@@ -104,6 +104,14 @@ class Room {
     return result;
   }
 
+  getVoiceUserCount() {
+    const voiceUsers = new Set();
+    for (const [, info] of this.producers) {
+      voiceUsers.add(info.socketId);
+    }
+    return voiceUsers.size;
+  }
+
   getUserByDeviceId(deviceId) {
     for (const [, user] of this.users) {
       if (user.deviceId === deviceId) return user;
@@ -168,4 +176,16 @@ async function destroyRoom(roomId) {
   }
 }
 
-module.exports = { rooms, getRooms, getRoom, createRoom, removeRoom, destroyRoom };
+function broadcastAllRoomOnlineCounts(io) {
+  const counts = [];
+  for (const [roomId, room] of rooms) {
+    counts.push({
+      roomId,
+      onlineCount: room.users.size,
+      voiceCount: room.getVoiceUserCount(),
+    });
+  }
+  io.emit(EVENTS.SERVER.ROOM_ONLINE_UPDATED, { counts });
+}
+
+module.exports = { rooms, getRooms, getRoom, createRoom, removeRoom, destroyRoom, broadcastAllRoomOnlineCounts };

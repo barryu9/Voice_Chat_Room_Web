@@ -64,7 +64,15 @@ async function getSiteName() {
   return doc?.value || '语音聊天室';
 }
 
+async function getAnnouncements() {
+  const SiteSettings = require('../models/SiteSettings');
+  const doc = await SiteSettings.findOne({ key: 'announcements' });
+  if (!doc?.value) return [];
+  const list = JSON.parse(doc.value);
+  return list.filter((a) => a.active);
+}
+
 module.exports = {
   initChannels, getAllChannels, createChannel,
-  updateChannel, deleteChannel, getAnnouncement, getSiteName,
+  updateChannel, deleteChannel, getAnnouncement, getSiteName, getAnnouncements,
 };

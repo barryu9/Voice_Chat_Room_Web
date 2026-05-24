@@ -18,6 +18,8 @@ interface MediaState {
   isMicMuted: boolean;
   isVoiceConnected: boolean;
   noiseGateThreshold: number;
+  mutedUsers: Set<string>;
+  isAllMuted: boolean;
 
   setProducerTransport: (t: any) => void;
   setConsumerTransport: (t: any) => void;
@@ -26,12 +28,15 @@ interface MediaState {
   removeConsumer: (id: string) => void;
   addRemoteProducer: (p: RemoteProducer) => void;
   removeRemoteProducer: (producerId: string) => void;
+  getProducerIdByDeviceId: (deviceId: string) => string | undefined;
   markConsumed: (producerId: string) => void;
   isConsumed: (producerId: string) => boolean;
   setRemoteAudioGain: (producerId: string, gain: number) => void;
   setMicMuted: (m: boolean) => void;
   setVoiceConnected: (v: boolean) => void;
   setNoiseGateThreshold: (v: number) => void;
+  toggleMuteUser: (deviceId: string) => void;
+  toggleMuteAll: () => void;
   resetVoice: () => void;
   reset: () => void;
 }
@@ -47,6 +52,8 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   isMicMuted: false,
   isVoiceConnected: false,
   noiseGateThreshold: -60,
+  mutedUsers: new Set(),
+  isAllMuted: false,
 
   setProducerTransport: (t) => set({ producerTransport: t }),
   setConsumerTransport: (t) => set({ consumerTransport: t }),
@@ -76,6 +83,12 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       m.delete(producerId);
       return { remoteProducers: m };
     }),
+  getProducerIdByDeviceId: (deviceId) => {
+    for (const [pid, info] of get().remoteProducers) {
+      if (info.deviceId === deviceId) return pid;
+    }
+    return undefined;
+  },
   markConsumed: (producerId) =>
     set((s) => {
       const ids = new Set(s.consumedProducerIds);
@@ -93,6 +106,17 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   setMicMuted: (m) => set({ isMicMuted: m }),
   setVoiceConnected: (v) => set({ isVoiceConnected: v }),
   setNoiseGateThreshold: (v) => set({ noiseGateThreshold: v }),
+
+  toggleMuteUser: (deviceId) =>
+    set((s) => {
+      const m = new Set(s.mutedUsers);
+      if (m.has(deviceId)) m.delete(deviceId);
+      else m.add(deviceId);
+      return { mutedUsers: m };
+    }),
+
+  toggleMuteAll: () =>
+    set((s) => ({ isAllMuted: !s.isAllMuted })),
 
   resetVoice: () =>
     set({
@@ -117,5 +141,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       isMicMuted: false,
       isVoiceConnected: false,
       noiseGateThreshold: -60,
+      mutedUsers: new Set(),
+      isAllMuted: false,
     }),
 }));

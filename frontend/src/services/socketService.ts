@@ -43,7 +43,7 @@ function registerListeners() {
   });
 
   socket.on(EVENTS.SERVER.LOGIN_ERROR, (data) => {
-    useRoomStore.getState().setAnnouncement(`登录失败: ${data.message}`);
+    useRoomStore.getState().setNotification(`登录失败: ${data.message}`);
   });
 
   socket.on(EVENTS.SERVER.ROOM_LIST, (data) => {
@@ -63,25 +63,28 @@ function registerListeners() {
     useRoomStore.getState().removeUser(data.userId);
   });
 
+  socket.on('user:nickname-changed', (data: { userId: string; nickname: string }) => {
+    useRoomStore.getState().updateUserNickname(data.userId, data.nickname);
+  });
+
   socket.on(EVENTS.SERVER.ACTIVE_SPEAKER, (data) => {
     const threshold = useMediaStore.getState().noiseGateThreshold;
     const isSpeaking = data.isSpeaking && data.level > threshold;
     useRoomStore.getState().setActiveSpeaker(data.deviceId, data.level, isSpeaking);
   });
 
-  socket.on(EVENTS.SERVER.ANNOUNCEMENT, (data) => {
-    useRoomStore.getState().setAnnouncement(data.message);
-    if (data.siteName) useRoomStore.getState().setSiteName(data.siteName);
+  socket.on(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, (data: { announcements: Array<{ id: string; message: string; createdAt: string }> }) => {
+    useRoomStore.getState().setAnnouncements(data.announcements || []);
   });
 
   socket.on(EVENTS.SERVER.KICKED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
-    useRoomStore.getState().setAnnouncement(`你已被踢出: ${data.reason}`);
+    useRoomStore.getState().setNotification(`你已被踢出: ${data.reason}`);
   });
 
   socket.on(EVENTS.SERVER.BANNED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
-    useRoomStore.getState().setAnnouncement(`你已被封禁: ${data.reason}`);
+    useRoomStore.getState().setNotification(`你已被封禁: ${data.reason}`);
   });
 
   socket.on(EVENTS.SERVER.ROOM_INFO_UPDATED, (data) => {
@@ -92,6 +95,15 @@ function registerListeners() {
         name: data.name,
         maxUsers: data.maxUsers,
       });
+    }
+  });
+
+  socket.on(EVENTS.SERVER.ROOM_ONLINE_UPDATED, (data: { counts: Array<{ roomId: string; onlineCount: number; voiceCount: number }> }) => {
+    for (const c of data.counts) {
+      useRoomStore.getState().updateChannel(c.roomId, {
+        onlineCount: c.onlineCount,
+        voiceCount: c.voiceCount,
+      } as any);
     }
   });
 
@@ -127,6 +139,14 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.ERROR, (data) => {
     console.error(`[Error] ${data.event}: ${data.message}`);
-    useRoomStore.getState().setAnnouncement(data.message);
+    useRoomStore.getState().setNotification(data.message);
+  });
+
+  socket.on('latency:update', (data: { deviceId: string; latency: number }) => {
+    useRoomStore.getState().setPeerLatency(data.deviceId, data.latency);
+  });
+
+  socket.on(EVENTS.SERVER.ANNOUNCEMENT, (data) => {
+    if (data.siteName) useRoomStore.getState().setSiteName(data.siteName);
   });
 }

@@ -15,7 +15,10 @@ export const RemoteVolume: React.FC<RemoteVolumeProps> = ({ producerDeviceId }) 
   const handleChange = (v: number) => {
     setValue(v);
     setRemoteAudioGain(producerDeviceId, v);
-    setRemoteVolume(producerDeviceId, v);
+    const pid = useMediaStore.getState().getProducerIdByDeviceId(producerDeviceId);
+    if (pid) {
+      setRemoteVolume(pid, v);
+    }
   };
 
   return (

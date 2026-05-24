@@ -1,4 +1,4 @@
-const { getRoom } = require('../../mediasoup/roomManager');
+const { getRoom, broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
 const { getConnection } = require('./connection');
 const { EVENTS } = require('../events');
 
@@ -47,6 +47,7 @@ function handleProducerEvents(socket, io) {
         nickname: conn.nickname,
         deviceId: conn.deviceId,
       });
+      broadcastAllRoomOnlineCounts(io);
     }
 
     producer.on('transportclose', () => {
@@ -64,6 +65,7 @@ function handleProducerEvents(socket, io) {
           deviceId: conn.deviceId,
           nickname: conn.nickname,
         });
+        broadcastAllRoomOnlineCounts(io);
       }
     });
   });
@@ -92,6 +94,7 @@ function handleProducerEvents(socket, io) {
         deviceId: conn.deviceId,
         nickname: conn.nickname,
       });
+      broadcastAllRoomOnlineCounts(io);
     }
   });
 
