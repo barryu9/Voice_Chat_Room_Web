@@ -30,6 +30,7 @@ iptables -I INPUT -p udp --dport 40000:49999 -j ACCEPT 2>/dev/null || true
 
 echo "[3/4] 构建并启动 ..."
 docker compose -f docker/docker-compose.yml down 2>/dev/null || true
+docker builder prune -af 2>/dev/null || true
 docker compose -f docker/docker-compose.yml build --no-cache
 docker compose -f docker/docker-compose.yml up -d
 
