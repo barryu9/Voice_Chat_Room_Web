@@ -1,9 +1,10 @@
 FROM node:20-slim
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
     && apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ wget \
+    python3 python3-pip make g++ wget \
     && rm -rf /var/lib/apt/lists/*
 RUN npm config set registry https://registry.npmmirror.com
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
 WORKDIR /app
 COPY backend/package*.json ./
 RUN npm install --production && npm cache clean --force
