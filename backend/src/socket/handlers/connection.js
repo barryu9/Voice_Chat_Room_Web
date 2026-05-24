@@ -37,9 +37,11 @@ function handleConnection(socket, io) {
       rooms: channels,
     });
 
-    const { getAnnouncements } = require('../../services/channelService');
+    const { getAnnouncements, getSiteName } = require('../../services/channelService');
     const announcements = await getAnnouncements();
+    const siteName = await getSiteName();
     socket.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements });
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { siteName });
   });
 
   socket.on('latency:ping', (cb) => {
