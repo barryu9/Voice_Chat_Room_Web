@@ -7,8 +7,8 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     && ln -s /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
-# npm 官方源 + pip 允许系统级安装
-RUN npm config set registry https://registry.npmjs.org/
+# npm 淘宝镜像 + pip 允许系统级安装
+RUN npm config set registry https://registry.npmmirror.com
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 
