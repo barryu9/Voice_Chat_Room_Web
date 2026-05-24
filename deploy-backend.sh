@@ -25,8 +25,7 @@ mkdir -p /etc/docker
 cat > /etc/docker/daemon.json << 'DOCKEREOF'
 {
   "registry-mirrors": [
-    "https://docker.1ms.run",
-    "https://docker.xuanyuan.me"
+    "https://t5ykmj3m.mirror.aliyuncs.com"
   ]
 }
 DOCKEREOF
