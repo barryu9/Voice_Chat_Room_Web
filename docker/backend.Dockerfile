@@ -4,6 +4,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     python3 python3-pip make g++ wget \
     && rm -rf /var/lib/apt/lists/*
 RUN npm config set registry https://registry.npmmirror.com
+RUN npm install -g npm@latest
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 WORKDIR /app
 COPY backend/package*.json ./
