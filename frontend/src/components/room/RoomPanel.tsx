@@ -115,9 +115,9 @@ export const RoomPanel: React.FC = () => {
   if (!currentRoom) return null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative">
       <TechBackground />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">{currentChannel?.name || currentRoom}</h1>
