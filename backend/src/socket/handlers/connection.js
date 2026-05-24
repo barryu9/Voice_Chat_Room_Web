@@ -46,6 +46,8 @@ function handleConnection(socket, io) {
     if (typeof cb === 'function') cb({ time: Date.now() });
   });
 
+  socket.on('latency:pong', () => {});
+
   socket.on('latency:report', ({ deviceId, latency }) => {
     const conn = connections.get(socket.id);
     if (!conn) return;
@@ -53,6 +55,8 @@ function handleConnection(socket, io) {
       socket.to(conn.currentRoom).emit('latency:update', { deviceId, latency });
     }
   });
+
+  socket.on('user:updateNickname', ({ nickname }) => {
     if (!nickname || !nickname.trim()) return;
     const conn = connections.get(socket.id);
     if (!conn) return;
