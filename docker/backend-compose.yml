@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: vc-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      MONGO_INITDB_DATABASE: voice-chat-prod
+    networks:
+      - vc-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: vc-backend
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOST: 0.0.0.0
+      MONGODB_URI: mongodb://127.0.0.1:27017/voice-chat-prod
+      MEDIASOUP_LISTEN_IP: 0.0.0.0
+      MEDIASOUP_ANNOUNCED_IP: ${PUBLIC_IP}
+      MEDIASOUP_RTC_MIN_PORT: 40000
+      MEDIASOUP_RTC_MAX_PORT: 49999
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CORS_ORIGIN: https://chat.pokepal.fun
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
+
+networks:
+  vc-network:
+    driver: bridge
