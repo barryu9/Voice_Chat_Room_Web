@@ -91,10 +91,20 @@ function registerListeners() {
     if (data.deleted) {
       useRoomStore.getState().removeChannel(data.roomId);
     } else {
-      useRoomStore.getState().updateChannel(data.roomId, {
-        name: data.name,
-        maxUsers: data.maxUsers,
-      });
+      const channels = useRoomStore.getState().channels;
+      const exists = channels.some((c) => c.roomId === data.roomId);
+      if (exists) {
+        useRoomStore.getState().updateChannel(data.roomId, {
+          name: data.name,
+          maxUsers: data.maxUsers,
+        });
+      } else {
+        useRoomStore.getState().addChannel({
+          roomId: data.roomId,
+          name: data.name,
+          maxUsers: data.maxUsers,
+        });
+      }
     }
   });
 

@@ -15,11 +15,11 @@ function handleAdminEvents(socket, io) {
     socket.emit(EVENTS.SERVER.ADMIN_AUTH_RESULT, { success, message: success ? 'Authenticated' : 'Wrong password' });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId }) => {
     if (!isAdmin(socket.id)) return;
 
-    const roomId = name.toLowerCase().replace(/\s+/g, '-');
-    const channel = await createChannel({ name, roomId, maxUsers });
+    const rid = (roomId && roomId.trim()) ? roomId.trim() : name.toLowerCase().replace(/\s+/g, '-');
+    const channel = await createChannel({ name, roomId: rid, maxUsers });
 
     const room = createRoom(roomId, channel.name, channel.maxUsers, io);
     await room.init();

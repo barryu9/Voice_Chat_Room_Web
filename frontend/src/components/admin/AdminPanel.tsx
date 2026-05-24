@@ -14,6 +14,7 @@ export const AdminPanel: React.FC = () => {
 
   const [tab, setTab] = useState<'channels' | 'announcement' | 'bans'>('channels');
   const [newName, setNewName] = useState('');
+  const [newRoomId, setNewRoomId] = useState('');
   const [newMax, setNewMax] = useState(20);
   const [editRoomId, setEditRoomId] = useState('');
   const [editName, setEditName] = useState('');
@@ -40,8 +41,13 @@ export const AdminPanel: React.FC = () => {
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, { name: newName.trim(), maxUsers: newMax });
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, {
+      name: newName.trim(),
+      maxUsers: newMax,
+      roomId: newRoomId.trim() || undefined,
+    });
     setNewName('');
+    setNewRoomId('');
     showToast(`频道 "${newName.trim()}" 已创建`, 'success');
   };
 
@@ -122,6 +128,7 @@ export const AdminPanel: React.FC = () => {
                 <h4 className="text-sm font-medium text-gray-300">新建频道</h4>
                 <div className="flex gap-2">
                   <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="频道名称" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
+                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="简称（可选）" className="w-28 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
                   <input type="number" value={newMax} onChange={(e) => setNewMax(parseInt(e.target.value) || 20)} min={2} max={100} className="w-20 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50" />
                   <button onClick={handleCreate} className="bg-green-600 hover:bg-green-500 text-white text-sm px-4 py-2 rounded-lg transition-all">创建</button>
                 </div>
