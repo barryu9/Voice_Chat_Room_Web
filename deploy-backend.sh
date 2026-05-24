@@ -1,8 +1,8 @@
 #!/bin/bash
 # === 语音聊天室 - 后端部署 ===
 # 服务器上执行: bash deploy-backend.sh
-# 部署: MongoDB + Mediasoup 后端，绑定 0.0.0.0:3001
-# 需要外部反向代理: talk.pokepal.fun → 本机 0.0.0.0:3001
+# 部署: MongoDB + Mediasoup 后端 + Nginx，绑定 0.0.0.0:3001
+# 与 deploy.sh 使用同一份 docker-compose.yml
 
 set -e
 
@@ -31,10 +31,10 @@ ufw allow 3001/tcp 2>/dev/null || true
 ufw allow 40000:49999/udp 2>/dev/null || true
 
 echo "[3/4] 构建并启动 ..."
-docker compose -f docker/backend-compose.yml down 2>/dev/null || true
+docker compose -f docker/docker-compose.yml down 2>/dev/null || true
 docker builder prune -af 2>/dev/null || true
-docker compose -f docker/backend-compose.yml build --no-cache
-docker compose -f docker/backend-compose.yml up -d
+docker compose -f docker/docker-compose.yml build --no-cache
+docker compose -f docker/docker-compose.yml up -d
 
 echo "[4/4] 验证 ..."
 sleep 5
