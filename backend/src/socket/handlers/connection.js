@@ -29,12 +29,22 @@ function handleConnection(socket, io) {
     });
 
     const channels = await getAllChannels();
+    const { getRooms } = require('../../mediasoup/roomManager');
+    const roomMap = getRooms();
+    const enriched = channels.map((ch) => {
+      const room = roomMap.get(ch.roomId);
+      return {
+        ...ch,
+        onlineCount: room ? room.users.size : 0,
+        voiceCount: room ? room.getVoiceUserCount() : 0,
+      };
+    });
 
     socket.emit(EVENTS.SERVER.LOGIN_SUCCESS, {
       userId,
       nickname,
       deviceId,
-      rooms: channels,
+      rooms: enriched,
     });
 
     const { getAnnouncements, getSiteName } = require('../../services/channelService');
