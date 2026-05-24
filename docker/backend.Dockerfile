@@ -1,10 +1,12 @@
 FROM node:20-slim
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ wget \
     && rm -rf /var/lib/apt/lists/*
+RUN npm config set registry https://registry.npmmirror.com
 WORKDIR /app
 COPY backend/package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --production && npm cache clean --force
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
 EXPOSE 3001
