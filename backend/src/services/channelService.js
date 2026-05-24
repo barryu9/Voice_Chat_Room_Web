@@ -72,7 +72,13 @@ async function getAnnouncements() {
   return list.filter((a) => a.active);
 }
 
+async function getSetting(key) {
+  const SiteSettings = require('../models/SiteSettings');
+  const doc = await SiteSettings.findOne({ key });
+  return doc?.value || '';
+}
+
 module.exports = {
   initChannels, getAllChannels, createChannel,
-  updateChannel, deleteChannel, getAnnouncement, getSiteName, getAnnouncements,
+  updateChannel, deleteChannel, getAnnouncement, getSiteName, getAnnouncements, getSetting,
 };

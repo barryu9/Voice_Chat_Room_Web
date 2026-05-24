@@ -156,6 +156,17 @@ function registerListeners() {
     useRoomStore.getState().setPeerLatency(data.deviceId, data.latency);
   });
 
+  socket.on('site:info', (data: { siteName: string; version: string; loginFooter: string }) => {
+    if (data.siteName) useRoomStore.getState().setSiteName(data.siteName);
+    if (data.version) useRoomStore.getState().setVersion(data.version);
+    if (data.loginFooter != null) useRoomStore.getState().setLoginFooter(data.loginFooter);
+  });
+
+  socket.on('site:info-updated', (data: { key: string; value: string }) => {
+    if (data.key === 'version') useRoomStore.getState().setVersion(data.value);
+    if (data.key === 'loginFooter') useRoomStore.getState().setLoginFooter(data.value);
+  });
+
   socket.on(EVENTS.SERVER.ANNOUNCEMENT, (data) => {
     if (data.siteName) useRoomStore.getState().setSiteName(data.siteName);
   });

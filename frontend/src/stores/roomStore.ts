@@ -10,6 +10,8 @@ interface RoomState {
   announcements: Announcement[];
   notification: string;
   siteName: string;
+  version: string;
+  loginFooter: string;
   setChannels: (ch: Channel[]) => void;
   addChannel: (ch: Channel) => void;
   removeChannel: (roomId: string) => void;
@@ -23,6 +25,8 @@ interface RoomState {
   setAnnouncements: (list: Announcement[]) => void;
   setNotification: (msg: string) => void;
   setSiteName: (name: string) => void;
+  setVersion: (v: string) => void;
+  setLoginFooter: (text: string) => void;
 }
 
 export const useRoomStore = create<RoomState>((set) => ({
@@ -34,6 +38,8 @@ export const useRoomStore = create<RoomState>((set) => ({
   announcements: [],
   notification: '',
   siteName: '语音聊天室',
+  version: '',
+  loginFooter: '',
 
   setChannels: (ch) => set({ channels: ch }),
   addChannel: (ch) => set((s) => ({ channels: [...s.channels, ch] })),
@@ -88,4 +94,6 @@ export const useRoomStore = create<RoomState>((set) => ({
   setAnnouncements: (list) => set({ announcements: list }),
   setNotification: (msg) => set({ notification: msg }),
   setSiteName: (name) => set({ siteName: name }),
+  setVersion: (v) => set({ version: v }),
+  setLoginFooter: (text) => set({ loginFooter: text }),
 }));

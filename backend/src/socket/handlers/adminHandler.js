@@ -71,6 +71,9 @@ function handleAdminEvents(socket, io) {
     if (key === 'siteName') {
       io.emit(EVENTS.SERVER.ANNOUNCEMENT, { siteName: value });
     }
+    if (key === 'version' || key === 'loginFooter') {
+      io.emit('site:info-updated', { key, value });
+    }
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, async ({ message }) => {

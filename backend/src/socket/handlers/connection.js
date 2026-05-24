@@ -47,11 +47,14 @@ function handleConnection(socket, io) {
       rooms: enriched,
     });
 
-    const { getAnnouncements, getSiteName } = require('../../services/channelService');
+    const { getAnnouncements, getSiteName, getSetting } = require('../../services/channelService');
     const announcements = await getAnnouncements();
     const siteName = await getSiteName();
+    const version = await getSetting('version');
+    const loginFooter = await getSetting('loginFooter');
     socket.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements });
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { siteName });
+    socket.emit('site:info', { siteName, version, loginFooter });
   });
 
   socket.on('latency:ping', (cb) => {
@@ -59,6 +62,14 @@ function handleConnection(socket, io) {
   });
 
   socket.on('latency:pong', () => {});
+
+  socket.on('site:info', async () => {
+    const { getSiteName, getSetting } = require('../../services/channelService');
+    const siteName = await getSiteName();
+    const version = await getSetting('version') || '2026.05.24.v1';
+    const loginFooter = await getSetting('loginFooter') || '';
+    socket.emit('site:info', { siteName, version, loginFooter });
+  });
 
   socket.on('latency:report', ({ deviceId, latency }) => {
     const conn = connections.get(socket.id);

@@ -21,6 +21,8 @@ export const AdminPanel: React.FC = () => {
   const [editMax, setEditMax] = useState(20);
   const [announcementText, setAnnouncementText] = useState('');
   const [siteNameText, setSiteNameText] = useState(siteName);
+  const [versionText, setVersionText] = useState(useRoomStore((s) => s.version));
+  const [footerText, setFooterText] = useState(useRoomStore((s) => s.loginFooter));
   const [adminAnnouncements, setAdminAnnouncements] = useState<Array<{ id: string; message: string; createdAt: string; active: boolean }>>([]);
 
   useEffect(() => {
@@ -83,6 +85,17 @@ export const AdminPanel: React.FC = () => {
     if (!siteNameText.trim()) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'siteName', value: siteNameText.trim() });
     showToast('站点名称已更新', 'success');
+  };
+
+  const handleVersion = () => {
+    if (!versionText.trim()) return;
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'version', value: versionText.trim() });
+    showToast('版本号已更新', 'success');
+  };
+
+  const handleFooterText = () => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'loginFooter', value: footerText });
+    showToast('登录页公告已更新', 'success');
   };
 
   const refreshAnnouncements = () => {
@@ -171,6 +184,22 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex gap-2">
                   <input value={siteNameText} onChange={(e) => setSiteNameText(e.target.value)} placeholder="站点名称" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
                   <button onClick={handleSiteName} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all">更新</button>
+                </div>
+              </div>
+
+              <div className="glass-card p-4 space-y-3">
+                <h4 className="text-sm font-medium text-gray-300">版本号</h4>
+                <div className="flex gap-2">
+                  <input value={versionText} onChange={(e) => setVersionText(e.target.value)} placeholder="例: 2026.05.24.v1" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
+                  <button onClick={handleVersion} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all">更新</button>
+                </div>
+              </div>
+
+              <div className="glass-card p-4 space-y-3">
+                <h4 className="text-sm font-medium text-gray-300">登录页底部公告</h4>
+                <div className="flex gap-2">
+                  <input value={footerText} onChange={(e) => setFooterText(e.target.value)} placeholder="输入登录页底部公告文字" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
+                  <button onClick={handleFooterText} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all">更新</button>
                 </div>
               </div>
 
