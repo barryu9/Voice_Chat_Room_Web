@@ -1,24 +1,21 @@
 FROM node:22-slim
-RUN apt-get update && apt-get install -y --no-install-recommends wget ca-certificates \
+
+# apt 阿里云镜像 + 编译依赖
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-setuptools make g++ \
+    && ln -s /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
+
+# npm 淘宝镜像 + pip 允许系统级安装
 RUN npm config set registry https://registry.npmmirror.com
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+
 WORKDIR /app
 COPY backend/package*.json ./
-RUN npm install --production --ignore-scripts && npm cache clean --force
+RUN npm install --production && npm cache clean --force
 
-# 通过 ghproxy 下载预编译 worker（免编译）
-RUN KERNEL_VER=$(uname -r | cut -d. -f1) && \
-    URL="https://ghproxy.com/https://github.com/versatica/mediasoup/releases/download/3.19.22/mediasoup-worker-3.19.22-linux-x64-kernel${KERNEL_VER}.tgz" && \
-    echo "Downloading worker: $URL" && \
-    wget -q --show-progress --timeout=60 --tries=3 "$URL" -O /tmp/worker.tgz && \
-    file /tmp/worker.tgz && \
-    mkdir -p /app/node_modules/mediasoup/worker/prebuild && \
-    tar -xzf /tmp/worker.tgz -C /app/node_modules/mediasoup/worker/prebuild/ && \
-    rm /tmp/worker.tgz && \
-    chmod +x /app/node_modules/mediasoup/worker/prebuild/mediasoup-worker && \
-    file /app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
-
-ENV MEDIASOUP_WORKER_BIN=/app/node_modules/mediasoup/worker/prebuild/mediasoup-worker
 COPY backend/src ./src
 COPY backend/.env.production ./.env.production
 EXPOSE 3001
