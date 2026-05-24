@@ -9,9 +9,23 @@ interface DeviceInfo {
 export function useDevices() {
   const [audioInputs, setAudioInputs] = useState<DeviceInfo[]>([]);
   const [audioOutputs, setAudioOutputs] = useState<DeviceInfo[]>([]);
-  const [selectedInput, setSelectedInput] = useState<string>('');
-  const [selectedOutput, setSelectedOutput] = useState<string>('');
+  const [selectedInput, setSelectedInputState] = useState<string>(() => {
+    return localStorage.getItem('vc_selected_input') || '';
+  });
+  const [selectedOutput, setSelectedOutputState] = useState<string>(() => {
+    return localStorage.getItem('vc_selected_output') || '';
+  });
   const currentStreamRef = useRef<MediaStream | null>(null);
+
+  const setSelectedInput = useCallback((deviceId: string) => {
+    setSelectedInputState(deviceId);
+    localStorage.setItem('vc_selected_input', deviceId);
+  }, []);
+
+  const setSelectedOutput = useCallback((deviceId: string) => {
+    setSelectedOutputState(deviceId);
+    localStorage.setItem('vc_selected_output', deviceId);
+  }, []);
 
   const enumerate = useCallback(async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -29,9 +43,18 @@ export function useDevices() {
     setAudioInputs(inputs);
     setAudioOutputs(outputs);
 
-    if (inputs.length > 0 && !selectedInput) setSelectedInput(inputs[0].deviceId);
-    if (outputs.length > 0 && !selectedOutput) setSelectedOutput(outputs[0].deviceId);
-  }, [selectedInput, selectedOutput]);
+    const savedInput = localStorage.getItem('vc_selected_input');
+    const savedOutput = localStorage.getItem('vc_selected_output');
+    const inputExists = inputs.some((d) => d.deviceId === savedInput);
+    const outputExists = outputs.some((d) => d.deviceId === savedOutput);
+
+    if (inputs.length > 0 && (!savedInput || !inputExists)) {
+      setSelectedInput(inputs[0].deviceId);
+    }
+    if (outputs.length > 0 && (!savedOutput || !outputExists)) {
+      setSelectedOutput(outputs[0].deviceId);
+    }
+  }, [setSelectedInput, setSelectedOutput]);
 
   const getStream = useCallback(async (deviceId?: string): Promise<MediaStream> => {
     if (currentStreamRef.current) {
