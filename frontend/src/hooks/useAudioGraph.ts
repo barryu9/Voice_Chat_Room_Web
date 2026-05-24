@@ -2,6 +2,7 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import {
   initAudioContext, setupLocalAudioGraph, setMicGain,
   setMicMute, setNoiseGateThreshold, getAudioLevel, cleanupLocalAudio,
+  updateNoiseGate, getProcessedStream,
 } from '../services/audioService';
 
 export function useAudioGraph() {
@@ -36,20 +37,27 @@ export function useAudioGraph() {
     const loop = () => {
       const level = getAudioLevel();
       setAudioLevel(level);
+      updateNoiseGate(level, threshold);
       animRef.current = requestAnimationFrame(loop);
     };
     animRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(animRef.current);
-  }, []);
+  }, [threshold]);
 
   const cleanup = useCallback(() => {
     cleanupLocalAudio();
     cancelAnimationFrame(animRef.current);
   }, []);
 
+  const switchStream = useCallback(async (stream: MediaStream) => {
+    cleanupLocalAudio();
+    await setupLocalAudioGraph(stream);
+    return getProcessedStream()?.getAudioTracks()[0] || null;
+  }, []);
+
   return {
     gain, muted, threshold, audioLevel,
-    setupLocal, updateGain, toggleMute, updateThreshold, cleanup,
+    setupLocal, updateGain, toggleMute, updateThreshold, cleanup, switchStream,
     initAudioContext,
   };
 }

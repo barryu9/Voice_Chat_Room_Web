@@ -15,6 +15,7 @@ import {
   destroyAudioGraph,
   cleanupRemoteAudio,
   applyMuteState,
+  getProcessedStream,
 } from '../services/audioService';
 import { EVENTS } from '../utils/constants';
 
@@ -46,7 +47,9 @@ export function useMediasoup() {
     const { transport } = await createProducerTransport(device);
     await setupLocalAudioGraph(stream);
 
-    const producer = await transport.produce({ track });
+    const processedStream = getProcessedStream();
+    const producerTrack = processedStream ? processedStream.getAudioTracks()[0] : track;
+    const producer = await transport.produce({ track: producerTrack });
     useMediaStore.getState().setProducer(producer);
 
     return true;

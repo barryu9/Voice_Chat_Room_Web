@@ -30,8 +30,8 @@ export const RoomPanel: React.FC = () => {
   const toggleMuteAll = useMediaStore((s) => s.toggleMuteAll);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
-  const { gain, muted, threshold, toggleMute, updateGain, updateThreshold, cleanup } = useAudioGraph();
-  const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack } = useDevices();
+  const { gain, muted, threshold, toggleMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
+  const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
 
   const [connecting, setConnecting] = useState(false);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
@@ -77,11 +77,16 @@ export const RoomPanel: React.FC = () => {
 
   const handleDeviceChange = useCallback(async (deviceId: string) => {
     setSelectedInput(deviceId);
-    const track = await getTrack(deviceId);
-    if (track) {
-      await replaceTrack(track);
+    try {
+      const stream = await getStream(deviceId);
+      const gatedTrack = await switchStream(stream);
+      if (gatedTrack) {
+        await replaceTrack(gatedTrack);
+      }
+    } catch (e) {
+      console.warn('[RoomPanel] device switch failed:', e);
     }
-  }, [setSelectedInput, getTrack, replaceTrack]);
+  }, [setSelectedInput, getStream, switchStream, replaceTrack]);
 
   const handleMicToggle = useCallback(() => {
     const newMuted = toggleMute();

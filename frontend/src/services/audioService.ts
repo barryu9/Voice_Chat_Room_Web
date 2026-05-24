@@ -1,10 +1,12 @@
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let micGainNode: GainNode | null = null;
+let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -60;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
+let processedDestination: MediaStreamAudioDestinationNode | null = null;
 
 export function getAudioContext(): AudioContext | null {
   return audioContext;
@@ -25,15 +27,36 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   localStream = stream;
 
   localAudioSource = ctx.createMediaStreamSource(stream);
+
   micGainNode = ctx.createGain();
+  gateGainNode = ctx.createGain();
   analyserNode = ctx.createAnalyser();
+  processedDestination = ctx.createMediaStreamDestination();
+
   analyserNode.fftSize = 256;
   analyserNode.smoothingTimeConstant = 0.8;
 
   localAudioSource.connect(micGainNode);
+
   micGainNode.connect(analyserNode);
 
+  micGainNode.connect(gateGainNode);
+  gateGainNode.connect(processedDestination);
+
   setMicGain(1.0);
+  gateGainNode.gain.value = 0;
+}
+
+export function getProcessedStream(): MediaStream | null {
+  return processedDestination?.stream || null;
+}
+
+export function updateNoiseGate(level: number, threshold: number) {
+  if (!gateGainNode) return;
+  noiseGateThreshold = threshold;
+  const target = level > threshold ? 1.0 : 0;
+  const current = gateGainNode.gain.value;
+  gateGainNode.gain.value = current + (target - current) * 0.3;
 }
 
 export function setMicGain(value: number) {
@@ -163,9 +186,16 @@ export function cleanupLocalAudio() {
     micGainNode.disconnect();
     micGainNode = null;
   }
+  if (gateGainNode) {
+    gateGainNode.disconnect();
+    gateGainNode = null;
+  }
   if (analyserNode) {
     analyserNode.disconnect();
     analyserNode = null;
+  }
+  if (processedDestination) {
+    processedDestination = null;
   }
   localStream = null;
 }
