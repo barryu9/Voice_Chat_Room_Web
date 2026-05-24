@@ -115,7 +115,7 @@ export const RoomPanel: React.FC = () => {
   if (!currentRoom) return null;
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950">
+    <div className="min-h-screen relative overflow-hidden">
       <TechBackground />
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
@@ -205,7 +205,7 @@ export const RoomPanel: React.FC = () => {
             <button
               onClick={handleVoiceConnect}
               disabled={connecting}
-              className="bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
+              className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
               {connecting ? '连接中...' : '加入语音'}
             </button>

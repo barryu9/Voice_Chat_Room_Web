@@ -68,7 +68,7 @@ export const Lobby: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen relative bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950">
+    <div className="min-h-screen relative overflow-hidden">
       <TechBackground />
       <div className="max-w-5xl mx-auto px-4 py-8">
         <header className="flex items-center justify-between mb-8">
