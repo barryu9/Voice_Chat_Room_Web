@@ -20,7 +20,8 @@ interface AudioControlsProps {
 }
 
 function levelPercent(db: number, threshold: number): number {
-  return Math.max(0, Math.min(100, ((db - threshold) / (0 - threshold)) * 100));
+  const maxDb = -20;
+  return Math.max(0, Math.min(100, ((db - threshold) / (maxDb - threshold)) * 100));
 }
 
 const Popover: React.FC<{
