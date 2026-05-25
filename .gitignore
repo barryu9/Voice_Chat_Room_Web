@@ -10,3 +10,4 @@ docker/.env
 docker/nginx/ssl/
 frontend.log
 backend.log
+deploy.conf

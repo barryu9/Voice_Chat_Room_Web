@@ -1,0 +1,19 @@
+# === 语音聊天室部署配置 ===
+# 复制此文件为 deploy.conf 并填写你的实际值
+#   cp deploy.conf.example deploy.conf
+#
+# 重要: deploy.conf 包含敏感信息，不会被提交到 Git
+
+# 后端服务器 (运行 MongoDB + Mediasoup)
+PUBLIC_IP_BACKEND=""
+DOMAIN_BACKEND=""
+
+# 前端服务器 (运行 Nginx 静态文件)
+PUBLIC_IP_FRONTEND=""
+DOMAIN_FRONTEND=""
+
+# 管理员面板登录密码
+ADMIN_PASSWORD=""
+
+# CORS 允许的前端域名 (与 DOMAIN_FRONTEND 一致)
+CORS_ORIGIN=""

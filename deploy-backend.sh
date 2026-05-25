@@ -1,23 +1,37 @@
 #!/bin/bash
 # === 语音聊天室 - 后端部署 ===
-# 在后端服务器 (120.76.229.15) 上执行: bash deploy-backend.sh
-# 部署: MongoDB + Mediasoup 后端 (不含前端)
-# 版本: v2026.05.25.2
+# 在后端服务器上执行: bash deploy-backend.sh
+# 部署: MongoDB + Mediasoup 后端
+# 需要 deploy.conf 配置文件
 
 set -e
 
-PUBLIC_IP="120.76.229.15"
-ADMIN_PASSWORD="barry422"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG="$SCRIPT_DIR/deploy.conf"
+
+if [ ! -f "$CONFIG" ]; then
+    echo "ERROR: 找不到 deploy.conf"
+    echo "  请复制 deploy.conf.example 并填写实际值:"
+    echo "  cp deploy.conf.example deploy.conf"
+    exit 1
+fi
+
+source "$CONFIG"
+
+if [ -z "$PUBLIC_IP_BACKEND" ] || [ -z "$ADMIN_PASSWORD" ]; then
+    echo "ERROR: deploy.conf 中的 PUBLIC_IP_BACKEND 和 ADMIN_PASSWORD 不能为空"
+    exit 1
+fi
 
 cat > docker/.env << EOF
-PUBLIC_IP=$PUBLIC_IP
+PUBLIC_IP=$PUBLIC_IP_BACKEND
 ADMIN_PASSWORD=$ADMIN_PASSWORD
+CORS_ORIGIN=${CORS_ORIGIN:-https://$DOMAIN_FRONTEND}
 EOF
 
 echo "========================================"
 echo "  语音聊天室 - 后端部署"
-echo "  域名:  https://talk.pokepal.fun"
-echo "  服务器: $PUBLIC_IP"
+echo "  域名:  https://${DOMAIN_BACKEND:-$PUBLIC_IP_BACKEND}"
 echo "  版本:  v2026.05.25.2"
 echo "========================================"
 
@@ -34,7 +48,7 @@ ufw allow 40000:49999/udp 2>/dev/null || true
 iptables -I INPUT -p udp --dport 40000:49999 -j ACCEPT 2>/dev/null || true
 echo "  TCP: 22, 3001 | UDP: 40000-49999 ✓"
 
-echo "[3/4] 构建并启动容器..."
+echo "[3/4] 构建并启动..."
 docker pull mongo:7.0 2>/dev/null || true
 docker compose -f docker/docker-compose.yml down 2>/dev/null || true
 docker builder prune -af 2>/dev/null || true
@@ -44,12 +58,10 @@ echo "  后端容器已启动 ✓"
 
 echo "[4/4] 验证..."
 sleep 5
-HEALTH=$(curl -s http://127.0.0.1:3001/health 2>/dev/null || echo '{"status":"unreachable"}')
-echo "  后端: $HEALTH"
+echo -n "  后端: "
+curl -s http://127.0.0.1:3001/health 2>/dev/null || echo '{"status":"unreachable"}'
 
 echo ""
 echo "========================================"
 echo "  后端部署完成!"
-echo "  talk.pokepal.fun → $PUBLIC_IP:3001"
-echo "  WebRTC UDP: $PUBLIC_IP:40000-49999"
 echo "========================================"
