@@ -19,16 +19,22 @@ async function createWorker() {
   return worker;
 }
 
-async function createRouter() {
+async function createRouter(opusMaxBitrate) {
+  const opusCodec = {
+    kind: 'audio',
+    mimeType: 'audio/opus',
+    clockRate: 48000,
+    channels: 2,
+  };
+
+  if (opusMaxBitrate) {
+    opusCodec.parameters = {
+      'maxaveragebitrate': opusMaxBitrate * 1000,
+    };
+  }
+
   const router = await worker.createRouter({
-    mediaCodecs: [
-      {
-        kind: 'audio',
-        mimeType: 'audio/opus',
-        clockRate: 48000,
-        channels: 2,
-      },
-    ],
+    mediaCodecs: [opusCodec],
   });
   return router;
 }

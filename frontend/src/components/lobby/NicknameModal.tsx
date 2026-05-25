@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useUserStore } from '../../stores/userStore';
+import { useUserStore, ConnectionState } from '../../stores/userStore';
 import { useRoomStore } from '../../stores/roomStore';
 import { getSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
@@ -10,6 +10,14 @@ interface NicknameModalProps {
   onClose: () => void;
 }
 
+const connectionStatusConfig: Record<ConnectionState, { text: string; color: string; icon: string }> = {
+  connecting:   { text: '正在连接服务器...',       color: 'text-yellow-400', icon: '⟳' },
+  connected:    { text: '服务器已连接',            color: 'text-green-400',  icon: '●' },
+  disconnected: { text: '连接已断开，等待重连...', color: 'text-orange-400', icon: '◉' },
+  reconnecting: { text: '正在重连...',             color: 'text-yellow-400', icon: '⟳' },
+  failed:       { text: '无法连接服务器，请检查网络', color: 'text-red-400',   icon: '✕' },
+};
+
 export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,6 +26,10 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
   const siteName = useRoomStore((s) => s.siteName);
   const version = useRoomStore((s) => s.version);
   const loginFooter = useRoomStore((s) => s.loginFooter);
+  const connectionState = useUserStore((s) => s.connectionState);
+  const reconnectAttempt = useUserStore((s) => s.reconnectAttempt);
+
+  const cfg = connectionStatusConfig[connectionState];
 
   useEffect(() => {
     getSocket()?.emit('site:info');
@@ -75,12 +87,35 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
               />
             </div>
 
+            <div className={`flex items-center gap-2 text-xs ${cfg.color} justify-center`}>
+              <span className={connectionState === 'reconnecting' || connectionState === 'connecting' ? 'animate-spin inline-block' : ''}>
+                {cfg.icon}
+              </span>
+              <span>
+                {connectionState === 'reconnecting' && reconnectAttempt > 0
+                  ? `${cfg.text} (${reconnectAttempt}/5)`
+                  : cfg.text}
+              </span>
+            </div>
+
             <button
               type="submit"
-              disabled={!nickname.trim() || !deviceId || loading}
+              disabled={
+                !nickname.trim() ||
+                !deviceId ||
+                loading ||
+                connectionState === 'connecting' ||
+                connectionState === 'failed'
+              }
               className="w-full bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white font-medium py-3 rounded-xl transition-all active:scale-[0.98]"
             >
-              {loading ? '连接中...' : '进入聊天室'}
+              {loading
+                ? '连接中...'
+                : connectionState === 'failed'
+                  ? '服务器不可用'
+                  : connectionState === 'connecting' || connectionState === 'reconnecting'
+                    ? '等待连接...'
+                    : '进入聊天室'}
             </button>
           </form>
         </div>

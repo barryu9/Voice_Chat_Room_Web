@@ -1,11 +1,17 @@
 import React from 'react';
 import { useRoomStore } from '../../stores/roomStore';
+import { useUserStore } from '../../stores/userStore';
 import { UserCard } from './UserCard';
 
 export const UserGrid: React.FC = () => {
   const roomUsers = useRoomStore((s) => s.roomUsers);
   const userCount = useRoomStore((s) => s.userCount);
-  const users = Array.from(roomUsers.values());
+  const currentUserId = useUserStore((s) => s.userId);
+  const users = Array.from(roomUsers.values()).sort((a, b) => {
+    if (a.userId === currentUserId) return -1;
+    if (b.userId === currentUserId) return 1;
+    return 0;
+  });
 
   return (
     <div>

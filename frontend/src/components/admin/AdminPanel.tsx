@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getSocket } from '../../services/socketService';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
-import { EVENTS } from '../../utils/constants';
+import { EVENTS, AUDIO_QUALITY_TIERS } from '../../utils/constants';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
 
@@ -10,15 +10,21 @@ export const AdminPanel: React.FC = () => {
   const showPanel = useAdminStore((s) => s.showPanel);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
   const channels = useRoomStore((s) => s.channels);
+  const setChannels = useRoomStore((s) => s.setChannels);
   const siteName = useRoomStore((s) => s.siteName);
 
   const [tab, setTab] = useState<'channels' | 'announcement' | 'bans'>('channels');
   const [newName, setNewName] = useState('');
   const [newRoomId, setNewRoomId] = useState('');
   const [newMax, setNewMax] = useState(20);
+  const [newAudioBitrate, setNewAudioBitrate] = useState(32);
   const [editRoomId, setEditRoomId] = useState('');
+  const [editNewRoomId, setEditNewRoomId] = useState('');
   const [editName, setEditName] = useState('');
   const [editMax, setEditMax] = useState(20);
+  const [editAudioBitrate, setEditAudioBitrate] = useState(32);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [announcementText, setAnnouncementText] = useState('');
   const [siteNameText, setSiteNameText] = useState(siteName);
   const [versionText, setVersionText] = useState(useRoomStore((s) => s.version));
@@ -47,6 +53,7 @@ export const AdminPanel: React.FC = () => {
       name: newName.trim(),
       maxUsers: newMax,
       roomId: newRoomId.trim() || undefined,
+      audioBitrate: newAudioBitrate,
     });
     setNewName('');
     setNewRoomId('');
@@ -55,7 +62,13 @@ export const AdminPanel: React.FC = () => {
 
   const handleUpdate = () => {
     if (!editRoomId || !editName.trim()) return;
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, { roomId: editRoomId, name: editName.trim(), maxUsers: editMax });
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, {
+      roomId: editRoomId,
+      newRoomId: editNewRoomId.trim() || undefined,
+      name: editName.trim(),
+      maxUsers: editMax,
+      audioBitrate: editAudioBitrate,
+    });
     setEditRoomId('');
     showToast(`频道 "${editName.trim()}" 已更新`, 'success');
   };
@@ -63,6 +76,42 @@ export const AdminPanel: React.FC = () => {
   const handleDelete = (roomId: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
     showToast('频道已删除', 'success');
+  };
+
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+
+  const handleDrop = () => {
+    if (dragIndex === null || dragOverIndex === null || dragIndex === dragOverIndex) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+
+    const reordered = [...channels];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dragOverIndex, 0, moved);
+
+    const updated = reordered.map((ch, i) => ({ ...ch, sortOrder: i }));
+    setChannels(updated);
+
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNELS_REORDER, {
+      channels: updated.map((ch) => ({ roomId: ch.roomId, sortOrder: ch.sortOrder })),
+    });
+
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleAnnouncement = () => {
@@ -142,30 +191,130 @@ export const AdminPanel: React.FC = () => {
                 <div className="flex gap-2">
                   <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="频道名称" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
                   <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="简称（可选）" className="w-28 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
-                  <input type="number" value={newMax} onChange={(e) => setNewMax(parseInt(e.target.value) || 20)} min={2} max={100} className="w-20 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-                  <button onClick={handleCreate} className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all">创建</button>
+                  <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden">
+                    <button
+                      onClick={() => setNewMax(Math.max(2, newMax - 1))}
+                      className="w-7 h-9 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm shrink-0"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      value={newMax}
+                      onChange={(e) => { const v = parseInt(e.target.value); if (v >= 2 && v <= 100) setNewMax(v); }}
+                      className="w-10 text-center bg-transparent text-sm text-white border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={() => setNewMax(Math.min(100, newMax + 1))}
+                      className="w-7 h-9 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm shrink-0"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <select
+                    value={newAudioBitrate}
+                    onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))}
+                    className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50"
+                  >
+                    {AUDIO_QUALITY_TIERS.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label} {t.desc}</option>
+                    ))}
+                  </select>
+                  <button onClick={handleCreate} className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all shrink-0">创建</button>
                 </div>
               </div>
 
               {/* List */}
-              {channels.map((ch) => (
-                <div key={ch.roomId} className="glass-card p-4">
+              {channels.map((ch, index) => (
+                <div
+                  key={ch.roomId}
+                  draggable={editRoomId !== ch.roomId}
+                  onDragStart={() => { if (editRoomId !== ch.roomId) handleDragStart(index); }}
+                  onDragOver={(e) => { if (editRoomId !== ch.roomId) handleDragOver(e, index); }}
+                  onDrop={() => { if (editRoomId !== ch.roomId) handleDrop(); }}
+                  onDragEnd={handleDragEnd}
+                  className={`glass-card p-4 transition-all ${
+                    dragIndex === index ? 'opacity-50 scale-95' : ''
+                  } ${
+                    dragOverIndex === index && dragIndex !== index ? 'border-t-2 border-primary-400' : ''
+                  }`}
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-white font-medium">{ch.name}</span>
+                    <div className="flex items-center gap-2">
+                      {editRoomId !== ch.roomId && (
+                        <button
+                          className="flex items-center justify-center w-5 h-6 rounded text-gray-500 hover:text-gray-300 hover:bg-white/5 cursor-grab active:cursor-grabbing transition-colors"
+                          title="拖动以调整排序"
+                        >
+                          <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
+                            <circle cx="2" cy="2" r="1.2"/>
+                            <circle cx="6" cy="2" r="1.2"/>
+                            <circle cx="2" cy="6" r="1.2"/>
+                            <circle cx="6" cy="6" r="1.2"/>
+                            <circle cx="2" cy="10" r="1.2"/>
+                            <circle cx="6" cy="10" r="1.2"/>
+                          </svg>
+                        </button>
+                      )}
+                      <span className="text-white font-medium">{ch.name}</span>
+                    </div>
                     <span className="text-xs text-gray-500">{ch.roomId}</span>
                   </div>
                   {editRoomId === ch.roomId ? (
-                    <div className="flex gap-2">
-                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-                      <input type="number" value={editMax} onChange={(e) => setEditMax(parseInt(e.target.value) || 20)} min={2} max={100} className="w-20 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none" />
-                      <button onClick={handleUpdate} className="bg-primary-600 hover:bg-primary-500 text-white text-xs px-3 py-1.5 rounded-lg">保存</button>
-                      <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded-lg">取消</button>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2 items-end">
+                        <div className="flex-1 min-w-[100px]">
+                          <label className="block text-xs text-gray-500 mb-1">频道名称</label>
+                          <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="如：大厅" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                        </div>
+                        <div className="w-24">
+                          <label className="block text-xs text-gray-500 mb-1">简称</label>
+                          <input value={editNewRoomId} onChange={(e) => setEditNewRoomId(e.target.value)} placeholder="如：lobby" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                        </div>
+                        <div className="w-28">
+                          <label className="block text-xs text-gray-500 mb-1">人数上限</label>
+                          <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden">
+                            <button
+                              onClick={() => setEditMax(Math.max(2, editMax - 1))}
+                              className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm leading-none shrink-0"
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              value={editMax}
+                              onChange={(e) => { const v = parseInt(e.target.value); if (v >= 2 && v <= 100) setEditMax(v); }}
+                              className="w-10 text-center bg-transparent text-sm text-white border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <button
+                              onClick={() => setEditMax(Math.min(100, editMax + 1))}
+                              className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm leading-none shrink-0"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">音质</label>
+                          <select
+                            value={editAudioBitrate}
+                            onChange={(e) => setEditAudioBitrate(parseInt(e.target.value))}
+                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 h-7"
+                          >
+                            {AUDIO_QUALITY_TIERS.map((t) => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button onClick={handleUpdate} className="bg-primary-600 hover:bg-primary-500 text-white text-xs px-3 py-1.5 rounded-lg h-8">保存</button>
+                        <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded-lg h-8">取消</button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-400">上限: {ch.maxUsers}</span>
                       <div className="flex-1" />
-                      <button onClick={() => { setEditRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
+                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
                       {!ch.isDefault && (
                         <button onClick={() => handleDelete(ch.roomId)} className="text-sm text-red-400 hover:text-red-300">删除</button>
                       )}

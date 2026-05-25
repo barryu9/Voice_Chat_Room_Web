@@ -4,6 +4,7 @@ import { useRoomStore } from '../stores/roomStore';
 import { useUserStore } from '../stores/userStore';
 import { useAdminStore } from '../stores/adminStore';
 import { useMediaStore } from '../stores/mediaStore';
+import { playSound } from './soundService';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 
@@ -23,6 +24,7 @@ export function connectSocket(): Socket {
     reconnectionDelay: 1000,
   });
 
+  registerConnectionListeners();
   registerListeners();
   return socket;
 }
@@ -32,6 +34,38 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+}
+
+function registerConnectionListeners() {
+  if (!socket) return;
+
+  socket.on('connect', () => {
+    useUserStore.getState().setConnectionState('connected');
+  });
+
+  socket.on('disconnect', (reason) => {
+    if (reason === 'io server disconnect') {
+      useUserStore.getState().setConnectionState('failed');
+      return;
+    }
+    useUserStore.getState().setConnectionState('disconnected');
+  });
+
+  socket.on('reconnect_attempt', (attempt) => {
+    useUserStore.getState().setConnectionState('reconnecting', attempt);
+  });
+
+  socket.on('reconnect', () => {
+    useUserStore.getState().setConnectionState('connected');
+  });
+
+  socket.on('reconnect_error', () => {
+    useUserStore.getState().setConnectionState('reconnecting');
+  });
+
+  socket.on('reconnect_failed', () => {
+    useUserStore.getState().setConnectionState('failed');
+  });
 }
 
 function registerListeners() {
@@ -57,10 +91,16 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.USER_JOINED, (data) => {
     useRoomStore.getState().addUser(data);
+    if (data.userId !== useUserStore.getState().userId) {
+      playSound('otherJoined');
+    }
   });
 
   socket.on(EVENTS.SERVER.USER_LEFT, (data) => {
     useRoomStore.getState().removeUser(data.userId);
+    if (data.userId !== useUserStore.getState().userId && data.reason !== 'disconnect') {
+      playSound('otherLeft');
+    }
   });
 
   socket.on('user:nickname-changed', (data: { userId: string; nickname: string }) => {
@@ -80,11 +120,13 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.KICKED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useRoomStore.getState().setNotification(`你已被踢出: ${data.reason}`);
+    playSound('disconnected');
   });
 
   socket.on(EVENTS.SERVER.BANNED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useRoomStore.getState().setNotification(`你已被封禁: ${data.reason}`);
+    playSound('disconnected');
   });
 
   socket.on(EVENTS.SERVER.ROOM_INFO_UPDATED, (data) => {
@@ -94,15 +136,30 @@ function registerListeners() {
       const channels = useRoomStore.getState().channels;
       const exists = channels.some((c) => c.roomId === data.roomId);
       if (exists) {
-        useRoomStore.getState().updateChannel(data.roomId, {
-          name: data.name,
-          maxUsers: data.maxUsers,
-        });
+        if (data.newRoomId && data.newRoomId !== data.roomId) {
+          useRoomStore.getState().removeChannel(data.roomId);
+          useRoomStore.getState().addChannel({
+            roomId: data.newRoomId,
+            name: data.name,
+            maxUsers: data.maxUsers,
+            sortOrder: data.sortOrder,
+            audioBitrate: data.audioBitrate,
+          });
+        } else {
+          useRoomStore.getState().updateChannel(data.roomId, {
+            name: data.name,
+            maxUsers: data.maxUsers,
+            sortOrder: data.sortOrder,
+            audioBitrate: data.audioBitrate,
+          });
+        }
       } else {
         useRoomStore.getState().addChannel({
           roomId: data.roomId,
           name: data.name,
           maxUsers: data.maxUsers,
+          sortOrder: data.sortOrder,
+          audioBitrate: data.audioBitrate,
         });
       }
     }
@@ -134,6 +191,9 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.PRODUCER_CLOSED, (data) => {
     useMediaStore.getState().removeRemoteProducer(data.producerId);
     useMediaStore.getState().removeConsumer(data.producerId);
+    if (data.userId !== useUserStore.getState().userId && data.reason === 'disconnect') {
+      playSound('otherDisconnected');
+    }
   });
 
   socket.on(EVENTS.SERVER.ADMIN_AUTH_RESULT, (data) => {

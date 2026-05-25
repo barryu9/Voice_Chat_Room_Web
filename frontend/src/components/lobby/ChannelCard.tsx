@@ -1,5 +1,11 @@
 import React from 'react';
 import type { Channel } from '../../utils/constants';
+import { AUDIO_QUALITY_TIERS } from '../../utils/constants';
+
+function getQualityName(bitrate?: number): string {
+  const tier = AUDIO_QUALITY_TIERS.find((t) => t.value === (bitrate ?? 32));
+  return tier?.label ?? '标准';
+}
 
 interface ChannelCardProps {
   channel: Channel;
@@ -8,11 +14,16 @@ interface ChannelCardProps {
 }
 
 export const ChannelCard: React.FC<ChannelCardProps> = ({ channel, onJoin, disabled }) => {
+  const qualityName = getQualityName(channel.audioBitrate);
+
   return (
     <div className="glass-card p-5 hover:border-primary-500/40 transition-all duration-300 group cursor-pointer">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-semibold text-white group-hover:text-primary-400 transition-colors">
+        <h3 className="text-lg font-semibold text-white group-hover:text-primary-400 transition-colors flex items-center gap-2">
           {channel.name}
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/5 font-normal">
+            {qualityName}
+          </span>
         </h3>
         <span className="text-xs px-2 py-1 rounded-full bg-primary-500/20 text-primary-300 border border-primary-500/30">
           {channel.roomId}

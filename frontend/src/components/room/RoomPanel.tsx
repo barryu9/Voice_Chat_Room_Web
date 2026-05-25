@@ -3,7 +3,8 @@ import { useUserStore } from '../../stores/userStore';
 import { useRoomStore } from '../../stores/roomStore';
 import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
-import { EVENTS } from '../../utils/constants';
+import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
+import { playSound } from '../../services/soundService';
 import { UserGrid } from './UserGrid';
 import { DeviceSelector } from '../audio/DeviceSelector';
 import { MicController } from '../audio/MicController';
@@ -14,6 +15,7 @@ import { showToast } from '../common/Toast';
 import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes } from '../../services/audioService';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
+import { SoundSettings } from '../common/SoundSettings';
 import { LatencyIndicator } from './LatencyIndicator';
 
 export const RoomPanel: React.FC = () => {
@@ -49,6 +51,7 @@ export const RoomPanel: React.FC = () => {
       await startProduce();
       await startConsume();
       setVoiceConnected(true);
+      playSound('connected');
       showToast('已加入语音', 'success');
     } catch (err: any) {
       console.error('[RoomPanel] Voice connect failed:', err);
@@ -63,6 +66,7 @@ export const RoomPanel: React.FC = () => {
     stopProduce();
     cleanup();
     setVoiceConnected(false);
+    playSound('disconnected');
     showToast('已断开语音', 'info');
   }, [stopProduce, cleanup, setVoiceConnected]);
 
@@ -70,6 +74,7 @@ export const RoomPanel: React.FC = () => {
     if (isVoiceConnected) {
       stopProduce();
       cleanup();
+      playSound('disconnected');
     }
     getSocket()?.emit(EVENTS.CLIENT.ROOM_LEAVE);
     useMediaStore.getState().reset();
@@ -91,6 +96,7 @@ export const RoomPanel: React.FC = () => {
 
   const handleMicToggle = useCallback(() => {
     const newMuted = toggleMute();
+    playSound(newMuted ? 'micMuted' : 'micActivated');
     getSocket()?.emit(EVENTS.CLIENT.USER_MUTE_SELF, { muted: newMuted });
   }, [toggleMute]);
 
@@ -110,6 +116,7 @@ export const RoomPanel: React.FC = () => {
       muteAllRemotes();
     }
     toggleMuteAll();
+    playSound(isAllMuted ? 'soundResumed' : 'soundMuted');
   }, [isAllMuted, toggleMuteAll]);
 
   if (!currentRoom) return null;
@@ -121,14 +128,22 @@ export const RoomPanel: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">{currentChannel?.name || currentRoom}</h1>
-            <p className="text-gray-500 text-sm">#{currentRoom}</p>
+            <p className="text-gray-500 text-sm">
+              #{currentRoom}
+              <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/5">
+                {getAudioQualityLabel(currentChannel?.audioBitrate ?? 32)}
+              </span>
+            </p>
           </div>
-          <button
-            onClick={handleLeaveRoom}
-            className="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-300 text-sm px-4 py-2 rounded-xl transition-all"
-          >
-            离开频道
-          </button>
+          <div className="flex items-center gap-3">
+            <SoundSettings />
+            <button
+              onClick={handleLeaveRoom}
+              className="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-300 text-sm px-4 py-2 rounded-xl transition-all"
+            >
+              离开频道
+            </button>
+          </div>
         </div>
 
         {announcements.length > 0 && (

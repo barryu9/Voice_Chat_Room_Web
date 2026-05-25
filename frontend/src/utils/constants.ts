@@ -27,6 +27,7 @@ export const EVENTS = {
     ADMIN_UNMUTE_TARGET:   'admin:unmute-target',
     ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
     ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
+    ADMIN_CHANNELS_REORDER:     'admin:channels-reorder',
   },
   SERVER: {
     LOGIN_SUCCESS:       'user:login-success',
@@ -67,7 +68,21 @@ export type Channel = {
   isDefault?: boolean;
   onlineCount?: number;
   voiceCount?: number;
+  sortOrder?: number;
+  audioBitrate?: number;
 };
+
+export const AUDIO_QUALITY_TIERS: { label: string; value: number; desc: string }[] = [
+  { label: '流畅', value: 20, desc: '20kbps' },
+  { label: '标准', value: 32, desc: '32kbps' },
+  { label: '质量', value: 48, desc: '48kbps' },
+  { label: '音乐', value: 64, desc: '64kbps' },
+];
+
+export function getAudioQualityLabel(bitrate: number): string {
+  const tier = AUDIO_QUALITY_TIERS.find((t) => t.value === bitrate);
+  return tier ? `${tier.label} (${tier.desc})` : `${bitrate}kbps`;
+}
 
 export type Announcement = {
   id: string;

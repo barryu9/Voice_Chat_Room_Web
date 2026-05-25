@@ -5,15 +5,15 @@ async function initChannels(io) {
   const channels = await Channel.find({}).lean();
 
   if (channels.length === 0) {
-    await Channel.create({ roomId: 'lobby', name: '大厅', maxUsers: 50, isDefault: true });
-    await Channel.create({ roomId: 'music', name: '音乐频道', maxUsers: 20 });
-    await Channel.create({ roomId: 'gaming', name: '游戏频道', maxUsers: 20 });
+    await Channel.create({ roomId: 'lobby', name: '大厅', maxUsers: 50, isDefault: true, sortOrder: 0, audioBitrate: 32 });
+    await Channel.create({ roomId: 'music', name: '音乐频道', maxUsers: 20, sortOrder: 1, audioBitrate: 64 });
+    await Channel.create({ roomId: 'gaming', name: '游戏频道', maxUsers: 20, sortOrder: 2, audioBitrate: 48 });
   }
 
   const allChannels = await Channel.find({}).lean();
 
   for (const ch of allChannels) {
-    const room = createRoom(ch.roomId, ch.name, ch.maxUsers, io);
+    const room = createRoom(ch.roomId, ch.name, ch.maxUsers, ch.audioBitrate, io);
     await room.init();
   }
 
@@ -22,7 +22,7 @@ async function initChannels(io) {
 }
 
 async function getAllChannels() {
-  return Channel.find({}).lean();
+  return Channel.find({}).sort({ sortOrder: 1, createdAt: 1 }).lean();
 }
 
 async function createChannel(data) {
@@ -30,14 +30,24 @@ async function createChannel(data) {
     roomId: data.roomId || data.name.toLowerCase().replace(/\s+/g, '-'),
     name: data.name,
     maxUsers: data.maxUsers || 20,
+    sortOrder: data.sortOrder ?? 0,
+    audioBitrate: data.audioBitrate ?? 32,
   });
   return channel;
 }
 
 async function updateChannel(roomId, updates) {
+  const setFields = { ...updates };
+  const newRoomId = setFields.newRoomId;
+  delete setFields.newRoomId;
+
+  if (newRoomId && newRoomId !== roomId) {
+    setFields.roomId = newRoomId;
+  }
+
   const channel = await Channel.findOneAndUpdate(
     { roomId },
-    { $set: updates },
+    { $set: setFields },
     { new: true }
   ).lean();
   return channel;
@@ -78,7 +88,15 @@ async function getSetting(key) {
   return doc?.value || '';
 }
 
+async function reorderChannels(items) {
+  await Promise.all(
+    items.map(({ roomId, sortOrder }) =>
+      Channel.updateOne({ roomId }, { $set: { sortOrder } })
+    )
+  );
+}
+
 module.exports = {
-  initChannels, getAllChannels, createChannel,
+  initChannels, getAllChannels, createChannel, reorderChannels,
   updateChannel, deleteChannel, getAnnouncement, getSiteName, getAnnouncements, getSetting,
 };

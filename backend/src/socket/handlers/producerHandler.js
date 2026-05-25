@@ -17,7 +17,8 @@ function handleProducerEvents(socket, io) {
       return;
     }
 
-    const producer = await transport.produce({ kind, rtpParameters });
+    const encodings = kind === 'audio' ? [{ maxBitrate: room.audioBitrate * 1000 }] : undefined;
+    const producer = await transport.produce({ kind, rtpParameters, encodings });
     const producerInfo = {
       instance: producer,
       socketId: socket.id,
@@ -34,7 +35,7 @@ function handleProducerEvents(socket, io) {
 
     socket.emit(EVENTS.SERVER.PRODUCER_CREATED, { producerId: producer.id });
 
-    room.broadcast(conn.currentRoom, EVENTS.SERVER.NEW_PRODUCER, {
+    socket.to(conn.currentRoom).emit(EVENTS.SERVER.NEW_PRODUCER, {
       producerId: producer.id,
       userId: conn.userId,
       deviceId: conn.deviceId,
@@ -42,7 +43,7 @@ function handleProducerEvents(socket, io) {
     });
 
     if (isFirstProducer) {
-      room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_JOINED, {
+      room.io.to(conn.currentRoom).emit(EVENTS.SERVER.USER_JOINED, {
         userId: conn.userId,
         nickname: conn.nickname,
         deviceId: conn.deviceId,
@@ -55,15 +56,18 @@ function handleProducerEvents(socket, io) {
       const wasLastProducer = remaining === 1;
       room.removeProducer(producer.id);
       room.removeConsumersForProducer(producer.id);
-      room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
+      socket.to(conn.currentRoom).emit(EVENTS.SERVER.PRODUCER_CLOSED, {
         producerId: producer.id,
+        userId: conn.userId,
         deviceId: conn.deviceId,
+        reason: 'disconnect',
       });
       if (wasLastProducer) {
-        room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
+        socket.to(conn.currentRoom).emit(EVENTS.SERVER.USER_LEFT, {
           userId: conn.userId,
           deviceId: conn.deviceId,
           nickname: conn.nickname,
+          reason: 'disconnect',
         });
         broadcastAllRoomOnlineCounts(io);
       }
@@ -83,9 +87,11 @@ function handleProducerEvents(socket, io) {
       try { info.instance.close(); } catch (e) { /* ignore */ }
     }
     room.removeConsumersForProducer(producerId);
-    room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
+    socket.to(conn.currentRoom).emit(EVENTS.SERVER.PRODUCER_CLOSED, {
       producerId,
+      userId: conn.userId,
       deviceId: conn.deviceId,
+      reason: 'leave',
     });
 
     if (wasLastProducer) {
@@ -93,6 +99,7 @@ function handleProducerEvents(socket, io) {
         userId: conn.userId,
         deviceId: conn.deviceId,
         nickname: conn.nickname,
+        reason: 'leave',
       });
       broadcastAllRoomOnlineCounts(io);
     }

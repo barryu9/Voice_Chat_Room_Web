@@ -5,10 +5,11 @@ const { EVENTS } = require('../socket/events');
 const rooms = new Map();
 
 class Room {
-  constructor(roomId, name, maxUsers, io) {
+  constructor(roomId, name, maxUsers, audioBitrate, io) {
     this.roomId = roomId;
     this.name = name;
     this.maxUsers = maxUsers;
+    this.audioBitrate = audioBitrate || 32;
     this.router = null;
     this.audioObserver = null;
     this.producers = new Map();
@@ -19,7 +20,7 @@ class Room {
   }
 
   async init() {
-    this.router = await createRouter();
+    this.router = await createRouter(this.audioBitrate);
     this.audioObserver = await createAudioLevelObserver(this.router, this.roomId, this.io);
     console.log(`[Room] "${this.roomId}" created with Router`);
   }
@@ -158,8 +159,8 @@ function getRoom(roomId) {
   return rooms.get(roomId);
 }
 
-function createRoom(roomId, name, maxUsers, io) {
-  const room = new Room(roomId, name, maxUsers, io);
+function createRoom(roomId, name, maxUsers, audioBitrate, io) {
+  const room = new Room(roomId, name, maxUsers, audioBitrate, io);
   rooms.set(roomId, room);
   return room;
 }

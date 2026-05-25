@@ -15,32 +15,41 @@ function handleAdminEvents(socket, io) {
     socket.emit(EVENTS.SERVER.ADMIN_AUTH_RESULT, { success, message: success ? 'Authenticated' : 'Wrong password' });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId, sortOrder, audioBitrate }) => {
     if (!isAdmin(socket.id)) return;
 
     const rid = (roomId && roomId.trim()) ? roomId.trim() : name.toLowerCase().replace(/\s+/g, '-');
-    const channel = await createChannel({ name, roomId: rid, maxUsers });
+    const channel = await createChannel({ name, roomId: rid, maxUsers, sortOrder, audioBitrate });
 
-    const room = createRoom(roomId, channel.name, channel.maxUsers, io);
+    const room = createRoom(rid, channel.name, channel.maxUsers, channel.audioBitrate, io);
     await room.init();
 
-    io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, { roomId, name: channel.name, maxUsers: channel.maxUsers });
+    io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
+      roomId: rid, name: channel.name, maxUsers: channel.maxUsers,
+      sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
+    });
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已创建`, type: 'success' });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, async ({ roomId, name, maxUsers }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, async ({ roomId, newRoomId, name, maxUsers, sortOrder, audioBitrate }) => {
     if (!isAdmin(socket.id)) return;
 
-    const channel = await updateChannel(roomId, { name, maxUsers });
+    const channel = await updateChannel(roomId, { name, maxUsers, newRoomId, sortOrder, audioBitrate });
     if (!channel) return;
 
-    const room = getRoom(roomId);
+    const effectiveRoomId = newRoomId || roomId;
+    const room = getRoom(effectiveRoomId);
     if (room) {
       room.name = channel.name;
       room.maxUsers = channel.maxUsers;
+      room.audioBitrate = channel.audioBitrate;
     }
 
-    io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, { roomId, name: channel.name, maxUsers: channel.maxUsers });
+    io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
+      roomId, newRoomId: newRoomId || roomId,
+      name: channel.name, maxUsers: channel.maxUsers,
+      sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
+    });
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已更新`, type: 'success' });
   });
 
@@ -217,6 +226,28 @@ function handleAdminEvents(socket, io) {
         break;
       }
     }
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNELS_REORDER, async ({ channels }) => {
+    if (!isAdmin(socket.id)) return;
+    if (!Array.isArray(channels)) return;
+
+    const { reorderChannels } = require('../../services/channelService');
+    await reorderChannels(channels);
+
+    const { getAllChannels } = require('../../services/channelService');
+    const { getRooms } = require('../../mediasoup/roomManager');
+    const allChannels = await getAllChannels();
+    const rooms = getRooms();
+    const enriched = allChannels.map((ch) => {
+      const room = rooms.get(ch.roomId);
+      return {
+        ...ch,
+        onlineCount: room ? room.users.size : 0,
+        voiceCount: room ? room.getVoiceUserCount() : 0,
+      };
+    });
+    io.emit(EVENTS.SERVER.ROOM_LIST, { rooms: enriched });
   });
 }
 

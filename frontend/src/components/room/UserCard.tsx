@@ -19,7 +19,7 @@ interface UserCardProps {
 export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const activeSpeakers = useRoomStore((s) => s.activeSpeakers);
   const isAdmin = useAdminStore((s) => s.isAdmin);
-  const currentDeviceId = useUserStore((s) => s.deviceId);
+  const currentUserId = useUserStore((s) => s.userId);
   const mutedUsers = useMediaStore((s) => s.mutedUsers);
   const toggleMuteUser = useMediaStore((s) => s.toggleMuteUser);
   const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
@@ -28,7 +28,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
   const speaker = activeSpeakers.get(user.deviceId);
   const isSpeaking = !!speaker?.isSpeaking;
-  const isSelf = user.deviceId === currentDeviceId;
+  const isSelf = user.userId === currentUserId;
   const isMuted = mutedUsers.has(user.deviceId);
   const peerLatency = peerLatencies.get(user.deviceId);
 

@@ -30,6 +30,7 @@ const EVENTS = {
     ADMIN_UNMUTE_TARGET:   'admin:unmute-target',
     ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
     ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
+    ADMIN_CHANNELS_REORDER:     'admin:channels-reorder',
   },
 
   SERVER: {

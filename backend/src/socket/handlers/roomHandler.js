@@ -98,7 +98,9 @@ function leaveCurrentRoom(socket, io) {
     room.removeConsumersForProducer(p.producerId);
     room.broadcast(roomId, EVENTS.SERVER.PRODUCER_CLOSED, {
       producerId: p.producerId,
+      userId: conn.userId,
       deviceId: conn.deviceId,
+      reason: 'leave',
     });
   }
 
@@ -122,6 +124,7 @@ function leaveCurrentRoom(socket, io) {
       userId: conn.userId,
       deviceId: conn.deviceId,
       nickname: conn.nickname,
+      reason: 'leave',
     });
   }
 

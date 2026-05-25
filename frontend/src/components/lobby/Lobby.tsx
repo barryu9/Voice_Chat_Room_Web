@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
-import { useUserStore } from '../../stores/userStore';
+import { useUserStore, ConnectionState } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
@@ -11,6 +11,7 @@ import { NicknameModal } from './NicknameModal';
 import { AdminLogin } from '../admin/AdminLogin';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
+import { SoundSettings } from '../common/SoundSettings';
 
 export const Lobby: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
@@ -28,6 +29,8 @@ export const Lobby: React.FC = () => {
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
   const [editingNickname, setEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState('');
+  const connectionState = useUserStore((s) => s.connectionState);
+  const reconnectAttempt = useUserStore((s) => s.reconnectAttempt);
 
   useEffect(() => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_LIST);
@@ -71,6 +74,17 @@ export const Lobby: React.FC = () => {
     <div className="min-h-screen relative">
       <TechBackground />
       <div className="max-w-5xl mx-auto px-4 py-8 relative z-10">
+        {connectionState !== 'connected' && (
+          <div className={`mb-4 px-4 py-2 rounded-lg text-xs text-center ${
+            connectionState === 'reconnecting' ? 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300' :
+            connectionState === 'disconnected' ? 'bg-orange-500/10 border border-orange-500/30 text-orange-300' :
+            'bg-red-500/10 border border-red-500/30 text-red-300'
+          }`}>
+            {connectionState === 'reconnecting' && `正在重连服务器... (${reconnectAttempt}/5)`}
+            {connectionState === 'disconnected' && '连接已断开，正在尝试重连...'}
+            {connectionState === 'failed' && '服务器连接失败，请刷新页面重试'}
+          </div>
+        )}
         <header className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-400 to-violet-400 bg-clip-text text-transparent">
@@ -101,6 +115,7 @@ export const Lobby: React.FC = () => {
             )}
           </div>
           <div className="flex gap-3">
+            <SoundSettings />
             <button
               onClick={handleLogout}
               className="text-sm bg-white/10 hover:bg-white/20 text-gray-300 px-4 py-2 rounded-lg transition-all border border-white/10"
