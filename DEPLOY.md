@@ -1,40 +1,100 @@
-## 部署步骤（在服务器上执行）
+# 语音聊天室 - 部署指南
+
+版本: **v2026.05.25.2**
+
+## 架构
+
+```
+┌─────────────────────┐     ┌─────────────────────┐
+│  前端服务器          │     │  后端服务器          │
+│  38.95.75.238       │     │  120.76.229.15      │
+│                     │     │                     │
+│  Nginx (Docker)     │     │  Mediasoup (Docker)  │
+│  127.0.0.1:8080     │◄───►│  0.0.0.0:3001        │
+│                     │     │  MongoDB (Docker)    │
+│  chat.pokepal.fun   │     │  talk.pokepal.fun    │
+└─────────────────────┘     └─────────────────────┘
+        WebRTC UDP: 40000-49999
+```
+
+## 快速开始
+
+| 场景 | 在哪台服务器 | 命令 |
+|---|---|---|
+| 全栈部署 | 后端 120.76.229.15 | `bash deploy.sh` |
+| 仅后端 | 后端 120.76.229.15 | `bash deploy-backend.sh` |
+| 仅前端 | 前端 38.95.75.238 | `bash deploy-frontend.sh` |
+
+## 前置条件
+
+- 服务器已安装 Git，能访问 Gitee
+- 云服务器安全组已开放以下端口:
+
+| 端口 | 协议 | 用途 | 服务器 |
+|---|---|---|---|
+| 22 | TCP | SSH | 两台 |
+| 443 | TCP | HTTPS | 两台 |
+| 3001 | TCP | 后端 API | 后端 |
+| 8080 | TCP | 前端静态 | 前端 |
+| 40000-49999 | UDP | WebRTC 媒体 | 后端 |
+
+## 初次部署
 
 ### 1. 拉取代码
+
 ```bash
 git clone https://gitee.com/barrix/voice-chat-room.git
 cd voice-chat-room
 ```
 
-### 2. 一键部署
+### 2. 运行部署脚本
+
 ```bash
+# 全栈 (后端服务器)
 bash deploy.sh
+
+# 或仅后端 (后端服务器)
+bash deploy-backend.sh
+
+# 或仅前端 (前端服务器)
+bash deploy-frontend.sh
 ```
 
 ### 3. 验证
+
 ```bash
-# 检查是否启动
-docker compose -f docker/docker-compose.yml ps
-
-# 测试后端
+# 后端健康检查
 curl http://127.0.0.1:3001/health
-# 应返回 {"status":"ok",...}
+# → {"status":"ok","uptime":...}
 
-# 测试前端
-curl http://127.0.0.1:8080
-# 应返回 HTML
+# 前端状态
+curl -I http://127.0.0.1:8080
+# → HTTP/1.1 200 OK
+
+# 容器状态
+docker compose -f docker/docker-compose.yml ps
 ```
 
-### 4. 配置你的反向代理
+## 更新部署
 
-你需要代理到 `http://127.0.0.1:8080`（nginx 容器），或者直接代理到 `http://127.0.0.1:3001`（后端）。
+```bash
+cd voice-chat-room
+git pull
+bash deploy.sh           # 或 deploy-backend.sh / deploy-frontend.sh
+```
 
-**Nginx 示例配置：**
+## 反向代理配置
+
+### 前端 Nginx (chat.pokepal.fun → 38.95.75.238)
+
 ```nginx
 server {
     listen 443 ssl http2;
     server_name chat.pokepal.fun;
-    # ... 你的 SSL 证书配置 ...
+
+    # SSL 证书配置...
+    ssl_certificate     /path/to/fullchain.pem;
+    ssl_certificate_key /path/to/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -55,28 +115,71 @@ server {
 }
 ```
 
-### 5. 防火墙
+### 后端 Nginx (talk.pokepal.fun → 120.76.229.15)
 
-确保云服务器安全组已开放：
-| 端口 | 协议 | 用途 |
-|------|------|------|
-| 443 | TCP | HTTPS |
-| 40000-49999 | UDP | WebRTC 流媒体 |
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name talk.pokepal.fun;
 
----
+    # SSL 证书配置...
 
-### 如果服务器无法访问 GitHub/Gitee
+    location / {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 86400s;
+    }
+}
+```
 
-可以把整个项目目录打包上传：
+## 故障排查
+
 ```bash
-# 在本地
-cd D:\my_projects\voice-chat-room
-tar --exclude=node_modules --exclude=dist -czf vc.tar.gz .
+# 查看日志
+docker compose -f docker/docker-compose.yml logs -f
 
-# scp 到服务器
-scp -r vc.tar.gz root@38.95.75.238:/root/
+# 查看单个服务
+docker compose -f docker/docker-compose.yml logs -f backend
 
-# 在服务器上
+# 重启服务
+docker compose -f docker/docker-compose.yml restart
+
+# 进入容器
+docker exec -it vc-backend sh
+
+# 查看端口监听
+netstat -tlnp | grep -E "3001|8080|27017"
+
+# 查看磁盘空间
+df -h
+docker system df
+```
+
+## 离线部署
+
+如果服务器无法访问 Gitee:
+
+```bash
+# 本地打包
+tar --exclude=node_modules --exclude=dist --exclude=.git -czf vc.tar.gz .
+scp vc.tar.gz root@120.76.229.15:/root/
+
+# 服务器解压
 mkdir -p voice-chat-room && cd voice-chat-room
 tar -xzf ../vc.tar.gz
 ```
+
+## 环境变量
+
+部署脚本自动生成 `docker/.env`:
+
+| 变量 | 说明 | 示例 |
+|---|---|---|
+| `PUBLIC_IP` | 服务器公网 IP (WebRTC 信令) | `120.76.229.15` |
+| `ADMIN_PASSWORD` | 管理面板密码 | `barry422` |
+| `MONGODB_URI` | MongoDB 连接串 | `mongodb://127.0.0.1:27017/voice-chat-prod` |
+| `CORS_ORIGIN` | 前端域名 | `https://chat.pokepal.fun` |
