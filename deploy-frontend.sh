@@ -34,6 +34,14 @@ VITE_SOCKET_URL=$BACKEND_URL
 VITE_API_URL=$BACKEND_URL/api
 EOF
 
+# 屏蔽词库 — 如果不存在则从示例文件复制
+BLOCKED_WORDS_FILE="$SCRIPT_DIR/frontend/src/utils/blockedWords.ts"
+BLOCKED_WORDS_EXAMPLE="$SCRIPT_DIR/frontend/src/utils/blockedWords.example.ts"
+if [ ! -f "$BLOCKED_WORDS_FILE" ] && [ -f "$BLOCKED_WORDS_EXAMPLE" ]; then
+  cp "$BLOCKED_WORDS_EXAMPLE" "$BLOCKED_WORDS_FILE"
+  echo "  ⚠ 已从示例文件创建 blockedWords.ts（词库为空，可按需编辑）"
+fi
+
 echo "========================================"
 echo "  语音聊天室 - 前端部署"
 echo "  前端:  https://${DOMAIN_FRONTEND:-$PUBLIC_IP_FRONTEND}"

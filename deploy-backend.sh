@@ -34,6 +34,13 @@ RTC_MAX_PORT=${RTC_MAX_PORT:-49999}
 MEDIASOUP_LISTEN_IP=${MEDIASOUP_LISTEN_IP:-0.0.0.0}
 EOF
 
+BLOCKED_WORDS_FILE="$SCRIPT_DIR/backend/src/utils/blockedWords.js"
+BLOCKED_WORDS_EXAMPLE="$SCRIPT_DIR/backend/src/utils/blockedWords.example.js"
+if [ ! -f "$BLOCKED_WORDS_FILE" ] && [ -f "$BLOCKED_WORDS_EXAMPLE" ]; then
+  cp "$BLOCKED_WORDS_EXAMPLE" "$BLOCKED_WORDS_FILE"
+  echo "  ⚠ 已从示例文件创建 blockedWords.js（词库为空，可按需编辑）"
+fi
+
 BACKEND_PORT="${BACKEND_PORT:-3001}"
 
 echo "========================================"
