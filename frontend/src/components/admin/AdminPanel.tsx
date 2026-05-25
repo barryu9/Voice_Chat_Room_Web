@@ -188,10 +188,10 @@ export const AdminPanel: React.FC = () => {
               {/* Create */}
               <div className="glass-card p-4 space-y-3">
                 <h4 className="text-sm font-medium text-gray-300">新建频道</h4>
-                <div className="flex gap-2">
-                  <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="频道名称" className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
-                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="简称（可选）" className="w-28 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
-                  <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden">
+                <div className="flex flex-wrap gap-2">
+                  <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="频道名称" className="flex-1 min-w-[100px] bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
+                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="简称（可选）" className="w-24 sm:w-28 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
+                  <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden shrink-0">
                     <button
                       onClick={() => setNewMax(Math.max(2, newMax - 1))}
                       className="w-7 h-9 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm shrink-0"

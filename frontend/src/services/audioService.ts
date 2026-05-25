@@ -1,10 +1,12 @@
+import { useMediaStore } from '../stores/mediaStore';
+
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let micGainNode: GainNode | null = null;
 let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
-let noiseGateThreshold = -60;
+let noiseGateThreshold = -20;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
 let rnnoiseConnected = false;
@@ -144,7 +146,16 @@ export async function setupRemoteAudio(consumer: any, producerId: string): Promi
 export function setRemoteVolume(producerId: string, volume: number) {
   const audio = remoteAudioElements.get(producerId);
   if (audio) {
-    audio.volume = Math.max(0, Math.min(volume, 2));
+    const masterVol = useMediaStore.getState().masterVolume;
+    audio.volume = Math.max(0, Math.min(volume * masterVol, 2));
+  }
+}
+
+export function applyMasterVolume() {
+  const masterVol = useMediaStore.getState().masterVolume;
+  for (const [producerId, audio] of remoteAudioElements) {
+    const gain = useMediaStore.getState().remoteAudioGains.get(producerId) ?? 1.0;
+    audio.volume = Math.max(0, Math.min(gain * masterVol, 2));
   }
 }
 

@@ -78,8 +78,8 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         <div
           className="rounded-full flex items-center justify-center text-white font-bold text-lg select-none"
           style={{
-            width: 56,
-            height: 56,
+            width: 48,
+            height: 48,
             backgroundColor: color,
             boxShadow: isSpeaking ? `0 0 20px ${color}80` : 'none',
           }}
@@ -91,7 +91,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
       {/* Name + Badge */}
       <div className="text-center">
-        <p className="text-sm font-medium text-white truncate max-w-[100px]">
+        <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[80px] sm:max-w-[100px]">
           {user.nickname}
           {isSelf && <span className="text-gray-500 text-xs ml-1">(我)</span>}
         </p>
@@ -116,12 +116,36 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         )}
       </div>
 
-      {/* Volume slider on hover */}
+      {/* Desktop: controls on hover at bottom */}
       {!isSelf && (
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/hover:pointer-events-auto z-10 flex items-center gap-1">
+        <div className="hidden sm:flex absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/hover:pointer-events-auto z-10 items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-900/80 backdrop-blur">
           <button
             onClick={handleToggleLocalMute}
-            className="text-gray-400 hover:text-white transition-colors"
+            className={`text-gray-400 hover:text-white transition-colors p-0.5 ${isMuted ? 'text-yellow-400' : ''}`}
+            title={isMuted ? '取消静音' : '静音'}
+          >
+            {isMuted ? (
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <line x1="17" y1="9" x2="23" y2="15" stroke="currentColor" strokeWidth="2" />
+                <line x1="23" y1="9" x2="17" y2="15" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            ) : (
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+            )}
+          </button>
+          <RemoteVolume producerDeviceId={user.deviceId} />
+        </div>
+      )}
+
+      {/* Mobile: horizontal inline */}
+      {!isSelf && (
+        <div className="sm:hidden flex items-center gap-1 mt-1">
+          <button
+            onClick={handleToggleLocalMute}
+            className={`text-gray-400 hover:text-white transition-colors p-1 ${isMuted ? 'text-yellow-400' : ''}`}
             title={isMuted ? '取消静音' : '静音'}
           >
             {isMuted ? (

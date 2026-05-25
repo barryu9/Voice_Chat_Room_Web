@@ -11,3 +11,5 @@ docker/nginx/ssl/
 frontend.log
 backend.log
 deploy.conf
+frontend/src/utils/blockedWords.ts
+backend/src/utils/blockedWords.js

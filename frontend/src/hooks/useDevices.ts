@@ -28,6 +28,13 @@ export function useDevices() {
   }, []);
 
   const enumerate = useCallback(async () => {
+    try {
+      const permStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      permStream.getTracks().forEach((t) => t.stop());
+    } catch {
+      // 用户拒绝权限，仍然可以列出设备（标签为空）
+    }
+
     const devices = await navigator.mediaDevices.enumerateDevices();
     const inputs: DeviceInfo[] = [];
     const outputs: DeviceInfo[] = [];

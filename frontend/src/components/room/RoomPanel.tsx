@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useUserStore } from '../../stores/userStore';
 import { useRoomStore } from '../../stores/roomStore';
 import { useMediaStore } from '../../stores/mediaStore';
@@ -7,13 +7,12 @@ import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { playSound } from '../../services/soundService';
 import { setNoiseSuppressorEnabled, setNoiseSuppressorStrength } from '../../services/rnnoiseService';
 import { UserGrid } from './UserGrid';
-import { DeviceSelector } from '../audio/DeviceSelector';
-import { MicController } from '../audio/MicController';
+import { AudioControls } from '../audio/AudioControls';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
 import { showToast } from '../common/Toast';
-import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes } from '../../services/audioService';
+import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume } from '../../services/audioService';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
@@ -36,12 +35,16 @@ export const RoomPanel: React.FC = () => {
   const noiseSuppressionStrength = useMediaStore((s) => s.noiseSuppressionStrength);
   const setNoiseSuppressionEnabled = useMediaStore((s) => s.setNoiseSuppressionEnabled);
   const setNoiseSuppressionStrength = useMediaStore((s) => s.setNoiseSuppressionStrength);
+  const masterVolume = useMediaStore((s) => s.masterVolume);
+  const setMasterVolume = useMediaStore((s) => s.setMasterVolume);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
-  const { gain, muted, threshold, toggleMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
+  const { gain, muted, threshold, audioLevel, toggleMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
   const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
 
   const [connecting, setConnecting] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const durationRef = useRef<number>(0);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
   const selfLatency = myDeviceId ? peerLatencies.get(myDeviceId) : undefined;
 
@@ -135,6 +138,27 @@ export const RoomPanel: React.FC = () => {
     setNoiseSuppressorStrength(v);
   }, [setNoiseSuppressionStrength]);
 
+  const handleMasterVolumeChange = useCallback((v: number) => {
+    setMasterVolume(v);
+    applyMasterVolume();
+  }, [setMasterVolume]);
+
+  useEffect(() => {
+    if (isVoiceConnected) {
+      durationRef.current = window.setInterval(() => setDuration((d) => d + 1), 1000);
+    } else {
+      clearInterval(durationRef.current);
+      setDuration(0);
+    }
+    return () => clearInterval(durationRef.current);
+  }, [isVoiceConnected]);
+
+  const fmt = (d: number) => {
+    const m = Math.floor(d / 60).toString().padStart(2, '0');
+    const s = (d % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
   if (!currentRoom) return null;
 
   return (
@@ -175,32 +199,12 @@ export const RoomPanel: React.FC = () => {
           </div>
         )}
 
-        <div className="glass-panel p-4 mb-6 flex flex-wrap items-center gap-4">
-          <button
-            onClick={handleToggleMuteAll}
-            className={`p-2.5 rounded-xl transition-all active:scale-95 ${
-              isAllMuted
-                ? 'bg-yellow-600/30 text-yellow-400 border border-yellow-500/30'
-                : 'bg-gray-800/60 text-gray-300 border border-gray-600/50 hover:border-primary-500/40'
-            }`}
-            title={isAllMuted ? '取消全部静音' : '全部静音'}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isAllMuted ? (
-                <>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />
-                </>
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              )}
-            </svg>
-          </button>
-
-          <MicController
+        <div className="glass-panel p-3 sm:p-4 mb-6 flex flex-wrap items-center gap-3 sm:gap-4 overflow-visible sm:static fixed bottom-0 left-0 right-0 z-40 rounded-none sm:rounded-2xl">
+          <AudioControls
             gain={gain}
             muted={muted}
             threshold={threshold}
+            audioLevel={audioLevel}
             noiseSuppressionEnabled={noiseSuppressionEnabled}
             noiseSuppressionStrength={noiseSuppressionStrength}
             onToggleMute={handleMicToggle}
@@ -214,15 +218,16 @@ export const RoomPanel: React.FC = () => {
             }}
             onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
             onNoiseSuppressionStrengthChange={handleNoiseSuppressionStrengthChange}
-          />
-
-          <DeviceSelector
             inputs={audioInputs}
             outputs={audioOutputs}
             selectedInput={selectedInput}
             selectedOutput={selectedOutput}
             onInputChange={handleDeviceChange}
             onOutputChange={handleOutputChange}
+            isAllMuted={isAllMuted}
+            masterVolume={masterVolume}
+            onToggleMuteAll={handleToggleMuteAll}
+            onMasterVolumeChange={handleMasterVolumeChange}
           />
 
           {selfLatency != null && <LatencyIndicator latency={selfLatency} />}
@@ -230,12 +235,15 @@ export const RoomPanel: React.FC = () => {
           <div className="flex-1" />
 
           {isVoiceConnected ? (
-            <button
-              onClick={handleVoiceDisconnect}
-              className="bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
-            >
-              断开语音
-            </button>
+            <>
+              <span className="text-sm text-gray-400 font-mono tabular-nums">{fmt(duration)}</span>
+              <button
+                onClick={handleVoiceDisconnect}
+                className="bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
+              >
+                断开语音
+              </button>
+            </>
           ) : (
             <button
               onClick={handleVoiceConnect}
@@ -247,7 +255,7 @@ export const RoomPanel: React.FC = () => {
           )}
         </div>
 
-        <div className="glass-panel p-5">
+        <div className="glass-panel p-5 pb-24 sm:pb-5">
           <UserGrid />
         </div>
       </div>

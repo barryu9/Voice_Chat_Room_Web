@@ -4,6 +4,7 @@ interface MicControllerProps {
   gain: number;
   muted: boolean;
   threshold: number;
+  audioLevel: number;
   noiseSuppressionEnabled: boolean;
   noiseSuppressionStrength: number;
   onToggleMute: () => void;
@@ -13,30 +14,42 @@ interface MicControllerProps {
   onNoiseSuppressionStrengthChange: (v: number) => void;
 }
 
+function levelPercent(db: number, threshold: number): number {
+  const minDb = threshold;
+  const maxDb = 0;
+  return Math.max(0, Math.min(100, ((db - minDb) / (maxDb - minDb)) * 100));
+}
+
 export const MicController: React.FC<MicControllerProps> = ({
-  gain, muted, threshold,
+  gain, muted, threshold, audioLevel,
   noiseSuppressionEnabled, noiseSuppressionStrength,
   onToggleMute, onGainChange, onThresholdChange,
   onNoiseSuppressionToggle, onNoiseSuppressionStrengthChange,
 }) => {
+  const pct = levelPercent(audioLevel, threshold);
+
   return (
     <div className="flex items-center gap-3">
       <button
         onClick={onToggleMute}
-        className={`p-2.5 rounded-xl transition-all active:scale-95 ${
+        className={`relative p-2.5 rounded-xl transition-all active:scale-95 overflow-hidden ${
           muted
             ? 'bg-red-600/30 text-red-400 border border-red-500/30'
             : 'bg-gray-800/60 text-gray-300 border border-gray-600/50 hover:border-primary-500/40'
         }`}
         title={muted ? '取消静音' : '静音'}
       >
+        <div
+          className="absolute bottom-0 left-0 right-0 bg-green-500/40 transition-all duration-100"
+          style={{ height: muted ? '0%' : `${pct}%` }}
+        />
         {muted ? (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
             <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />
           </svg>
         ) : (
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
         )}
@@ -60,8 +73,8 @@ export const MicController: React.FC<MicControllerProps> = ({
           <span className="text-xs text-gray-500 w-8">阈值</span>
           <input
             type="range"
-            min="-100"
-            max="-20"
+            min="-60"
+            max="0"
             step="1"
             value={threshold}
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}

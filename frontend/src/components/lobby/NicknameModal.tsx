@@ -4,6 +4,7 @@ import { useRoomStore } from '../../stores/roomStore';
 import { getSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
 import { setCookie } from '../../utils/cookies';
+import { containsBlockedWord } from '../../utils/blockedWords';
 import { TechBackground } from '../common/TechBackground';
 
 interface NicknameModalProps {
@@ -21,6 +22,7 @@ const connectionStatusConfig: Record<ConnectionState, { text: string; color: str
 export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const deviceId = useUserStore((s) => s.deviceId);
   const setLogin = useUserStore((s) => s.setLogin);
   const siteName = useRoomStore((s) => s.siteName);
@@ -37,8 +39,15 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nickname.trim() || !deviceId) return;
+    const trimmed = nickname.trim();
+    if (!trimmed || !deviceId) return;
 
+    if (containsBlockedWord(trimmed)) {
+      setError('昵称包含违规词汇，请修改');
+      return;
+    }
+
+    setError('');
     setLoading(true);
     const socket = getSocket();
     if (!socket?.connected) {
@@ -47,7 +56,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
     }
 
     socket.emit(EVENTS.CLIENT.USER_LOGIN, {
-      nickname: nickname.trim(),
+      nickname: trimmed,
       deviceId,
     });
 
@@ -79,12 +88,15 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
               <input
                 type="text"
                 value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
+                onChange={(e) => { setNickname(e.target.value); setError(''); }}
                 placeholder="输入你的昵称..."
                 maxLength={16}
                 className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 transition-all"
                 autoFocus
               />
+              {error && (
+                <p className="text-red-400 text-xs mt-1.5">{error}</p>
+              )}
             </div>
 
             <div className={`flex items-center gap-2 text-xs ${cfg.color} justify-center`}>

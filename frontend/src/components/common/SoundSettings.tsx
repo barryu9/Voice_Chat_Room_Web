@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSoundStore, SoundKey, SOUND_LABELS } from '../../stores/soundStore';
 
 const SOUND_KEYS = Object.keys(SOUND_LABELS) as SoundKey[];
@@ -7,12 +7,24 @@ export const SoundSettings: React.FC = () => {
   const [open, setOpen] = useState(false);
   const enabled = useSoundStore((s) => s.enabled);
   const toggle = useSoundStore((s) => s.toggle);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as HTMLElement)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`p-2 rounded-lg transition-all ${
+        className={`p-3 sm:p-2 rounded-lg transition-all ${
           open
             ? 'bg-primary-600/30 text-primary-300'
             : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'
@@ -25,20 +37,23 @@ export const SoundSettings: React.FC = () => {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 glass-panel p-3 z-50 shadow-xl animate-in slide-in-from-top-2 fade-in duration-150">
+        <div
+          ref={panelRef}
+          className="fixed sm:absolute right-4 sm:right-0 top-16 sm:top-full sm:mt-2 w-56 glass-panel p-3 z-[9999] shadow-xl animate-in slide-in-from-top-2 fade-in duration-150"
+        >
           <h4 className="text-xs font-medium text-gray-400 mb-2">音效设置</h4>
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {SOUND_KEYS.map((key) => (
               <label
                 key={key}
-                className="flex items-center justify-between px-2 py-1 rounded hover:bg-white/5 cursor-pointer transition-colors"
+                className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5 cursor-pointer transition-colors"
               >
                 <span className="text-xs text-gray-300">{SOUND_LABELS[key]}</span>
                 <input
                   type="checkbox"
                   checked={enabled[key]}
                   onChange={() => toggle(key)}
-                  className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-primary-500 focus:ring-primary-500 focus:ring-1"
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-primary-500 focus:ring-primary-500 focus:ring-1"
                 />
               </label>
             ))}

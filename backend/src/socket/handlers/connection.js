@@ -1,5 +1,6 @@
 const { isBanned } = require('../../services/banService');
 const { getAllChannels } = require('../../services/channelService');
+const { containsBlockedWord } = require('../../utils/blockedWords');
 const { EVENTS } = require('../events');
 
 const connections = new Map();
@@ -9,6 +10,12 @@ function handleConnection(socket, io) {
   socket.on(EVENTS.CLIENT.USER_LOGIN, async ({ nickname, deviceId }) => {
     if (!nickname || !deviceId) {
       socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: 'Missing nickname or deviceId' });
+      return;
+    }
+
+    const trimmed = nickname.trim();
+    if (!trimmed || containsBlockedWord(trimmed)) {
+      socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '昵称包含违规词汇' });
       return;
     }
 
@@ -23,7 +30,7 @@ function handleConnection(socket, io) {
     connections.set(socket.id, {
       socketId: socket.id,
       userId,
-      nickname,
+      nickname: trimmed,
       deviceId,
       currentRoom: null,
     });
@@ -42,7 +49,7 @@ function handleConnection(socket, io) {
 
     socket.emit(EVENTS.SERVER.LOGIN_SUCCESS, {
       userId,
-      nickname,
+      nickname: trimmed,
       deviceId,
       rooms: enriched,
     });
@@ -80,10 +87,11 @@ function handleConnection(socket, io) {
   });
 
   socket.on('user:updateNickname', ({ nickname }) => {
-    if (!nickname || !nickname.trim()) return;
+    const trimmed = (nickname || '').trim();
+    if (!trimmed || containsBlockedWord(trimmed)) return;
     const conn = connections.get(socket.id);
     if (!conn) return;
-    conn.nickname = nickname.trim();
+    conn.nickname = trimmed;
     if (conn.currentRoom) {
       const { getRoom } = require('../../mediasoup/roomManager');
       const room = getRoom(conn.currentRoom);

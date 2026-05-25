@@ -6,6 +6,7 @@ import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
 import { deleteCookie, getCookie, setCookie } from '../../utils/cookies';
+import { containsBlockedWord } from '../../utils/blockedWords';
 import { ChannelCard } from './ChannelCard';
 import { NicknameModal } from './NicknameModal';
 import { AdminLogin } from '../admin/AdminLogin';
@@ -58,6 +59,10 @@ export const Lobby: React.FC = () => {
     const trimmed = newNickname.trim();
     if (!trimmed || trimmed === nickname) {
       setEditingNickname(false);
+      return;
+    }
+    if (containsBlockedWord(trimmed)) {
+      useRoomStore.getState().setNotification('昵称包含违规词汇，请修改');
       return;
     }
     getSocket()?.emit('user:updateNickname', { nickname: trimmed });
