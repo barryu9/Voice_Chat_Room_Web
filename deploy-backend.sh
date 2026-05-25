@@ -40,7 +40,7 @@ echo "========================================"
 echo "  语音聊天室 - 后端部署"
 echo "  域名:  https://${DOMAIN_BACKEND:-$PUBLIC_IP_BACKEND}"
 echo "  端口:  $BACKEND_PORT"
-echo "  版本:  v2026.05.25.3"
+echo "  版本:  v2026.05.25.5"
 echo "========================================"
 
 echo "[1/4] 检查 Docker..."

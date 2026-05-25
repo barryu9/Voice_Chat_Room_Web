@@ -57,7 +57,7 @@ echo "  语音聊天室 - 全栈部署"
 echo "  前端:  https://${DOMAIN_FRONTEND:-$PUBLIC_IP_FRONTEND}"
 echo "  后端:  https://${DOMAIN_BACKEND:-$PUBLIC_IP_BACKEND}"
 echo "  端口:  前端 8080:$NGINX_PORT | 后端 $BACKEND_PORT | Mongo $MONGO_PORT"
-echo "  版本:  v2026.05.25.3"
+echo "  版本:  v2026.05.25.5"
 echo "========================================"
 
 echo "[1/5] 检查 Docker..."
