@@ -39,7 +39,7 @@ echo "  语音聊天室 - 前端部署"
 echo "  前端:  https://${DOMAIN_FRONTEND:-$PUBLIC_IP_FRONTEND}"
 echo "  后端:  $BACKEND_URL"
 echo "  端口:  $NGINX_PORT"
-echo "  版本:  v2026.05.25.2"
+echo "  版本:  v2026.05.25.3"
 echo "========================================"
 
 echo "[1/3] 检查 Docker..."
@@ -48,8 +48,7 @@ echo "  Docker $(docker --version 2>&1 | head -1) ✓"
 
 echo "[2/3] 构建并启动 Nginx..."
 docker compose -f docker/frontend-compose.yml down 2>/dev/null || true
-docker builder prune -af 2>/dev/null || true
-docker compose -f docker/frontend-compose.yml build --no-cache
+docker compose -f docker/frontend-compose.yml build
 docker compose -f docker/frontend-compose.yml up -d
 echo "  前端容器已启动 ✓"
 

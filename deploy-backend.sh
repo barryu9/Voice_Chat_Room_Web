@@ -40,7 +40,7 @@ echo "========================================"
 echo "  语音聊天室 - 后端部署"
 echo "  域名:  https://${DOMAIN_BACKEND:-$PUBLIC_IP_BACKEND}"
 echo "  端口:  $BACKEND_PORT"
-echo "  版本:  v2026.05.25.2"
+echo "  版本:  v2026.05.25.3"
 echo "========================================"
 
 echo "[1/4] 检查 Docker..."
@@ -57,8 +57,7 @@ echo "  TCP: 22, ${BACKEND_PORT} | UDP: ${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-4
 echo "[3/4] 构建并启动..."
 docker pull mongo:7.0 2>/dev/null || true
 docker compose -f docker/docker-compose.yml down 2>/dev/null || true
-docker builder prune -af 2>/dev/null || true
-docker compose -f docker/docker-compose.yml build --no-cache
+docker compose -f docker/docker-compose.yml build
 docker compose -f docker/docker-compose.yml up -d mongo backend
 echo "  后端容器已启动 ✓"
 
