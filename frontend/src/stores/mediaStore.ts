@@ -57,7 +57,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   remoteAudioGains: new Map(),
   isMicMuted: false,
   isVoiceConnected: false,
-  noiseGateThreshold: -20,
+  noiseGateThreshold: -60,
   mutedUsers: new Set(),
   isAllMuted: false,
   noiseSuppressionEnabled: (() => {
@@ -166,7 +166,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       remoteAudioGains: new Map(),
       isMicMuted: false,
       isVoiceConnected: false,
-      noiseGateThreshold: -20,
+      noiseGateThreshold: -60,
       mutedUsers: new Set(),
       isAllMuted: false,
     }),

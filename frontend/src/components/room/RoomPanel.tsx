@@ -162,12 +162,17 @@ export const RoomPanel: React.FC = () => {
   if (!currentRoom) return null;
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-[100dvh] relative">
       <TechBackground />
       <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">{currentChannel?.name || currentRoom}</h1>
+            <h1 className="text-2xl font-bold text-white">
+              {currentChannel?.name || currentRoom}
+              {selfLatency != null && (
+                <span className="ml-2 inline-flex items-center align-middle"><LatencyIndicator latency={selfLatency} /></span>
+              )}
+            </h1>
             <p className="text-gray-500 text-sm">
               #{currentRoom}
               <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/5">
@@ -199,7 +204,7 @@ export const RoomPanel: React.FC = () => {
           </div>
         )}
 
-        <div className="glass-panel p-3 sm:p-4 mb-6 flex flex-wrap items-center gap-3 sm:gap-4 overflow-visible sm:static fixed bottom-0 left-0 right-0 z-40 rounded-none sm:rounded-2xl">
+        <div className="glass-panel p-3 sm:p-4 sm:mb-6 flex flex-wrap items-center gap-3 sm:gap-4 overflow-visible sm:static fixed bottom-0 left-0 right-0 z-40 rounded-none sm:rounded-2xl">
           <AudioControls
             gain={gain}
             muted={muted}
@@ -230,8 +235,6 @@ export const RoomPanel: React.FC = () => {
             onMasterVolumeChange={handleMasterVolumeChange}
           />
 
-          {selfLatency != null && <LatencyIndicator latency={selfLatency} />}
-
           <div className="flex-1" />
 
           {isVoiceConnected ? (
@@ -255,7 +258,7 @@ export const RoomPanel: React.FC = () => {
           )}
         </div>
 
-        <div className="glass-panel p-5 pb-24 sm:pb-5">
+        <div className="glass-panel p-5">
           <UserGrid />
         </div>
       </div>

@@ -13,7 +13,7 @@ export function useAudioGraph() {
   const [muted, setMuted] = useState(false);
   const [threshold, setThreshold] = useState(() => {
     const saved = localStorage.getItem('vc_threshold');
-    return saved ? parseInt(saved) : -20;
+    return saved ? parseInt(saved) : -60;
   });
   const [audioLevel, setAudioLevel] = useState(-100);
   const animRef = useRef<number>(0);

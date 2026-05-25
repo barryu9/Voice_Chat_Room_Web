@@ -46,10 +46,10 @@ function buildGraph(ctx: AudioContext): {
   if (!rnnoiseNode) return null;
 
   bypassGain = ctx.createGain();
-  bypassGain.gain.value = noiseEnabled ? 1 - noiseStrength : 1;
+  bypassGain.gain.value = noiseEnabled ? Math.cos(noiseStrength * Math.PI / 2) : 1;
 
   wetGain = ctx.createGain();
-  wetGain.gain.value = noiseEnabled ? noiseStrength : 0;
+  wetGain.gain.value = noiseEnabled ? Math.sin(noiseStrength * Math.PI / 2) : 0;
 
   // micGain -> [bypassGain, rnnoiseNode -> wetGain] -> merge into destination
   // We use a dummy gain node as the split point and inputNode
@@ -76,8 +76,8 @@ function buildGraph(ctx: AudioContext): {
 export function setNoiseSuppressorEnabled(enabled: boolean) {
   noiseEnabled = enabled;
   if (bypassGain && wetGain) {
-    bypassGain.gain.value = enabled ? 1 - noiseStrength : 1;
-    wetGain.gain.value = enabled ? noiseStrength : 0;
+    bypassGain.gain.value = enabled ? Math.cos(noiseStrength * Math.PI / 2) : 1;
+    wetGain.gain.value = enabled ? Math.sin(noiseStrength * Math.PI / 2) : 0;
   }
   if (rnnoiseNode) {
     rnnoiseNode.update(enabled);
@@ -88,8 +88,8 @@ export function setNoiseSuppressorEnabled(enabled: boolean) {
 export function setNoiseSuppressorStrength(value: number) {
   noiseStrength = Math.max(0, Math.min(1, value));
   if (bypassGain && wetGain) {
-    bypassGain.gain.value = noiseEnabled ? 1 - noiseStrength : 1;
-    wetGain.gain.value = noiseEnabled ? noiseStrength : 0;
+    bypassGain.gain.value = noiseEnabled ? Math.cos(noiseStrength * Math.PI / 2) : 1;
+    wetGain.gain.value = noiseEnabled ? Math.sin(noiseStrength * Math.PI / 2) : 0;
   }
   localStorage.setItem('vc_denoise_strength', String(noiseStrength));
 }

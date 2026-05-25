@@ -229,7 +229,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </div>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-gray-500 w-10 shrink-0">阈值</span>
-          <input type="range" min="-50" max="0" step="1" value={threshold}
+          <input type="range" min="-100" max="-20" step="1" value={threshold}
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{threshold}dB</span>

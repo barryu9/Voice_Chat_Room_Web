@@ -76,7 +76,7 @@ export const Lobby: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-[100dvh] relative">
       <TechBackground />
       <div className="max-w-5xl mx-auto px-4 py-8 relative z-10">
         {connectionState !== 'connected' && (
