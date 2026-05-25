@@ -1,27 +1,28 @@
 #!/bin/bash
-# === 语音聊天室 - 前端部署 ===
-# 在服务器上执行: bash deploy-frontend.sh
+# === 语音聊天室 - 前端部署（前端服务器）===
+# 在前端服务器 (38.95.75.238) 上执行: bash deploy-frontend.sh
 # 部署: Nginx 静态文件 (独立运行)，绑定 127.0.0.1:8080
+# 后端运行在 120.76.229.15:3001 (talk.pokepal.fun)
 #
-# 需要外部反向代理: chat.pokepal.fun → 127.0.0.1:8080
+# 外部反向代理: chat.pokepal.fun → 127.0.0.1:8080
 # Socket.io 代理需要支持 WebSocket 升级
 
 set -e
 
-DOMAIN_FRONTEND="chat.pokepal.fun"
 BACKEND_URL="https://talk.pokepal.fun"
 
 echo "========================================"
 echo "  语音聊天室 - 前端部署"
-echo "  前端:  https://$DOMAIN_FRONTEND"
-echo "  后端:  $BACKEND_URL"
+echo "  前端:  https://chat.pokepal.fun"
+echo "  服务器: 38.95.75.238"
+echo "  后端:  $BACKEND_URL (120.76.229.15)"
 echo "  版本:  v2026.05.25.1"
 echo "========================================"
 
 # ============================================================
-# [1/4] 安装 Docker
+# [1/3] 安装 Docker
 # ============================================================
-echo "[1/4] 检查 Docker 环境..."
+echo "[1/3] 检查 Docker 环境..."
 if ! command -v docker &> /dev/null; then
     echo "  Docker 未安装，正在安装..."
     curl -fsSL https://get.docker.com | bash
@@ -33,22 +34,9 @@ fi
 echo "  Docker $(docker --version) ✓"
 
 # ============================================================
-# [2/4] 确保后端可达
+# [2/3] 构建并启动
 # ============================================================
-echo "[2/4] 检查后端连通性..."
-echo -n "  后端 (3001): "
-HEALTH=$(curl -s http://127.0.0.1:3001/health 2>/dev/null || echo 'unreachable')
-echo "$HEALTH"
-if [ "$HEALTH" = "unreachable" ]; then
-    echo "  警告: 本地后端未运行。"
-    echo "  前端需要连接到 $BACKEND_URL。"
-    echo "  如果后端在其他服务器，请确保 frontend/.env.production 中的 VITE_SOCKET_URL 正确。"
-fi
-
-# ============================================================
-# [3/4] 构建并启动
-# ============================================================
-echo "[3/4] 构建并启动 Nginx 容器..."
+echo "[2/3] 构建并启动 Nginx 容器..."
 docker compose -f docker/frontend-compose.yml down 2>/dev/null || true
 docker builder prune -af 2>/dev/null || true
 docker compose -f docker/frontend-compose.yml build --no-cache
@@ -56,9 +44,9 @@ docker compose -f docker/frontend-compose.yml up -d
 echo "  Nginx 容器已启动 ✓"
 
 # ============================================================
-# [4/4] 验证
+# [3/3] 验证
 # ============================================================
-echo "[4/4] 验证服务状态..."
+echo "[3/3] 验证服务状态..."
 sleep 3
 
 echo -n "  前端 (8080): "
@@ -70,10 +58,10 @@ echo "========================================"
 echo "  前端部署完成!"
 echo "  绑定: 127.0.0.1:8080"
 echo ""
-echo "  反向代理配置:"
-echo "    $DOMAIN_FRONTEND → http://127.0.0.1:8080"
+echo "  外部反向代理:"
+echo "    chat.pokepal.fun → http://127.0.0.1:8080"
 echo ""
-echo "  Nginx location /socket.io/ 需要代理 WebSocket 到后端"
+echo "  Nginx 需要代理 WebSocket /socket.io/ 到 $BACKEND_URL"
 echo "  详情参见 DEPLOY.md"
 echo ""
 echo "  常用命令:"

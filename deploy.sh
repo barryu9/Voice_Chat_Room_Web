@@ -1,19 +1,14 @@
 #!/bin/bash
-# === 语音聊天室 - 全栈部署 ===
-# 在服务器上执行: bash deploy.sh
-# 部署: MongoDB + Mediasoup 后端 + Nginx 前端
+# === 语音聊天室 - 全栈部署（后端服务器）===
+# 在后端服务器上执行: bash deploy.sh
+# 部署: MongoDB + Mediasoup 后端 + Nginx
 # 版本: v2026.05.25.1
-#
-# 外部反向代理:
-#   chat.pokepal.fun → 127.0.0.1:8080  (前端 + WebSocket)
-#   talk.pokepal.fun → 127.0.0.1:3001  (后端 API + Socket.io)
+# 本脚本在 后端服务器 (120.76.229.15) 上运行
 
 set -e
 
-PUBLIC_IP="38.95.75.238"
+PUBLIC_IP="120.76.229.15"
 ADMIN_PASSWORD="barry422"
-DOMAIN_FRONTEND="chat.pokepal.fun"
-DOMAIN_BACKEND="talk.pokepal.fun"
 
 # ============================================================
 # 创建 .env
@@ -25,8 +20,7 @@ EOF
 
 echo "========================================"
 echo "  语音聊天室 - 全栈部署"
-echo "  前端:  https://$DOMAIN_FRONTEND"
-echo "  后端:  https://$DOMAIN_BACKEND"
+echo "  后端:   https://talk.pokepal.fun"
 echo "  服务器: $PUBLIC_IP"
 echo "  版本:   v2026.05.25.1"
 echo "========================================"
@@ -83,17 +77,14 @@ echo "  容器已启动 ✓"
 echo "[5/5] 验证服务状态..."
 sleep 5
 
-# 后端健康检查
 echo -n "  后端 (3001): "
 HEALTH=$(curl -s http://127.0.0.1:3001/health 2>/dev/null || echo '{"status":"unreachable"}')
 echo "$HEALTH"
 
-# 前端状态
 echo -n "  前端 (8080): "
 FRONTEND_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/ 2>/dev/null || echo "000")
 echo "HTTP $FRONTEND_CODE"
 
-# Docker 容器状态
 echo ""
 echo "  容器状态:"
 docker compose -f docker/docker-compose.yml ps
@@ -102,9 +93,9 @@ echo ""
 echo "========================================"
 echo "  全栈部署完成!"
 echo ""
-echo "  反向代理配置:"
-echo "    $DOMAIN_FRONTEND → http://127.0.0.1:8080"
-echo "    $DOMAIN_BACKEND → http://127.0.0.1:3001"
+echo "  外部反向代理:"
+echo "    chat.pokepal.fun → http://38.95.75.238:8080    (前端 + WebSocket)"
+echo "    talk.pokepal.fun → http://120.76.229.15:3001   (后端 API + Socket.io)"
 echo ""
 echo "  WebRTC UDP: $PUBLIC_IP:40000-49999"
 echo ""
