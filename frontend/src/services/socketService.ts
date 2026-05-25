@@ -18,7 +18,7 @@ export function connectSocket(): Socket {
   if (socket?.connected) return socket;
 
   socket = io(SOCKET_URL, {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,

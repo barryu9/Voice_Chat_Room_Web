@@ -3,14 +3,16 @@ declare module 'simple-rnnoise-wasm' {
     constructor(context: AudioContext);
     static register(
       ctx: AudioContext,
-      options?: {
-        scriptSrc?: string;
-        moduleSrc?: string | WebAssembly.Module;
-      }
+      assets?: [string, Promise<WebAssembly.Module>]
     ): Promise<void>;
     update(enabled: boolean): void;
     onstatus: ((e: Event & { vadProb?: number }) => void) | null;
   }
+
+  export function rnnoise_loadAssets(options?: {
+    scriptSrc?: string;
+    moduleSrc?: string | WebAssembly.Module;
+  }): [string, Promise<WebAssembly.Module>];
 }
 
 declare module 'simple-rnnoise-wasm/rnnoise.worklet.js?url' {

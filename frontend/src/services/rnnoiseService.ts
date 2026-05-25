@@ -1,4 +1,4 @@
-import { RNNoiseNode } from 'simple-rnnoise-wasm';
+import { RNNoiseNode, rnnoise_loadAssets } from 'simple-rnnoise-wasm';
 import workletUrl from 'simple-rnnoise-wasm/rnnoise.worklet.js?url';
 import wasmUrl from 'simple-rnnoise-wasm/rnnoise.wasm?url';
 
@@ -24,10 +24,11 @@ export async function createNoiseSuppressor(ctx: AudioContext): Promise<{
   if (initialized) return buildGraph(ctx);
 
   try {
-    await RNNoiseNode.register(ctx, {
+    const assets = rnnoise_loadAssets({
       scriptSrc: workletUrl,
       moduleSrc: wasmUrl,
     });
+    await RNNoiseNode.register(ctx, assets);
 
     rnnoiseNode = new RNNoiseNode(ctx);
     initialized = true;
