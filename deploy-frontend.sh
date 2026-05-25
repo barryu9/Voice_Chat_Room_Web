@@ -1,8 +1,7 @@
 #!/bin/bash
 # === 语音聊天室 - 前端部署 ===
 # 在前端服务器上执行: bash deploy-frontend.sh
-# 部署: Nginx 静态文件，绑定 127.0.0.1:8080
-# 需要 deploy.conf 配置文件
+# 部署: Nginx 静态文件
 
 set -e
 
@@ -11,7 +10,6 @@ CONFIG="$SCRIPT_DIR/deploy.conf"
 
 if [ ! -f "$CONFIG" ]; then
     echo "ERROR: 找不到 deploy.conf"
-    echo "  请复制 deploy.conf.example 并填写实际值:"
     echo "  cp deploy.conf.example deploy.conf"
     exit 1
 fi
@@ -19,11 +17,17 @@ fi
 source "$CONFIG"
 
 if [ -z "$DOMAIN_BACKEND" ] && [ -z "$PUBLIC_IP_BACKEND" ]; then
-    echo "ERROR: deploy.conf 中的 DOMAIN_BACKEND 或 PUBLIC_IP_BACKEND 不能为空"
+    echo "ERROR: deploy.conf 中 DOMAIN_BACKEND 或 PUBLIC_IP_BACKEND 不能为空"
     exit 1
 fi
 
 BACKEND_URL="https://${DOMAIN_BACKEND:-$PUBLIC_IP_BACKEND}"
+NGINX_PORT="${NGINX_PORT:-8080}"
+
+# 使用变量写入 .env (frontend-compose.yml 不读取 .env, 这里仅为 frontend build)
+cat > docker/.env << EOF
+NGINX_PORT=${NGINX_PORT}
+EOF
 
 cat > frontend/.env.production << EOF
 VITE_SOCKET_URL=$BACKEND_URL
@@ -34,13 +38,12 @@ echo "========================================"
 echo "  语音聊天室 - 前端部署"
 echo "  前端:  https://${DOMAIN_FRONTEND:-$PUBLIC_IP_FRONTEND}"
 echo "  后端:  $BACKEND_URL"
+echo "  端口:  $NGINX_PORT"
 echo "  版本:  v2026.05.25.2"
 echo "========================================"
 
 echo "[1/3] 检查 Docker..."
-if ! command -v docker &> /dev/null; then
-    curl -fsSL https://get.docker.com | bash
-fi
+if ! command -v docker &> /dev/null; then curl -fsSL https://get.docker.com | bash; fi
 echo "  Docker $(docker --version 2>&1 | head -1) ✓"
 
 echo "[2/3] 构建并启动 Nginx..."
@@ -53,7 +56,7 @@ echo "  前端容器已启动 ✓"
 echo "[3/3] 验证..."
 sleep 3
 echo -n "  前端: "
-curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8080/ 2>/dev/null || echo "000"
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:${NGINX_PORT}/ 2>/dev/null || echo "000"
 
 echo ""
 echo "========================================"

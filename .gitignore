@@ -8,6 +8,7 @@ dist/
 mongo-data/
 docker/.env
 docker/nginx/ssl/
+docker/nginx/default.conf
 frontend.log
 backend.log
 deploy.conf

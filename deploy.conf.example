@@ -4,6 +4,7 @@
 #
 # 重要: deploy.conf 包含敏感信息，不会被提交到 Git
 
+# --- 服务器 ---
 # 后端服务器 (运行 MongoDB + Mediasoup)
 PUBLIC_IP_BACKEND=""
 DOMAIN_BACKEND=""
@@ -12,8 +13,19 @@ DOMAIN_BACKEND=""
 PUBLIC_IP_FRONTEND=""
 DOMAIN_FRONTEND=""
 
-# 管理员面板登录密码
+# --- 管理员 ---
 ADMIN_PASSWORD=""
 
-# CORS 允许的前端域名 (与 DOMAIN_FRONTEND 一致)
+# --- CORS ---
+# 与 DOMAIN_FRONTEND 一致
 CORS_ORIGIN=""
+
+# --- 容器端口 (保持默认即可) ---
+MONGO_PORT="27017"
+MONGO_DB_NAME="voice-chat-prod"
+BACKEND_PORT="3001"
+BACKEND_HOST="0.0.0.0"
+NGINX_PORT="8080"
+RTC_MIN_PORT="40000"
+RTC_MAX_PORT="49999"
+MEDIASOUP_LISTEN_IP="0.0.0.0"
