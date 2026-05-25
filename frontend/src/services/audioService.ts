@@ -7,6 +7,7 @@ let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -60;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
+let rnnoiseConnected = false;
 
 export function getAudioContext(): AudioContext | null {
   return audioContext;
@@ -37,10 +38,13 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   analyserNode.smoothingTimeConstant = 0.8;
 
   localAudioSource.connect(micGainNode);
-
   micGainNode.connect(analyserNode);
 
-  micGainNode.connect(gateGainNode);
+  await tryConnectRNNoise(ctx);
+
+  if (!rnnoiseConnected) {
+    micGainNode.connect(gateGainNode);
+  }
   gateGainNode.connect(processedDestination);
 
   setMicGain(1.0);
@@ -50,6 +54,20 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   if (savedGain) setMicGain(parseFloat(savedGain));
   const savedThreshold = localStorage.getItem('vc_threshold');
   if (savedThreshold) setNoiseGateThreshold(parseInt(savedThreshold));
+}
+
+async function tryConnectRNNoise(ctx: AudioContext) {
+  try {
+    const { createNoiseSuppressor } = await import('./rnnoiseService');
+    const suppressor = await createNoiseSuppressor(ctx);
+    if (suppressor && micGainNode && gateGainNode) {
+      micGainNode.connect(suppressor.inputNode);
+      suppressor.connectOutput(gateGainNode);
+      rnnoiseConnected = true;
+    }
+  } catch {
+    rnnoiseConnected = false;
+  }
 }
 
 export function getProcessedStream(): MediaStream | null {
@@ -201,6 +219,12 @@ export function cleanupLocalAudio() {
   }
   if (processedDestination) {
     processedDestination = null;
+  }
+  if (rnnoiseConnected) {
+    import('./rnnoiseService').then(({ destroyNoiseSuppressor }) => {
+      destroyNoiseSuppressor();
+    }).catch(() => {});
+    rnnoiseConnected = false;
   }
   localStream = null;
 }

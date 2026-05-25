@@ -21,7 +21,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({ channel, onJoin, disab
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-lg font-semibold text-white group-hover:text-primary-400 transition-colors flex items-center gap-2">
           {channel.name}
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/5 font-normal">
+          <span className="text-[11px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/5 font-normal leading-none">
             {qualityName}
           </span>
         </h3>

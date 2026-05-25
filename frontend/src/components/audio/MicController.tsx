@@ -4,13 +4,20 @@ interface MicControllerProps {
   gain: number;
   muted: boolean;
   threshold: number;
+  noiseSuppressionEnabled: boolean;
+  noiseSuppressionStrength: number;
   onToggleMute: () => void;
   onGainChange: (v: number) => void;
   onThresholdChange: (v: number) => void;
+  onNoiseSuppressionToggle: () => void;
+  onNoiseSuppressionStrengthChange: (v: number) => void;
 }
 
 export const MicController: React.FC<MicControllerProps> = ({
-  gain, muted, threshold, onToggleMute, onGainChange, onThresholdChange,
+  gain, muted, threshold,
+  noiseSuppressionEnabled, noiseSuppressionStrength,
+  onToggleMute, onGainChange, onThresholdChange,
+  onNoiseSuppressionToggle, onNoiseSuppressionStrengthChange,
 }) => {
   return (
     <div className="flex items-center gap-3">
@@ -61,6 +68,33 @@ export const MicController: React.FC<MicControllerProps> = ({
             className="w-20 h-1.5 accent-primary-500 cursor-pointer"
           />
           <span className="text-xs text-gray-400 w-8">{threshold}dB</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1 ml-2 pl-2 border-l border-gray-700/50">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onNoiseSuppressionToggle}
+            className={`text-xs px-2 py-0.5 rounded transition-all ${
+              noiseSuppressionEnabled
+                ? 'bg-primary-600/30 text-primary-300 border border-primary-500/30'
+                : 'bg-gray-800/60 text-gray-500 border border-gray-600/50'
+            }`}
+            title="降噪开关"
+          >
+            降噪
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={noiseSuppressionStrength}
+            onChange={(e) => onNoiseSuppressionStrengthChange(parseFloat(e.target.value))}
+            className="w-16 h-1.5 accent-primary-500 cursor-pointer"
+            title={`降噪强度 ${Math.round(noiseSuppressionStrength * 100)}%`}
+          />
+          <span className="text-xs text-gray-400 w-8">{Math.round(noiseSuppressionStrength * 100)}%</span>
         </div>
       </div>
     </div>

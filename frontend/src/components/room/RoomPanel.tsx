@@ -5,6 +5,7 @@ import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { playSound } from '../../services/soundService';
+import { setNoiseSuppressorEnabled, setNoiseSuppressorStrength } from '../../services/rnnoiseService';
 import { UserGrid } from './UserGrid';
 import { DeviceSelector } from '../audio/DeviceSelector';
 import { MicController } from '../audio/MicController';
@@ -31,6 +32,10 @@ export const RoomPanel: React.FC = () => {
   const isMicMuted = useMediaStore((s) => s.isMicMuted);
   const isAllMuted = useMediaStore((s) => s.isAllMuted);
   const toggleMuteAll = useMediaStore((s) => s.toggleMuteAll);
+  const noiseSuppressionEnabled = useMediaStore((s) => s.noiseSuppressionEnabled);
+  const noiseSuppressionStrength = useMediaStore((s) => s.noiseSuppressionStrength);
+  const setNoiseSuppressionEnabled = useMediaStore((s) => s.setNoiseSuppressionEnabled);
+  const setNoiseSuppressionStrength = useMediaStore((s) => s.setNoiseSuppressionStrength);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
   const { gain, muted, threshold, toggleMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
@@ -119,6 +124,17 @@ export const RoomPanel: React.FC = () => {
     playSound(isAllMuted ? 'soundResumed' : 'soundMuted');
   }, [isAllMuted, toggleMuteAll]);
 
+  const handleNoiseSuppressionToggle = useCallback(() => {
+    const next = !noiseSuppressionEnabled;
+    setNoiseSuppressionEnabled(next);
+    setNoiseSuppressorEnabled(next);
+  }, [noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
+
+  const handleNoiseSuppressionStrengthChange = useCallback((v: number) => {
+    setNoiseSuppressionStrength(v);
+    setNoiseSuppressorStrength(v);
+  }, [setNoiseSuppressionStrength]);
+
   if (!currentRoom) return null;
 
   return (
@@ -185,6 +201,8 @@ export const RoomPanel: React.FC = () => {
             gain={gain}
             muted={muted}
             threshold={threshold}
+            noiseSuppressionEnabled={noiseSuppressionEnabled}
+            noiseSuppressionStrength={noiseSuppressionStrength}
             onToggleMute={handleMicToggle}
             onGainChange={(v) => {
               updateGain(v);
@@ -194,6 +212,8 @@ export const RoomPanel: React.FC = () => {
               updateThreshold(v);
               useMediaStore.getState().setNoiseGateThreshold(v);
             }}
+            onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
+            onNoiseSuppressionStrengthChange={handleNoiseSuppressionStrengthChange}
           />
 
           <DeviceSelector

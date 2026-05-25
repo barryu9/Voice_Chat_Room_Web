@@ -20,6 +20,8 @@ interface MediaState {
   noiseGateThreshold: number;
   mutedUsers: Set<string>;
   isAllMuted: boolean;
+  noiseSuppressionEnabled: boolean;
+  noiseSuppressionStrength: number;
 
   setProducerTransport: (t: any) => void;
   setConsumerTransport: (t: any) => void;
@@ -37,6 +39,8 @@ interface MediaState {
   setNoiseGateThreshold: (v: number) => void;
   toggleMuteUser: (deviceId: string) => void;
   toggleMuteAll: () => void;
+  setNoiseSuppressionEnabled: (v: boolean) => void;
+  setNoiseSuppressionStrength: (v: number) => void;
   resetVoice: () => void;
   reset: () => void;
 }
@@ -54,6 +58,14 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   noiseGateThreshold: -60,
   mutedUsers: new Set(),
   isAllMuted: false,
+  noiseSuppressionEnabled: (() => {
+    const saved = localStorage.getItem('vc_denoise_enabled');
+    return saved !== null ? saved === 'true' : true;
+  })(),
+  noiseSuppressionStrength: (() => {
+    const saved = localStorage.getItem('vc_denoise_strength');
+    return saved !== null ? parseFloat(saved) : 0.5;
+  })(),
 
   setProducerTransport: (t) => set({ producerTransport: t }),
   setConsumerTransport: (t) => set({ consumerTransport: t }),
@@ -106,6 +118,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   setMicMuted: (m) => set({ isMicMuted: m }),
   setVoiceConnected: (v) => set({ isVoiceConnected: v }),
   setNoiseGateThreshold: (v) => set({ noiseGateThreshold: v }),
+
+  setNoiseSuppressionEnabled: (v) => set({ noiseSuppressionEnabled: v }),
+  setNoiseSuppressionStrength: (v) => set({ noiseSuppressionStrength: v }),
 
   toggleMuteUser: (deviceId) =>
     set((s) => {
