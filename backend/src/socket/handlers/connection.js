@@ -43,7 +43,6 @@ function handleConnection(socket, io) {
         socket.emit('dev:multi-login', { message: '本设备登录了多个账号' });
       } else {
         socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '该设备已经在其他地方登录过了' });
-        setTimeout(() => socket.disconnect(true), 500);
         return;
       }
     }
