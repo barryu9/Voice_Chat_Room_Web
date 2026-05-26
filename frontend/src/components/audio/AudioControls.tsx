@@ -3,18 +3,18 @@ import { createPortal } from 'react-dom';
 
 interface AudioControlsProps {
   gain: number; muted: boolean; threshold: number; audioLevel: number;
-  noiseSuppressionEnabled: boolean; noiseSuppressionStrength: number;
+  noiseSuppressionEnabled: boolean;
   onToggleMute: () => void;
   onGainChange: (v: number) => void;
   onThresholdChange: (v: number) => void;
   onNoiseSuppressionToggle: () => void;
-  onNoiseSuppressionStrengthChange: (v: number) => void;
   inputs: { deviceId: string; label: string }[];
   outputs: { deviceId: string; label: string }[];
   selectedInput: string; selectedOutput: string;
   onInputChange: (deviceId: string) => void;
   onOutputChange: (deviceId: string) => void;
   isAllMuted: boolean; masterVolume: number;
+  amIServerMuted: boolean;
   onToggleMuteAll: () => void;
   onMasterVolumeChange: (v: number) => void;
 }
@@ -54,12 +54,12 @@ const Popover: React.FC<{
 
 export const AudioControls: React.FC<AudioControlsProps> = ({
   gain, muted, threshold, audioLevel,
-  noiseSuppressionEnabled, noiseSuppressionStrength,
+  noiseSuppressionEnabled,
   onToggleMute, onGainChange, onThresholdChange,
-  onNoiseSuppressionToggle, onNoiseSuppressionStrengthChange,
+  onNoiseSuppressionToggle,
   inputs, outputs, selectedInput, selectedOutput,
   onInputChange, onOutputChange,
-  isAllMuted, masterVolume, onToggleMuteAll, onMasterVolumeChange,
+  isAllMuted, masterVolume, amIServerMuted, onToggleMuteAll, onMasterVolumeChange,
 }) => {
   const [micOpen, setMicOpen] = useState(false);
   const [speakerOpen, setSpeakerOpen] = useState(false);
@@ -174,19 +174,19 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
       <div className="flex items-center gap-0.5 sm:gap-0" onMouseEnter={enterMic} onMouseLeave={leaveMic}>
         <button
           ref={micBtnRef}
-          onClick={onToggleMute}
+          onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
           className={`relative p-3 sm:p-2.5 rounded-xl transition-all active:scale-95 overflow-hidden ${
-            muted
+            muted || amIServerMuted
               ? 'bg-red-600/30 text-red-400 border border-red-500/30'
               : 'bg-gray-800/60 text-gray-300 border border-gray-600/50 hover:border-primary-500/40'
           }`}
-          title={muted ? '取消静音' : '静音'}
+          title={amIServerMuted ? '已被管理员禁言' : muted ? '取消静音' : '静音'}
         >
           <div
             className="absolute bottom-0 left-0 right-0 bg-green-500/40 transition-all duration-100"
-            style={{ height: muted ? '0%' : `${pct}%` }}
+            style={{ height: muted || amIServerMuted ? '0%' : `${pct}%` }}
           />
-          {muted ? (
+          {(muted || amIServerMuted) ? (
             <svg className="w-5 h-5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
               <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="2" />
@@ -223,14 +223,14 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </select>
         <div className="flex items-center gap-2 mb-1.5">
           <span className="text-xs text-gray-500 w-10 shrink-0">增益</span>
-          <input type="range" min="0" max="2" step="0.1" value={gain}
+              <input type="range" min="0" max="3" step="0.1" value={gain}
             onChange={(e) => onGainChange(parseFloat(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{gain.toFixed(1)}x</span>
         </div>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-gray-500 w-10 shrink-0">阈值</span>
-          <input type="range" min="-100" max="-20" step="1" value={threshold}
+              <input type="range" min="-100" max="0" step="1" value={threshold}
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{threshold}dB</span>
@@ -248,15 +248,6 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
             }`} />
           </button>
         </div>
-        {noiseSuppressionEnabled && (
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-gray-500 w-10 shrink-0">强度</span>
-            <input type="range" min="0" max="1" step="0.1" value={noiseSuppressionStrength}
-              onChange={(e) => onNoiseSuppressionStrengthChange(parseFloat(e.target.value))}
-              className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
-            <span className="text-xs text-gray-400 w-8 text-right">{Math.round(noiseSuppressionStrength * 100)}%</span>
-          </div>
-        )}
       </Popover>
     </div>
   );

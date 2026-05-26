@@ -28,15 +28,23 @@ export const RemoteVolume: React.FC<RemoteVolumeProps> = ({ producerDeviceId }) 
   const setRemoteAudioGain = useMediaStore((s) => s.setRemoteAudioGain);
   const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
 
+  const storeGain = remoteAudioGains.get(producerDeviceId);
+
   const [value, setValue] = useState(() => {
     const saved = loadVolumes()[producerDeviceId];
     if (saved !== undefined) return saved;
-    return remoteAudioGains.get(producerDeviceId) ?? 1.0;
+    return storeGain ?? 1.0;
   });
 
   useEffect(() => {
+    if (storeGain !== undefined) {
+      setValue(storeGain);
+    }
+  }, [storeGain]);
+
+  useEffect(() => {
     const saved = loadVolumes()[producerDeviceId];
-    if (saved !== undefined) {
+    if (saved !== undefined && storeGain === undefined) {
       setValue(saved);
       setRemoteAudioGain(producerDeviceId, saved);
       const pid = useMediaStore.getState().getProducerIdByDeviceId(producerDeviceId);
@@ -65,7 +73,7 @@ export const RemoteVolume: React.FC<RemoteVolumeProps> = ({ producerDeviceId }) 
       <input
         type="range"
         min="0"
-        max="2"
+        max="3"
         step="0.1"
         value={value}
         onChange={(e) => handleChange(parseFloat(e.target.value))}

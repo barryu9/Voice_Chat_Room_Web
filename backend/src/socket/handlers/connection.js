@@ -26,6 +26,30 @@ function handleConnection(socket, io) {
       return;
     }
 
+    const { getConfig } = require('../../services/configService');
+    const multiLogin = await getConfig('config:multi_login');
+    let existingSid = null;
+    for (const [sid, conn] of connections) {
+      if (conn.deviceId === deviceId && sid !== socket.id) {
+        existingSid = sid;
+        break;
+      }
+    }
+    if (existingSid) {
+      if (multiLogin) {
+        socket.emit('dev:multi-login', { message: '本设备登录了多个账号' });
+      } else {
+        const existingSocket = io.sockets.sockets.get(existingSid);
+        if (existingSocket) {
+          existingSocket.emit(EVENTS.SERVER.FORCE_LOGOUT, { message: '本设备已在其他地方登录' });
+          existingSocket.disconnect(true);
+        }
+        socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '本设备已在其他地方登录' });
+        socket.disconnect(true);
+        return;
+      }
+    }
+
     const userId = socket.id;
     connections.set(socket.id, {
       socketId: socket.id,

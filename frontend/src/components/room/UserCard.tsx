@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import type { UserInfo } from '../../utils/constants';
 import { getAvatarColor, getInitial } from '../../utils/helpers';
@@ -30,7 +30,20 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const isSpeaking = !!speaker?.isSpeaking;
   const isSelf = user.userId === currentUserId;
   const isMuted = mutedUsers.has(user.deviceId);
+  const serverMutedUsers = useMediaStore((s) => s.serverMutedUsers);
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const peerLatency = peerLatencies.get(user.deviceId);
+
+  const serverMutedExpires = serverMutedUsers.get(user.userId);
+  if (serverMutedExpires && serverMutedExpires <= now) {
+    useMediaStore.getState().removeServerMutedUser(user.userId);
+    if (isSelf) useMediaStore.getState().setAmIServerMuted(false);
+  }
+  const isServerMuted = !!(serverMutedExpires && serverMutedExpires > now);
 
   const handleToggleLocalMute = () => {
     const pid = getProducerIdByDeviceId(user.deviceId);
@@ -41,6 +54,11 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
       muteRemote(pid);
     }
     toggleMuteUser(user.deviceId);
+  };
+
+  const handleTempMute = () => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_TEMP_MUTE, { targetUserId: user.userId });
+    setShowMenu(false);
   };
 
   const color = getAvatarColor(user.userId);
@@ -95,6 +113,12 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
           {user.nickname}
           {isSelf && <span className="text-gray-500 text-xs ml-1">(我)</span>}
         </p>
+        {isServerMuted && (
+          <p className="text-[10px] text-yellow-400 mt-0.5">
+            已被禁言
+            {(isAdmin || isSelf) && serverMutedExpires ? ` ${Math.max(0, Math.ceil((serverMutedExpires - now) / 1000))}s` : ''}
+          </p>
+        )}
         {isSpeaking && (
           <div className="flex items-center justify-center gap-1 mt-1">
             {[0, 1, 2, 3].map((i) => (
@@ -175,9 +199,13 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
           </button>
           {showMenu && (
             <div className="absolute right-0 top-6 glass-panel p-1.5 flex flex-col gap-1 min-w-[80px] z-20">
-              <button onClick={handleMute} className="text-xs text-yellow-300 hover:bg-yellow-500/10 px-2 py-1 rounded text-left">禁言</button>
-              <button onClick={handleUnmute} className="text-xs text-green-300 hover:bg-green-500/10 px-2 py-1 rounded text-left">解禁</button>
+              {isServerMuted ? (
+                <button onClick={handleUnmute} className="text-xs text-green-300 hover:bg-green-500/10 px-2 py-1 rounded text-left">解禁</button>
+              ) : (
+                <button onClick={handleMute} className="text-xs text-yellow-300 hover:bg-yellow-500/10 px-2 py-1 rounded text-left">禁言</button>
+              )}
               <button onClick={handleKick} className="text-xs text-orange-300 hover:bg-orange-500/10 px-2 py-1 rounded text-left">踢出</button>
+              <button onClick={handleTempMute} className="text-xs text-yellow-400 hover:bg-yellow-500/10 px-2 py-1 rounded text-left">强制关麦</button>
               <button onClick={handleBan} className="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded text-left">封禁</button>
             </div>
           )}

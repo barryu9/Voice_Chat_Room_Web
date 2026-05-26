@@ -5,9 +5,9 @@ async function initChannels(io) {
   const channels = await Channel.find({}).lean();
 
   if (channels.length === 0) {
-    await Channel.create({ roomId: 'lobby', name: '大厅', maxUsers: 50, isDefault: true, sortOrder: 0, audioBitrate: 32 });
-    await Channel.create({ roomId: 'music', name: '音乐频道', maxUsers: 20, sortOrder: 1, audioBitrate: 64 });
-    await Channel.create({ roomId: 'gaming', name: '游戏频道', maxUsers: 20, sortOrder: 2, audioBitrate: 48 });
+    await Channel.create({ roomId: 'lobby', name: '大厅', maxUsers: 50, isDefault: true, sortOrder: 0, audioBitrate: 48 });
+    await Channel.create({ roomId: 'music', name: '音乐频道', maxUsers: 20, sortOrder: 1, audioBitrate: 128 });
+    await Channel.create({ roomId: 'gaming', name: '游戏频道', maxUsers: 20, sortOrder: 2, audioBitrate: 96 });
   }
 
   const allChannels = await Channel.find({}).lean();
@@ -31,7 +31,7 @@ async function createChannel(data) {
     name: data.name,
     maxUsers: data.maxUsers || 20,
     sortOrder: data.sortOrder ?? 0,
-    audioBitrate: data.audioBitrate ?? 32,
+    audioBitrate: data.audioBitrate ?? 48,
   });
   return channel;
 }

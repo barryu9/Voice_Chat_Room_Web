@@ -20,6 +20,14 @@ export const SoundSettings: React.FC = () => {
     return () => document.removeEventListener('mousedown', handle);
   }, [open]);
 
+  const allOn = SOUND_KEYS.every((k) => enabled[k]);
+
+  const toggleAll = () => {
+    SOUND_KEYS.forEach((k) => {
+      if (enabled[k] !== !allOn) toggle(k);
+    });
+  };
+
   return (
     <div className="relative">
       <button
@@ -29,7 +37,7 @@ export const SoundSettings: React.FC = () => {
             ? 'bg-primary-600/30 text-primary-300'
             : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'
         }`}
-        title="音效设置"
+        title="提示音设置"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
@@ -41,7 +49,15 @@ export const SoundSettings: React.FC = () => {
           ref={panelRef}
           className="fixed sm:absolute right-4 sm:right-0 top-16 sm:top-full sm:mt-2 w-56 glass-panel p-3 z-[9999] shadow-xl animate-in slide-in-from-top-2 fade-in duration-150"
         >
-          <h4 className="text-xs font-medium text-gray-400 mb-2">音效设置</h4>
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-xs font-medium text-gray-400">提示音设置</h4>
+            <button
+              onClick={toggleAll}
+              className="text-[10px] text-primary-400 hover:text-primary-300 transition-colors"
+            >
+              {allOn ? '全不选' : '全选'}
+            </button>
+          </div>
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {SOUND_KEYS.map((key) => (
               <label

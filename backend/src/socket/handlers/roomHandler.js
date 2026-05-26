@@ -24,6 +24,13 @@ function handleRoomEvents(socket, io) {
     const conn = getConnection(socket.id);
     if (!conn) return;
 
+    const { isKicked } = require('../../services/kickService');
+    const { isUserIdAdmin } = require('../../services/adminService');
+    if (isKicked(roomId, conn.deviceId) && !isUserIdAdmin(conn.userId)) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ROOM_JOIN, message: '你已被踢出该频道，请稍后再试' });
+      return;
+    }
+
     if (conn.currentRoom) {
       leaveCurrentRoom(socket, io);
     }
@@ -42,6 +49,10 @@ function handleRoomEvents(socket, io) {
     conn.currentRoom = roomId;
     room.addUser(socket.id, { socketId: socket.id, userId: conn.userId, nickname: conn.nickname, deviceId: conn.deviceId });
     socket.join(roomId);
+
+    const { getMutedList } = require('../../services/muteService');
+    const mutedList = getMutedList(roomId);
+    socket.emit('user:server-muted-list', { muted: mutedList });
 
     // Only send voice-connected users (those with active producers)
     const voiceUsers = [];

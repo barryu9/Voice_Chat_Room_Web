@@ -5,6 +5,9 @@ const banSchema = new mongoose.Schema({
   nickname: { type: String, default: '' },
   reason:   { type: String, default: '' },
   bannedBy: { type: String, default: 'admin' },
+  expiresAt: { type: Date, default: null },
 }, { timestamps: true });
+
+banSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, sparse: true });
 
 module.exports = mongoose.model('Ban', banSchema);

@@ -5,7 +5,7 @@ import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { playSound } from '../../services/soundService';
-import { setNoiseSuppressorEnabled, setNoiseSuppressorStrength } from '../../services/rnnoiseService';
+import { setNoiseSuppressorEnabled } from '../../services/rnnoiseService';
 import { UserGrid } from './UserGrid';
 import { AudioControls } from '../audio/AudioControls';
 import { useMediasoup } from '../../hooks/useMediasoup';
@@ -16,6 +16,7 @@ import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume } fr
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
+import { useAdminStore } from '../../stores/adminStore';
 import { LatencyIndicator } from './LatencyIndicator';
 
 export const RoomPanel: React.FC = () => {
@@ -24,6 +25,7 @@ export const RoomPanel: React.FC = () => {
   const myDeviceId = useUserStore((s) => s.deviceId);
   const channels = useRoomStore((s) => s.channels);
   const notification = useRoomStore((s) => s.notification);
+  const setNotification = useRoomStore((s) => s.setNotification);
   const announcements = useRoomStore((s) => s.announcements);
   const peerLatencies = useRoomStore((s) => s.peerLatencies);
   const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
@@ -31,15 +33,14 @@ export const RoomPanel: React.FC = () => {
   const isMicMuted = useMediaStore((s) => s.isMicMuted);
   const isAllMuted = useMediaStore((s) => s.isAllMuted);
   const toggleMuteAll = useMediaStore((s) => s.toggleMuteAll);
+  const amIServerMuted = useMediaStore((s) => s.amIServerMuted);
   const noiseSuppressionEnabled = useMediaStore((s) => s.noiseSuppressionEnabled);
-  const noiseSuppressionStrength = useMediaStore((s) => s.noiseSuppressionStrength);
   const setNoiseSuppressionEnabled = useMediaStore((s) => s.setNoiseSuppressionEnabled);
-  const setNoiseSuppressionStrength = useMediaStore((s) => s.setNoiseSuppressionStrength);
   const masterVolume = useMediaStore((s) => s.masterVolume);
   const setMasterVolume = useMediaStore((s) => s.setMasterVolume);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
-  const { gain, muted, threshold, audioLevel, toggleMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
+  const { gain, muted, threshold, audioLevel, toggleMute, forceMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
   const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
 
   const [connecting, setConnecting] = useState(false);
@@ -47,6 +48,32 @@ export const RoomPanel: React.FC = () => {
   const durationRef = useRef<number>(0);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
   const selfLatency = myDeviceId ? peerLatencies.get(myDeviceId) : undefined;
+
+  const isAdmin = useAdminStore((s) => s.isAdmin);
+  const kickedList = useAdminStore((s) => s.kickedList);
+  const [, kickTick] = useState(0);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_KICKLIST);
+    const handler = (data: any) => {
+      useAdminStore.getState().setKickedList(data.kicked || []);
+    };
+    getSocket()?.on(EVENTS.SERVER.KICKED_LIST, handler);
+    const timer = setInterval(() => kickTick((t) => t + 1), 1000);
+    return () => {
+      getSocket()?.off(EVENTS.SERVER.KICKED_LIST, handler);
+      clearInterval(timer);
+    };
+  }, [isAdmin]);
+
+  const fmtKick = (ms: number) => {
+    if (ms <= 0) return '已过期';
+    const s = Math.ceil(ms / 1000);
+    if (s < 60) return `${s}秒`;
+    const m = Math.floor(s / 60);
+    return `${m}分${s % 60}秒`;
+  };
 
   const handleVoiceConnect = useCallback(async () => {
     if (connecting) return;
@@ -103,10 +130,14 @@ export const RoomPanel: React.FC = () => {
   }, [setSelectedInput, getStream, switchStream, replaceTrack]);
 
   const handleMicToggle = useCallback(() => {
+    if (amIServerMuted) {
+      showToast('你已被管理员禁言', 'warning');
+      return;
+    }
     const newMuted = toggleMute();
     playSound(newMuted ? 'micMuted' : 'micActivated');
     getSocket()?.emit(EVENTS.CLIENT.USER_MUTE_SELF, { muted: newMuted });
-  }, [toggleMute]);
+  }, [toggleMute, amIServerMuted]);
 
   const handleOutputChange = useCallback(async (deviceId: string) => {
     setSelectedOutput(deviceId);
@@ -133,11 +164,6 @@ export const RoomPanel: React.FC = () => {
     setNoiseSuppressorEnabled(next);
   }, [noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
 
-  const handleNoiseSuppressionStrengthChange = useCallback((v: number) => {
-    setNoiseSuppressionStrength(v);
-    setNoiseSuppressorStrength(v);
-  }, [setNoiseSuppressionStrength]);
-
   const handleMasterVolumeChange = useCallback((v: number) => {
     setMasterVolume(v);
     applyMasterVolume();
@@ -153,11 +179,34 @@ export const RoomPanel: React.FC = () => {
     return () => clearInterval(durationRef.current);
   }, [isVoiceConnected]);
 
+  useEffect(() => {
+    if (!notification) return;
+    const timer = setTimeout(() => setNotification(''), 10000);
+    return () => clearTimeout(timer);
+  }, [notification, setNotification]);
+
   const fmt = (d: number) => {
     const m = Math.floor(d / 60).toString().padStart(2, '0');
     const s = (d % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
+
+  const prevServerMuted = useRef(amIServerMuted);
+  useEffect(() => {
+    if (prevServerMuted.current && !amIServerMuted) forceMute();
+    prevServerMuted.current = amIServerMuted;
+  }, [amIServerMuted, forceMute]);
+
+  useEffect(() => {
+    const handler = (data: any) => {
+      if (data.userId !== useUserStore.getState().userId) return;
+      forceMute();
+      useRoomStore.getState().setNotification('管理员已关闭你的麦克风');
+      playSound('micMuted');
+    };
+    getSocket()?.on('temp-muted', handler);
+    return () => { getSocket()?.off('temp-muted', handler); };
+  }, [forceMute]);
 
   if (!currentRoom) return null;
 
@@ -211,7 +260,6 @@ export const RoomPanel: React.FC = () => {
             threshold={threshold}
             audioLevel={audioLevel}
             noiseSuppressionEnabled={noiseSuppressionEnabled}
-            noiseSuppressionStrength={noiseSuppressionStrength}
             onToggleMute={handleMicToggle}
             onGainChange={(v) => {
               updateGain(v);
@@ -222,7 +270,6 @@ export const RoomPanel: React.FC = () => {
               useMediaStore.getState().setNoiseGateThreshold(v);
             }}
             onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
-            onNoiseSuppressionStrengthChange={handleNoiseSuppressionStrengthChange}
             inputs={audioInputs}
             outputs={audioOutputs}
             selectedInput={selectedInput}
@@ -233,6 +280,7 @@ export const RoomPanel: React.FC = () => {
             masterVolume={masterVolume}
             onToggleMuteAll={handleToggleMuteAll}
             onMasterVolumeChange={handleMasterVolumeChange}
+            amIServerMuted={amIServerMuted}
           />
 
           <div className="flex-1" />
@@ -257,6 +305,25 @@ export const RoomPanel: React.FC = () => {
             </button>
           )}
         </div>
+
+        {isAdmin && kickedList.length > 0 && (
+          <div className="glass-panel p-3 mb-4">
+            <h4 className="text-xs font-medium text-gray-400 mb-2">被踢出用户（冷却中）</h4>
+            <div className="flex flex-wrap gap-2">
+              {kickedList.map((k) => (
+                <div key={k.deviceId} className="flex items-center gap-2 text-xs bg-gray-800/60 rounded-lg px-3 py-1.5">
+                  <span className="text-gray-300">{k.nickname || k.deviceId.slice(0, 8)}</span>
+                  <span className="text-gray-500">{k.deviceId.slice(0, 8)}</span>
+                  <span className="text-yellow-400">{fmtKick(k.expiresAt - Date.now())}</span>
+                  <button onClick={() => {
+                    getSocket()?.emit(EVENTS.CLIENT.ADMIN_UNKICK, { deviceId: k.deviceId });
+                    getSocket()?.emit(EVENTS.CLIENT.ADMIN_KICKLIST);
+                  }} className="text-green-400 hover:text-green-300 ml-1">解除</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="glass-panel p-5">
           <UserGrid />

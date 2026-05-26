@@ -119,14 +119,27 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.KICKED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
+    useMediaStore.getState().reset();
     useRoomStore.getState().setNotification(`你已被踢出: ${data.reason}`);
     playSound('disconnected');
   });
 
   socket.on(EVENTS.SERVER.BANNED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
+    useMediaStore.getState().reset();
     useRoomStore.getState().setNotification(`你已被封禁: ${data.reason}`);
     playSound('disconnected');
+  });
+
+  socket.on(EVENTS.SERVER.FORCE_LOGOUT, (data) => {
+    useUserStore.getState().setCurrentRoom(null);
+    useMediaStore.getState().reset();
+    useRoomStore.getState().setNotification(data.message);
+    useUserStore.getState().logout();
+  });
+
+  socket.on('dev:multi-login', (data) => {
+    useRoomStore.getState().setNotification(data.message);
   });
 
   socket.on(EVENTS.SERVER.ROOM_INFO_UPDATED, (data) => {
@@ -199,7 +212,6 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.ADMIN_AUTH_RESULT, (data) => {
     if (data.success) {
       useAdminStore.getState().setAdmin(true);
-      useAdminStore.getState().setShowPanel(true);
     }
   });
 
@@ -229,5 +241,34 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.ANNOUNCEMENT, (data) => {
     if (data.siteName) useRoomStore.getState().setSiteName(data.siteName);
+  });
+
+  socket.on('user:server-muted', (data: { userId: string; expiresAt: number; remaining: number }) => {
+    useMediaStore.getState().setServerMutedUser(data.userId, data.expiresAt);
+    if (data.userId === useUserStore.getState().userId) {
+      useMediaStore.getState().setAmIServerMuted(true);
+    }
+  });
+
+  socket.on('user:server-muted-list', (data: { muted: Array<{ userId: string; expiresAt: number }> }) => {
+    const store = useMediaStore.getState();
+    store.clearServerMutedUsers();
+    for (const m of data.muted || []) {
+      store.setServerMutedUser(m.userId, m.expiresAt);
+      if (m.userId === useUserStore.getState().userId) {
+        store.setAmIServerMuted(true);
+      }
+    }
+  });
+
+  socket.on('user:server-unmuted', (data: { userId: string }) => {
+    useMediaStore.getState().removeServerMutedUser(data.userId);
+    if (data.userId === useUserStore.getState().userId) {
+      useMediaStore.getState().setAmIServerMuted(false);
+    }
+  });
+
+  socket.on(EVENTS.SERVER.KICKED_LIST, (data: { kicked: Array<{ deviceId: string; nickname?: string; expiresAt: number }> }) => {
+    useAdminStore.getState().setKickedList(data.kicked || []);
   });
 }

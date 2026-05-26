@@ -1,17 +1,24 @@
 const config = require('../config/env');
 
-const adminSessions = new Map();
+const adminUserIds = new Set();
 
 function isAdmin(socketId) {
   const { getConnection } = require('../socket/handlers/connection');
   const conn = getConnection(socketId);
   if (!conn) return false;
-  return adminSessions.has(conn.deviceId);
+  return adminUserIds.has(conn.userId);
 }
 
-function authenticate(password, socketId, deviceId) {
+function isUserIdAdmin(userId) {
+  return adminUserIds.has(userId);
+}
+
+function authenticate(password, socketId, _deviceId) {
   if (password === config.ADMIN_PASSWORD) {
-    adminSessions.set(deviceId, { authenticatedAt: Date.now() });
+    const { getConnection } = require('../socket/handlers/connection');
+    const conn = getConnection(socketId);
+    const userId = conn?.userId || socketId;
+    adminUserIds.add(userId);
     return true;
   }
   return false;
@@ -20,9 +27,9 @@ function authenticate(password, socketId, deviceId) {
 function removeAdmin(socketId) {
   const { getConnection } = require('../socket/handlers/connection');
   const conn = getConnection(socketId);
-  if (conn) {
-    adminSessions.delete(conn.deviceId);
+  if (conn?.userId) {
+    adminUserIds.delete(conn.userId);
   }
 }
 
-module.exports = { isAdmin, authenticate, removeAdmin, adminSessions };
+module.exports = { isAdmin, authenticate, removeAdmin, isUserIdAdmin };

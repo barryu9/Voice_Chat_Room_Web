@@ -3,18 +3,13 @@ import workletUrl from 'simple-rnnoise-wasm/rnnoise.worklet.js?url';
 import wasmUrl from 'simple-rnnoise-wasm/rnnoise.wasm?url';
 
 let rnnoiseNode: RNNoiseNode | null = null;
-let bypassGain: GainNode | null = null;
-let wetGain: GainNode | null = null;
-let noiseStrength: number = 0.5;
+let noiseGain: GainNode | null = null;
 let noiseEnabled: boolean = true;
 let initialized: boolean = false;
+const COMPENSATION_GAIN = 1.4;
 
 export function isNoiseSuppressorEnabled(): boolean {
   return noiseEnabled;
-}
-
-export function getNoiseSuppressorStrength(): number {
-  return noiseStrength;
 }
 
 export async function createNoiseSuppressor(ctx: AudioContext): Promise<{
@@ -45,39 +40,29 @@ function buildGraph(ctx: AudioContext): {
 } | null {
   if (!rnnoiseNode) return null;
 
-  bypassGain = ctx.createGain();
-  bypassGain.gain.value = noiseEnabled ? Math.cos(noiseStrength * Math.PI / 2) : 1;
+  noiseGain = ctx.createGain();
+  noiseGain.gain.value = noiseEnabled ? COMPENSATION_GAIN : 1;
 
-  wetGain = ctx.createGain();
-  wetGain.gain.value = noiseEnabled ? Math.sin(noiseStrength * Math.PI / 2) : 0;
-
-  // micGain -> [bypassGain, rnnoiseNode -> wetGain] -> merge into destination
-  // We use a dummy gain node as the split point and inputNode
-  const splitGain = ctx.createGain();
-  splitGain.gain.value = 1;
-
-  splitGain.connect(bypassGain);
-  splitGain.connect(rnnoiseNode);
-  rnnoiseNode.connect(wetGain);
+  // micGain → rnnoiseNode → noiseGain(compensation) → gateGain
+  // When disabled: micGain bypasses this entirely, direct to gateGain
+  rnnoiseNode.connect(noiseGain);
 
   if (!noiseEnabled) {
     rnnoiseNode.update(false);
   }
 
   return {
-    inputNode: splitGain,
+    inputNode: rnnoiseNode,
     connectOutput: (target: AudioNode) => {
-      bypassGain!.connect(target);
-      wetGain!.connect(target);
+      noiseGain!.connect(target);
     },
   };
 }
 
 export function setNoiseSuppressorEnabled(enabled: boolean) {
   noiseEnabled = enabled;
-  if (bypassGain && wetGain) {
-    bypassGain.gain.value = enabled ? Math.cos(noiseStrength * Math.PI / 2) : 1;
-    wetGain.gain.value = enabled ? Math.sin(noiseStrength * Math.PI / 2) : 0;
+  if (noiseGain) {
+    noiseGain.gain.value = enabled ? COMPENSATION_GAIN : 1;
   }
   if (rnnoiseNode) {
     rnnoiseNode.update(enabled);
@@ -85,24 +70,13 @@ export function setNoiseSuppressorEnabled(enabled: boolean) {
   localStorage.setItem('vc_denoise_enabled', String(enabled));
 }
 
-export function setNoiseSuppressorStrength(value: number) {
-  noiseStrength = Math.max(0, Math.min(1, value));
-  if (bypassGain && wetGain) {
-    bypassGain.gain.value = noiseEnabled ? Math.cos(noiseStrength * Math.PI / 2) : 1;
-    wetGain.gain.value = noiseEnabled ? Math.sin(noiseStrength * Math.PI / 2) : 0;
-  }
-  localStorage.setItem('vc_denoise_strength', String(noiseStrength));
-}
-
 export function destroyNoiseSuppressor() {
   try {
-    bypassGain?.disconnect();
-    wetGain?.disconnect();
+    noiseGain?.disconnect();
     rnnoiseNode?.disconnect();
     rnnoiseNode?.update(false);
   } catch {}
-  bypassGain = null;
-  wetGain = null;
+  noiseGain = null;
   rnnoiseNode = null;
   initialized = false;
 }

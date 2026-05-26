@@ -2,9 +2,138 @@ import React, { useState, useEffect } from 'react';
 import { getSocket } from '../../services/socketService';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
-import { EVENTS, AUDIO_QUALITY_TIERS } from '../../utils/constants';
+import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/constants';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
+
+const KickedSection: React.FC = () => {
+  const kickedList = useAdminStore((s) => s.kickedList);
+  const [, setTick] = React.useState(0);
+
+  React.useEffect(() => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_KICKLIST);
+    const handler = (data: any) => {
+      useAdminStore.getState().setKickedList(data.kicked || []);
+    };
+    getSocket()?.on(EVENTS.SERVER.KICKED_LIST, handler);
+    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => {
+      getSocket()?.off(EVENTS.SERVER.KICKED_LIST, handler);
+      clearInterval(timer);
+    };
+  }, []);
+
+  const fmt = (ms: number) => {
+    if (ms <= 0) return '已过期';
+    const s = Math.ceil(ms / 1000);
+    if (s < 60) return `${s}秒`;
+    const m = Math.floor(s / 60);
+    return `${m}分${s % 60}秒`;
+  };
+
+  if (kickedList.length === 0) return null;
+
+  return (
+    <div>
+      <h4 className="text-sm font-medium text-gray-300 mb-2">踢出列表</h4>
+      <div className="space-y-2">
+        {kickedList.map((k) => (
+          <div key={k.deviceId} className="glass-card p-3 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white">{k.nickname || k.deviceId}</p>
+              <p className="text-xs text-gray-500">{k.deviceId}</p>
+              <p className="text-[10px] text-yellow-400">剩余: {fmt(k.expiresAt - Date.now())}</p>
+            </div>
+            <button
+              onClick={() => {
+                getSocket()?.emit(EVENTS.CLIENT.ADMIN_UNKICK, { deviceId: k.deviceId });
+                getSocket()?.emit(EVENTS.CLIENT.ADMIN_KICKLIST);
+              }}
+              className="text-sm text-green-400 hover:text-green-300"
+            >
+              解除
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SettingsPanel: React.FC = () => {
+  const config = useAdminStore((s) => s.config);
+
+  React.useEffect(() => {
+    getSocket()?.emit('admin:config-getall');
+    const handler = (data: any) => {
+      if (data.config) {
+        useAdminStore.getState().setConfig({
+          multiLogin: !!data.config['config:multi_login'],
+          banDuration: data.config['config:ban_duration'] ?? 1440,
+          muteDuration: data.config['config:mute_duration'] ?? 60,
+          kickDuration: data.config['config:kick_duration'] ?? 60,
+        });
+      }
+    };
+    getSocket()?.on('admin:config-list', handler);
+    return () => { getSocket()?.off('admin:config-list', handler); };
+  }, []);
+
+  const save = (key: string, value: any) => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
+    getSocket()?.emit('admin:config-getall');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="glass-card p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white">允许多设备登录</p>
+          <p className="text-xs text-gray-500">同一设备可同时登录多个账号</p>
+        </div>
+        <button
+          onClick={() => save('config:multi_login', !config.multiLogin)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${config.multiLogin ? 'bg-primary-500' : 'bg-gray-600'}`}
+        >
+          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.multiLogin ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">封禁时长（分钟）</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="1" value={config.banDuration}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, banDuration: parseInt(e.target.value) || 1 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:ban_duration', config.banDuration)}
+            className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">禁言时长（分钟）</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="1" value={config.muteDuration}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, muteDuration: parseInt(e.target.value) || 1 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:mute_duration', config.muteDuration)}
+            className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">踢出冷却时长（分钟）</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="1" value={config.kickDuration}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, kickDuration: parseInt(e.target.value) || 1 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:kick_duration', config.kickDuration)}
+            className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const AdminPanel: React.FC = () => {
   const showPanel = useAdminStore((s) => s.showPanel);
@@ -13,11 +142,11 @@ export const AdminPanel: React.FC = () => {
   const setChannels = useRoomStore((s) => s.setChannels);
   const siteName = useRoomStore((s) => s.siteName);
 
-  const [tab, setTab] = useState<'channels' | 'announcement' | 'bans'>('channels');
+  const [tab, setTab] = useState<'channels' | 'announcement' | 'bans' | 'settings'>('channels');
   const [newName, setNewName] = useState('');
   const [newRoomId, setNewRoomId] = useState('');
   const [newMax, setNewMax] = useState(20);
-  const [newAudioBitrate, setNewAudioBitrate] = useState(32);
+  const [newAudioBitrate, setNewAudioBitrate] = useState(48);
   const [editRoomId, setEditRoomId] = useState('');
   const [editNewRoomId, setEditNewRoomId] = useState('');
   const [editName, setEditName] = useState('');
@@ -166,7 +295,7 @@ export const AdminPanel: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-700/50 px-5">
-          {(['channels', 'announcement', 'bans'] as const).map((t) => (
+          {(['channels', 'announcement', 'bans', 'settings'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -176,7 +305,7 @@ export const AdminPanel: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              {t === 'channels' ? '频道管理' : t === 'announcement' ? '公告设置' : '封禁列表'}
+              {t === 'channels' ? '频道管理' : t === 'announcement' ? '公告设置' : t === 'bans' ? '封禁列表' : '系统设置'}
             </button>
           ))}
         </div>
@@ -313,6 +442,7 @@ export const AdminPanel: React.FC = () => {
                   ) : (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-400">上限: {ch.maxUsers}</span>
+                      <span className="text-xs text-gray-500">{getAudioQualityLabel(ch.audioBitrate ?? 32)}</span>
                       <div className="flex-1" />
                       <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
                       {!ch.isDefault && (
@@ -391,7 +521,18 @@ export const AdminPanel: React.FC = () => {
           )}
 
           {/* Bans Tab */}
-          {tab === 'bans' && <BanList />}
+          {tab === 'bans' && (
+            <>
+              <KickedSection />
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-300 mb-2">封禁列表</h4>
+                <BanList />
+              </div>
+            </>
+          )}
+
+          {tab === 'settings' && <SettingsPanel />}
+
         </div>
       </div>
     </div>

@@ -21,8 +21,9 @@ interface MediaState {
   mutedUsers: Set<string>;
   isAllMuted: boolean;
   noiseSuppressionEnabled: boolean;
-  noiseSuppressionStrength: number;
   masterVolume: number;
+  serverMutedUsers: Map<string, number>;
+  amIServerMuted: boolean;
 
   setProducerTransport: (t: any) => void;
   setConsumerTransport: (t: any) => void;
@@ -41,8 +42,11 @@ interface MediaState {
   toggleMuteUser: (deviceId: string) => void;
   toggleMuteAll: () => void;
   setNoiseSuppressionEnabled: (v: boolean) => void;
-  setNoiseSuppressionStrength: (v: number) => void;
   setMasterVolume: (v: number) => void;
+  setServerMutedUser: (userId: string, expiresAt: number) => void;
+  removeServerMutedUser: (userId: string) => void;
+  clearServerMutedUsers: () => void;
+  setAmIServerMuted: (v: boolean) => void;
   resetVoice: () => void;
   reset: () => void;
 }
@@ -57,21 +61,19 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   remoteAudioGains: new Map(),
   isMicMuted: false,
   isVoiceConnected: false,
-  noiseGateThreshold: -60,
+  noiseGateThreshold: -50,
   mutedUsers: new Set(),
   isAllMuted: false,
   noiseSuppressionEnabled: (() => {
     const saved = localStorage.getItem('vc_denoise_enabled');
     return saved !== null ? saved === 'true' : true;
   })(),
-  noiseSuppressionStrength: (() => {
-    const saved = localStorage.getItem('vc_denoise_strength');
-    return saved !== null ? parseFloat(saved) : 0.5;
-  })(),
   masterVolume: (() => {
     const saved = localStorage.getItem('vc_master_volume');
     return saved !== null ? parseFloat(saved) : 1.0;
   })(),
+  serverMutedUsers: new Map(),
+  amIServerMuted: false,
 
   setProducerTransport: (t) => set({ producerTransport: t }),
   setConsumerTransport: (t) => set({ consumerTransport: t }),
@@ -126,12 +128,29 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   setNoiseGateThreshold: (v) => set({ noiseGateThreshold: v }),
 
   setNoiseSuppressionEnabled: (v) => set({ noiseSuppressionEnabled: v }),
-  setNoiseSuppressionStrength: (v) => set({ noiseSuppressionStrength: v }),
 
   setMasterVolume: (v) => {
     localStorage.setItem('vc_master_volume', String(v));
     set({ masterVolume: v });
   },
+
+  setServerMutedUser: (userId, expiresAt) =>
+    set((s) => {
+      const m = new Map(s.serverMutedUsers);
+      m.set(userId, expiresAt);
+      return { serverMutedUsers: m };
+    }),
+
+  removeServerMutedUser: (userId) =>
+    set((s) => {
+      const m = new Map(s.serverMutedUsers);
+      m.delete(userId);
+      return { serverMutedUsers: m };
+    }),
+
+  clearServerMutedUsers: () => set({ serverMutedUsers: new Map(), amIServerMuted: false }),
+
+  setAmIServerMuted: (v) => set({ amIServerMuted: v }),
 
   toggleMuteUser: (deviceId) =>
     set((s) => {
@@ -166,7 +185,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       remoteAudioGains: new Map(),
       isMicMuted: false,
       isVoiceConnected: false,
-      noiseGateThreshold: -60,
+      noiseGateThreshold: -50,
       mutedUsers: new Set(),
       isAllMuted: false,
     }),

@@ -24,6 +24,7 @@ export const Lobby: React.FC = () => {
   const setNickname = useUserStore((s) => s.setNickname);
   const logout = useUserStore((s) => s.logout);
   const announcement = useRoomStore((s) => s.notification);
+  const setNotification = useRoomStore((s) => s.setNotification);
   const announcements = useRoomStore((s) => s.announcements);
   const siteName = useRoomStore((s) => s.siteName);
   const showAdmin = useAdminStore((s) => s.isAdmin);
@@ -36,6 +37,12 @@ export const Lobby: React.FC = () => {
   useEffect(() => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_LIST);
   }, []);
+
+  useEffect(() => {
+    if (!announcement) return;
+    const timer = setTimeout(() => setNotification(''), 10000);
+    return () => clearTimeout(timer);
+  }, [announcement, setNotification]);
 
   const handleJoin = (roomId: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId });

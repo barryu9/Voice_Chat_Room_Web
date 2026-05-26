@@ -25,6 +25,9 @@ export const EVENTS = {
     ADMIN_BANLIST:         'admin:banlist',
     ADMIN_MUTE_TARGET:     'admin:mute-target',
     ADMIN_UNMUTE_TARGET:   'admin:unmute-target',
+    ADMIN_TEMP_MUTE:       'admin:temp-mute',
+    ADMIN_KICKLIST:        'admin:kicklist',
+    ADMIN_UNKICK:          'admin:unkick',
     ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
     ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
     ADMIN_CHANNELS_REORDER:     'admin:channels-reorder',
@@ -34,6 +37,7 @@ export const EVENTS = {
     LOGIN_ERROR:         'user:login-error',
     KICKED:              'user:kicked',
     BANNED:              'user:banned',
+    FORCE_LOGOUT:        'user:force-logout',
     ROOM_LIST:           'room:list',
     ROOM_USERS:          'room:users',
     USER_JOINED:         'room:user-joined',
@@ -58,6 +62,7 @@ export const EVENTS = {
     ADMIN_BANLIST:       'admin:banlist',
     SETTINGS_UPDATED:    'admin:settings-updated',
     ANNOUNCEMENTS_UPDATED: 'announcements:updated',
+    KICKED_LIST:          'admin:kicklist',
   },
 } as const;
 
@@ -73,10 +78,10 @@ export type Channel = {
 };
 
 export const AUDIO_QUALITY_TIERS: { label: string; value: number; desc: string }[] = [
-  { label: '流畅', value: 20, desc: '20kbps' },
-  { label: '标准', value: 32, desc: '32kbps' },
-  { label: '质量', value: 48, desc: '48kbps' },
-  { label: '音乐', value: 64, desc: '64kbps' },
+  { label: '标准',   value: 48,  desc: '48kbps' },
+  { label: '高音质', value: 64,  desc: '64kbps' },
+  { label: '超高',   value: 96,  desc: '96kbps' },
+  { label: '最佳',   value: 128, desc: '128kbps' },
 ];
 
 export function getAudioQualityLabel(bitrate: number): string {

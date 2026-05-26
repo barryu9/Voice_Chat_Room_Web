@@ -6,7 +6,7 @@ const channelSchema = new mongoose.Schema({
   maxUsers:     { type: Number, required: true, default: 10, min: 2, max: 100 },
   isDefault:    { type: Boolean, default: false },
   sortOrder:    { type: Number, default: 0 },
-  audioBitrate: { type: Number, default: 32 },
+  audioBitrate: { type: Number, default: 48 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Channel', channelSchema);

@@ -10,10 +10,13 @@ export function useAudioGraph() {
     const saved = localStorage.getItem('vc_gain');
     return saved ? parseFloat(saved) : 1.0;
   });
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(() => {
+    const saved = localStorage.getItem('vc_muted');
+    return saved === 'true';
+  });
   const [threshold, setThreshold] = useState(() => {
     const saved = localStorage.getItem('vc_threshold');
-    return saved ? parseInt(saved) : -60;
+    return saved ? parseInt(saved) : -50;
   });
   const [audioLevel, setAudioLevel] = useState(-100);
   const animRef = useRef<number>(0);
@@ -34,8 +37,15 @@ export function useAudioGraph() {
     const newMuted = !muted;
     setMuted(newMuted);
     setMicMute(newMuted);
+    localStorage.setItem('vc_muted', String(newMuted));
     return newMuted;
   }, [muted]);
+
+  const forceMute = useCallback(() => {
+    setMuted(true);
+    setMicMute(true);
+    localStorage.setItem('vc_muted', 'true');
+  }, []);
 
   const updateThreshold = useCallback((value: number) => {
     setThreshold(value);
@@ -67,7 +77,7 @@ export function useAudioGraph() {
 
   return {
     gain, muted, threshold, audioLevel,
-    setupLocal, updateGain, toggleMute, updateThreshold, cleanup, switchStream,
+    setupLocal, updateGain, toggleMute, forceMute, updateThreshold, cleanup, switchStream,
     initAudioContext,
   };
 }

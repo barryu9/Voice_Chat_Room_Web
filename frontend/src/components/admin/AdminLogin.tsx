@@ -1,11 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getSocket } from '../../services/socketService';
+import { useAdminStore } from '../../stores/adminStore';
 import { EVENTS } from '../../utils/constants';
+
+const ADMIN_PASS_KEY = 'vc_admin_pass';
 
 export const AdminLogin: React.FC = () => {
   const [show, setShow] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const isAdmin = useAdminStore((s) => s.isAdmin);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(ADMIN_PASS_KEY);
+    if (!saved || isAdmin) return;
+
+    const onResult = (data: any) => {
+      if (!data.success) localStorage.removeItem(ADMIN_PASS_KEY);
+    };
+
+    if (getSocket()?.connected) {
+      getSocket()?.once(EVENTS.SERVER.ADMIN_AUTH_RESULT, onResult);
+      getSocket()?.emit(EVENTS.CLIENT.ADMIN_AUTH, { password: saved });
+    } else {
+      getSocket()?.once('connect', () => {
+        getSocket()?.once(EVENTS.SERVER.ADMIN_AUTH_RESULT, onResult);
+        getSocket()?.emit(EVENTS.CLIENT.ADMIN_AUTH, { password: saved });
+      });
+    }
+  }, [isAdmin]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,6 +39,7 @@ export const AdminLogin: React.FC = () => {
 
     socket?.once(EVENTS.SERVER.ADMIN_AUTH_RESULT, (data: any) => {
       if (data.success) {
+        localStorage.setItem(ADMIN_PASS_KEY, password);
         setShow(false);
         setPassword('');
       } else {

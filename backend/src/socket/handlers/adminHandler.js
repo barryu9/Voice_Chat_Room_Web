@@ -1,6 +1,8 @@
 const SiteSettings = require('../../models/SiteSettings');
-const { isAdmin, authenticate, removeAdmin } = require('../../services/adminService');
+const { isAdmin, authenticate, removeAdmin, isUserIdAdmin } = require('../../services/adminService');
 const { isBanned, addBan, removeBan, getBanList } = require('../../services/banService');
+const { muteUsers, unmuteUsers, isUserMuted, getMutedList } = require('../../services/muteService');
+const { kickUser, unkickUser, isKicked, getKickedList } = require('../../services/kickService');
 const { createChannel, updateChannel, deleteChannel, getSiteName } = require('../../services/channelService');
 const { getRoom, createRoom, removeRoom } = require('../../mediasoup/roomManager');
 const { getConnection } = require('./connection');
@@ -85,6 +87,13 @@ function handleAdminEvents(socket, io) {
     }
   });
 
+  socket.on('admin:config-getall', async () => {
+    if (!isAdmin(socket.id)) return;
+    const { getAllConfig } = require('../../services/configService');
+    const config = await getAllConfig();
+    socket.emit('admin:config-list', { config });
+  });
+
   socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, async ({ message }) => {
     if (!isAdmin(socket.id)) return;
     if (!message || !message.trim()) return;
@@ -136,50 +145,84 @@ function handleAdminEvents(socket, io) {
     socket.emit('admin:announcements:list', { announcements: list });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_KICK, ({ targetDeviceId }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_KICK, async ({ targetDeviceId }) => {
     if (!isAdmin(socket.id)) return;
 
+    let roomId = null;
+    const kickPromises = [];
     for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
-      const targetSocketId = room.getUserSocketByDeviceId(targetDeviceId);
-      if (targetSocketId) {
-        const targetSocket = io.sockets.sockets.get(targetSocketId);
-        if (targetSocket) {
-          leaveCurrentRoom(targetSocket, io);
-          targetSocket.emit(EVENTS.SERVER.KICKED, { reason: 'You have been kicked by admin' });
+      for (const [sid, user] of room.users) {
+        if (user.deviceId === targetDeviceId) {
+          if (isUserIdAdmin(user.userId)) continue;
+          const targetSocket = io.sockets.sockets.get(sid);
+          if (targetSocket) {
+            const conn = getConnection(sid);
+            const nickname = conn?.nickname || '';
+            roomId = conn?.currentRoom;
+            leaveCurrentRoom(targetSocket, io);
+            if (roomId) {
+              kickPromises.push(kickUser(roomId, targetDeviceId, nickname));
+            }
+            targetSocket.emit(EVENTS.SERVER.KICKED, { reason: '你已被踢出频道' });
+          }
         }
-        break;
       }
     }
-    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `已踢出用户`, type: 'warning' });
+    await Promise.all(kickPromises);
+
+    if (roomId) {
+      io.to(roomId).emit(EVENTS.SERVER.KICKED_LIST, { kicked: getKickedList(roomId) });
+    }
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: '已踢出用户', type: 'warning' });
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_KICKLIST, () => {
+    if (!isAdmin(socket.id)) return;
+    const conn = getConnection(socket.id);
+    if (!conn?.currentRoom) return;
+    const list = getKickedList(conn.currentRoom);
+    socket.emit(EVENTS.SERVER.KICKED_LIST, { kicked: list });
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_UNKICK, ({ deviceId }) => {
+    if (!isAdmin(socket.id)) return;
+    const conn = getConnection(socket.id);
+    if (!conn?.currentRoom) return;
+    unkickUser(conn.currentRoom, deviceId);
+    io.to(conn.currentRoom).emit(EVENTS.SERVER.KICKED_LIST, { kicked: getKickedList(conn.currentRoom) });
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: '已解除踢出', type: 'success' });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_BAN, async ({ targetDeviceId, reason }) => {
     if (!isAdmin(socket.id)) return;
 
     let targetNickname = '';
+    const socketsToDisconnect = [];
     for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
-      const targetSocketId = room.getUserSocketByDeviceId(targetDeviceId);
-      if (targetSocketId) {
-        const conn = getConnection(targetSocketId);
-        targetNickname = conn?.nickname || '';
-        const targetSocket = io.sockets.sockets.get(targetSocketId);
-        if (targetSocket) {
-          leaveCurrentRoom(targetSocket, io);
-          targetSocket.emit(EVENTS.SERVER.BANNED, { reason: reason || 'You have been banned' });
-          targetSocket.disconnect(true);
+      for (const [sid, user] of room.users) {
+        if (user.deviceId === targetDeviceId) {
+          if (isUserIdAdmin(user.userId)) continue;
+          const targetSocket = io.sockets.sockets.get(sid);
+          if (targetSocket) {
+            const conn = getConnection(sid);
+            targetNickname = conn?.nickname || '';
+            leaveCurrentRoom(targetSocket, io);
+            targetSocket.emit(EVENTS.SERVER.BANNED, { reason: '你已被封禁' });
+            socketsToDisconnect.push(targetSocket);
+          }
         }
-        break;
       }
     }
+    for (const ts of socketsToDisconnect) ts.disconnect(true);
 
-    await addBan(targetDeviceId, targetNickname, reason);
-    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `已封禁用户`, type: 'warning' });
+    await addBan(targetDeviceId, targetNickname, reason || '违反规则');
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: '已封禁用户', type: 'warning' });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_UNBAN, async ({ deviceId }) => {
     if (!isAdmin(socket.id)) return;
     await removeBan(deviceId);
-    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `已解封用户`, type: 'success' });
+    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: '已解封用户', type: 'success' });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_BANLIST, async () => {
@@ -188,33 +231,69 @@ function handleAdminEvents(socket, io) {
     socket.emit(EVENTS.SERVER.ADMIN_BANLIST, { bans });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_MUTE_TARGET, ({ targetDeviceId }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_MUTE_TARGET, async ({ targetDeviceId }) => {
     if (!isAdmin(socket.id)) return;
+    const conn = getConnection(socket.id);
+    if (!conn?.currentRoom) return;
 
-    for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
-      const targetSocketId = room.getUserSocketByDeviceId(targetDeviceId);
-      if (targetSocketId) {
-        const producers = room.getProducersForUser(targetSocketId);
+    const room = getRoom(conn.currentRoom);
+    if (!room) return;
+
+    const targets = [];
+    for (const [sid, user] of room.users) {
+      if (user.deviceId === targetDeviceId && !isUserIdAdmin(user.userId)) {
+        targets.push({ sid, userId: user.userId });
+      }
+    }
+
+    if (targets.length > 0) {
+      const userIds = targets.map(t => t.userId);
+      const info = await muteUsers(conn.currentRoom, userIds);
+
+      for (const t of targets) {
+        const producers = room.getProducersForUser(t.sid);
         for (const p of producers) {
-          const info = room.getProducer(p.producerId);
-          if (info?.instance) {
-            try { info.instance.pause(); } catch (e) { /* ignore */ }
-            info.muted = true;
+          const infoP = room.getProducer(p.producerId);
+          if (infoP?.instance) {
+            try { infoP.instance.pause(); } catch (e) { /* ignore */ }
+            infoP.muted = true;
           }
         }
-        io.to(targetSocketId).emit(EVENTS.SERVER.TARGET_MUTED, { deviceId: targetDeviceId });
-        break;
+        const targetSocket = io.sockets.sockets.get(t.sid);
+        if (targetSocket) {
+          targetSocket.emit('user:server-muted', {
+            userId: t.userId,
+            expiresAt: info.expiresAt,
+            remaining: info.remaining,
+          });
+        }
       }
+
+      io.to(conn.currentRoom).emit('user:server-muted-list', { muted: getMutedList(conn.currentRoom) });
     }
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_UNMUTE_TARGET, ({ targetDeviceId }) => {
     if (!isAdmin(socket.id)) return;
+    const conn = getConnection(socket.id);
+    if (!conn?.currentRoom) return;
 
-    for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
-      const targetSocketId = room.getUserSocketByDeviceId(targetDeviceId);
-      if (targetSocketId) {
-        const producers = room.getProducersForUser(targetSocketId);
+    const room = getRoom(conn.currentRoom);
+    if (!room) return;
+
+    const targets = [];
+    for (const [sid, user] of room.users) {
+      if (user.deviceId === targetDeviceId && !isUserIdAdmin(user.userId)) {
+        targets.push({ sid, userId: user.userId });
+      }
+    }
+
+    if (targets.length > 0) {
+      const userIds = targets.map(t => t.userId);
+      unmuteUsers(conn.currentRoom, userIds);
+
+      for (const t of targets) {
+        const producers = room.getProducersForUser(t.sid);
         for (const p of producers) {
           const info = room.getProducer(p.producerId);
           if (info?.instance) {
@@ -222,9 +301,13 @@ function handleAdminEvents(socket, io) {
             info.muted = false;
           }
         }
-        io.to(targetSocketId).emit(EVENTS.SERVER.TARGET_UNMUTED, { deviceId: targetDeviceId });
-        break;
+        const targetSocket = io.sockets.sockets.get(t.sid);
+        if (targetSocket) {
+          targetSocket.emit('user:server-unmuted', { userId: t.userId });
+        }
       }
+
+      io.to(conn.currentRoom).emit('user:server-muted-list', { muted: getMutedList(conn.currentRoom) });
     }
   });
 
@@ -248,6 +331,25 @@ function handleAdminEvents(socket, io) {
       };
     });
     io.emit(EVENTS.SERVER.ROOM_LIST, { rooms: enriched });
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_TEMP_MUTE, ({ targetUserId }) => {
+    if (!isAdmin(socket.id)) return;
+    const conn = getConnection(socket.id);
+    if (!conn?.currentRoom) return;
+
+    const room = getRoom(conn.currentRoom);
+    if (!room) return;
+
+    for (const [sid, user] of room.users) {
+      if (user.userId === targetUserId) {
+        if (isUserIdAdmin(user.userId)) continue;
+        const targetSocket = io.sockets.sockets.get(sid);
+        if (targetSocket) {
+          targetSocket.emit('temp-muted', { userId: targetUserId });
+        }
+      }
+    }
   });
 }
 
