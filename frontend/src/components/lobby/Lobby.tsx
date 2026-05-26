@@ -35,6 +35,7 @@ export const Lobby: React.FC = () => {
   const adminConfig = useAdminStore((s) => s.config);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
   const allowedBitrates = adminConfig.userChannelAllowedBitrates.split(',').filter(Boolean).map(Number);
+  const showAdminEntry = new URLSearchParams(window.location.search).has('admin');
   const [editingNickname, setEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState('');
   const [editError, setEditError] = useState('');
@@ -190,17 +191,24 @@ export const Lobby: React.FC = () => {
             <SoundSettings />
             <button
               onClick={handleLogout}
-              className="text-sm bg-white/10 hover:bg-white/20 text-gray-300 px-4 py-2 rounded-lg transition-all border border-white/10"
+              title="退出登录"
+              className="p-3 sm:p-2 bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10 rounded-lg transition-all"
             >
-              退出登录
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
-            {!showAdmin && <AdminLogin />}
+            {!showAdmin && showAdminEntry && <AdminLogin />}
             {showAdmin && (
               <button
                 onClick={() => setShowPanel(true)}
-                className="text-sm bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-lg transition-all"
+                title="管理面板"
+                className="p-3 sm:p-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-all"
               >
-                管理面板
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
               </button>
             )}
           </div>
@@ -237,6 +245,7 @@ export const Lobby: React.FC = () => {
 
             {adminConfig.userChannelEnabled && (
             <>
+            <hr className="border-gray-700/30 mb-6" />
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-white mb-1">临时频道</h2>
@@ -247,7 +256,13 @@ export const Lobby: React.FC = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {channels.filter(c => c.type === 'user').map((ch) => (
+              {(channels.filter(c => c.type === 'user') as any[]).sort((a, b) => {
+                const aOwn = a.creatorUserId === userId;
+                const bOwn = b.creatorUserId === userId;
+                if (aOwn && !bOwn) return -1;
+                if (!aOwn && bOwn) return 1;
+                return 0;
+              }).map((ch) => (
                 <ChannelCard key={ch.roomId} channel={ch} onJoin={handleJoin} onJoinWithPwd={handleJoinWithPwd} disabled={currentRoom === ch.roomId} isAdmin={showAdmin} currentUserId={userId} onEdit={handleEditChannel} onDelete={handleDeleteChannel} />
               ))}
             </div>

@@ -65,6 +65,10 @@ function handleUserChannelEvents(socket, io) {
 
       // Notify frontend to navigate into room
       const { EVENTS } = require('../events');
+      const { broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
+      broadcastAllRoomOnlineCounts(io);
+
+      // Notify frontend to navigate into room
       socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId: ch.roomId, users: [], count: 0 });
 
       const allCh = await getAllChannels();

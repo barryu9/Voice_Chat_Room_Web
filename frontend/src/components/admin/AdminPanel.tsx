@@ -90,7 +90,20 @@ const UserChannelSettingsPanel: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+        <div className="space-y-4">
+      <div className="glass-card p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white">临时频道功能</p>
+          <p className="text-xs text-gray-500">允许用户自行创建临时语音频道</p>
+        </div>
+        <button
+          onClick={() => save('config:user_channel_enabled', !config.userChannelEnabled)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${config.userChannelEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+        >
+          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.userChannelEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+
       <div className="glass-card p-4 space-y-3">
         <h4 className="text-sm font-medium text-gray-300">同设备最大创建数</h4>
         <div className="flex items-center gap-2">
@@ -167,7 +180,6 @@ const SettingsPanel: React.FC = () => {
           kickDuration: data.config['config:kick_duration'] ?? 60,
           pwdCooldown: data.config['config:pwd_retry_cooldown'] ?? 5,
           randomDeviceId: !!data.config['config:random_device_id'],
-          userChannelEnabled: !!data.config['config:user_channel_enabled'],
         });
       }
     };
@@ -210,19 +222,6 @@ const SettingsPanel: React.FC = () => {
           className={`relative w-9 h-5 rounded-full transition-colors ${config.randomDeviceId ? 'bg-primary-500' : 'bg-gray-600'}`}
         >
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.randomDeviceId ? 'translate-x-4' : 'translate-x-0.5'}`} />
-        </button>
-      </div>
-
-      <div className="glass-card p-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-white">临时频道功能</p>
-          <p className="text-xs text-gray-500">允许用户自行创建临时语音频道</p>
-        </div>
-        <button
-          onClick={() => save('config:user_channel_enabled', !config.userChannelEnabled)}
-          className={`relative w-9 h-5 rounded-full transition-colors ${config.userChannelEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
-        >
-          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.userChannelEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
 
@@ -376,8 +375,10 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleDelete = (roomId: string) => {
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
-    showToast('频道已删除', 'success');
+    if (window.confirm('确定要删除该频道吗？频道内的所有用户将被踢出。')) {
+      getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
+      showToast('频道已删除', 'success');
+    }
   };
 
   const handleDragStart = (index: number) => {
@@ -543,11 +544,11 @@ export const AdminPanel: React.FC = () => {
                       <div className="flex flex-wrap gap-2 items-end">
                         <div className="flex-1 min-w-[100px]">
                           <label className="block text-xs text-gray-500 mb-1">频道名称</label>
-                          <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="如：大厅" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                          <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="如：大厅" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
                         <div className="w-24">
                           <label className="block text-xs text-gray-500 mb-1">简称</label>
-                          <input value={editNewRoomId} onChange={(e) => setEditNewRoomId(e.target.value)} placeholder="如：lobby" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                          <input value={editNewRoomId} onChange={(e) => setEditNewRoomId(e.target.value)} placeholder="如：lobby" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
                         <div className="w-28">
                           <label className="block text-xs text-gray-500 mb-1">人数上限</label>
@@ -558,7 +559,7 @@ export const AdminPanel: React.FC = () => {
                           <select
                             value={editAudioBitrate}
                             onChange={(e) => setEditAudioBitrate(parseInt(e.target.value))}
-                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 h-7"
+                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50 h-8"
                           >
                             {AUDIO_QUALITY_TIERS.map((t) => (
                               <option key={t.value} value={t.value}>{t.label}</option>
@@ -567,10 +568,12 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">密码</label>
-                          <input value={editPassword} onChange={(e) => setEditPassword(e.target.value)} type="text" placeholder={ch.password || '4-16位（可选）'} maxLength={16} className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-7" />
+                          <input value={editPassword} onChange={(e) => setEditPassword(e.target.value)} type="text" placeholder={ch.password || '4-16位（可选）'} maxLength={16} className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
-                        <button onClick={handleUpdate} className="bg-primary-600 hover:bg-primary-500 text-white text-xs px-3 py-1.5 rounded-lg h-8">保存</button>
-                        <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded-lg h-8">取消</button>
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-sm px-3 py-1.5 rounded-lg">取消</button>
+                        <button onClick={handleUpdate} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-3 py-1.5 rounded-lg">保存</button>
                       </div>
                     </div>
                   ) : (

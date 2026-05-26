@@ -45,6 +45,17 @@ function isKicked(roomId, deviceId) {
   return true;
 }
 
+function getKickRemaining(roomId, deviceId) {
+  const key = getKickKey(roomId, deviceId);
+  const record = kickedUsers.get(key);
+  if (!record) return null;
+  if (record.expiresAt <= Date.now()) {
+    kickedUsers.delete(key);
+    return null;
+  }
+  return record.expiresAt - Date.now();
+}
+
 function getKickedList(roomId) {
   const result = [];
   for (const [, record] of kickedUsers) {
@@ -59,4 +70,4 @@ function getKickedList(roomId) {
   return result;
 }
 
-module.exports = { kickUser, unkickUser, isKicked, getKickedList };
+module.exports = { kickUser, unkickUser, isKicked, getKickedList, getKickRemaining };

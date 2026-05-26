@@ -13,8 +13,7 @@ function fmtStatus(channel: Channel): string | null {
     return `${channel.voiceCount} 人正在语音中`;
   }
   if (isUserChannel) {
-    if (channel.onlineCount != null && channel.onlineCount > 0) return null;
-    return '无人时自动删除';
+    return null;
   }
   if (!channel.lastActivityAt && (channel.onlineCount ?? 0) === 0) return null;
   const elapsed = (Date.now() - new Date(channel.lastActivityAt || Date.now()).getTime()) / 1000;
@@ -49,12 +48,15 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
 
   const handleClick = () => {
     if (disabled) return;
-    if (hasPassword) onJoinWithPwd(channel.roomId);
+    if (hasPassword && !isCreator) onJoinWithPwd(channel.roomId);
     else onJoin(channel.roomId);
   };
 
   return (
-    <div className="glass-card p-5 hover:border-primary-500/40 transition-all duration-300 group cursor-pointer relative" onClick={handleClick}>
+    <div
+      className={`glass-card p-5 transition-all duration-300 group cursor-pointer relative ${isCreator ? '!border-green-500/50 hover:!border-green-400/60' : 'hover:border-primary-500/40'}`}
+      onClick={handleClick}
+    >
 
       <div className="mb-3 pr-12">
         <h3 className="text-lg font-semibold text-white group-hover:text-primary-400 transition-colors flex items-center gap-1.5 flex-wrap">
@@ -108,7 +110,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
         title="加入"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
         </svg>
       </button>
 

@@ -35,6 +35,7 @@ export const RoomPanel: React.FC = () => {
   const isAllMuted = useMediaStore((s) => s.isAllMuted);
   const toggleMuteAll = useMediaStore((s) => s.toggleMuteAll);
   const amIServerMuted = useMediaStore((s) => s.amIServerMuted);
+  const amIServerMutedByAdmin = useMediaStore((s) => s.amIServerMutedByAdmin);
   const noiseSuppressionEnabled = useMediaStore((s) => s.noiseSuppressionEnabled);
   const setNoiseSuppressionEnabled = useMediaStore((s) => s.setNoiseSuppressionEnabled);
   const masterVolume = useMediaStore((s) => s.masterVolume);
@@ -69,6 +70,22 @@ export const RoomPanel: React.FC = () => {
       clearInterval(timer);
     };
   }, [isAdmin, isCreator]);
+
+  const voiceRef = useRef(isVoiceConnected);
+  voiceRef.current = isVoiceConnected;
+  const cleanupRef = useRef(cleanup);
+  cleanupRef.current = cleanup;
+  const stopProduceRef = useRef(stopProduce);
+  stopProduceRef.current = stopProduce;
+
+  useEffect(() => {
+    return () => {
+      if (voiceRef.current) {
+        stopProduceRef.current();
+        cleanupRef.current();
+      }
+    };
+  }, []);
 
   const fmtKick = (ms: number) => {
     if (ms <= 0) return '已过期';
@@ -134,7 +151,8 @@ export const RoomPanel: React.FC = () => {
 
   const handleMicToggle = useCallback(() => {
     if (amIServerMuted) {
-      showToast('你已被管理员禁言', 'warning');
+      const actor = amIServerMutedByAdmin ? '管理员' : '频道创建者';
+      showToast(`${actor}已禁言你`, 'warning');
       return;
     }
     const newMuted = toggleMute();
@@ -201,17 +219,20 @@ export const RoomPanel: React.FC = () => {
   }, [amIServerMuted, forceMute]);
 
   useEffect(() => {
-    const handler = (data: any) => {
-      if (data.userId !== useUserStore.getState().userId) return;
-      forceMute();
-      useRoomStore.getState().setNotification('管理员已关闭你的麦克风');
-      playSound('micMuted');
-    };
+      const handler = (data: any) => {
+        if (data.userId !== useUserStore.getState().userId) return;
+        forceMute();
+        const actor = data.byAdmin ? '管理员' : '频道创建者';
+        useRoomStore.getState().setNotification(`${actor}已关闭你的麦克风`);
+        playSound('micMuted');
+      };
     getSocket()?.on('temp-muted', handler);
     return () => { getSocket()?.off('temp-muted', handler); };
   }, [forceMute]);
 
   if (!currentRoom) return null;
+
+  const activeKicked = kickedList.filter(k => k.expiresAt > Date.now());
 
   return (
     <div className="min-h-[100dvh] relative">
@@ -255,9 +276,12 @@ export const RoomPanel: React.FC = () => {
             <SoundSettings />
             <button
               onClick={handleLeaveRoom}
-              className="bg-red-600/20 hover:bg-red-600/40 border border-red-500/30 text-red-300 text-sm px-4 py-2 rounded-xl transition-all"
+              title="离开频道"
+              className="p-3 sm:p-2 bg-red-600/20 hover:bg-red-600/40 text-red-300 rounded-lg transition-all"
             >
-              离开频道
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
           </div>
         </div>
@@ -328,11 +352,11 @@ export const RoomPanel: React.FC = () => {
           )}
         </div>
 
-        {(isAdmin || isCreator) && kickedList.length > 0 && (
+        {(isAdmin || isCreator) && activeKicked.length > 0 && (
           <div className="glass-panel p-3 mb-4">
             <h4 className="text-xs font-medium text-gray-400 mb-2">被踢出用户（冷却中）</h4>
             <div className="flex flex-wrap gap-2">
-              {kickedList.map((k) => (
+              {activeKicked.map((k) => (
                 <div key={k.deviceId} className="flex items-center gap-2 text-xs bg-gray-800/60 rounded-lg px-3 py-1.5">
                   <span className="text-gray-300">{k.nickname || k.deviceId.slice(0, 8)}</span>
                   <span className="text-gray-500">{k.deviceId.slice(0, 8)}</span>

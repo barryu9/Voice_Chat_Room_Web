@@ -82,8 +82,21 @@ function handleAdminEvents(socket, io) {
   socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, async ({ roomId }) => {
     if (!isAdmin(socket.id)) return;
 
+    const room = getRoom(roomId);
+    if (room) {
+      const usersToKick = [...room.users.entries()];
+      for (const [sid] of usersToKick) {
+        const targetSocket = io.sockets.sockets.get(sid);
+        if (targetSocket) {
+          leaveCurrentRoom(targetSocket, io);
+          targetSocket.emit('room:closed', { roomId, message: '频道已被管理员删除' });
+        }
+      }
+    }
+
     await deleteChannel(roomId);
     removeRoom(roomId);
+    if (room) await room.close();
 
     io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, { roomId, deleted: true });
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道已删除`, type: 'warning' });
@@ -186,26 +199,35 @@ function handleAdminEvents(socket, io) {
     if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
 
     let roomId = null;
+    let foundTarget = false;
+    let targetIsAdmin = false;
     const kickPromises = [];
     for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
       for (const [sid, user] of room.users) {
         if (user.deviceId === targetDeviceId) {
-          if (isUserIdAdmin(user.userId)) continue;
+          foundTarget = true;
+          if (isUserIdAdmin(user.userId)) { targetIsAdmin = true; continue; }
           const targetSocket = io.sockets.sockets.get(sid);
           if (targetSocket) {
             const conn = getConnection(sid);
             const nickname = conn?.nickname || '';
             roomId = conn?.currentRoom;
+            const byAdmin = isAdmin(socket.id);
             leaveCurrentRoom(targetSocket, io);
             if (roomId) {
               kickPromises.push(kickUser(roomId, targetDeviceId, nickname));
             }
-            targetSocket.emit(EVENTS.SERVER.KICKED, { reason: '你已被踢出频道' });
+            targetSocket.emit(EVENTS.SERVER.KICKED, { reason: '你已被踢出频道', byAdmin });
           }
         }
       }
     }
     await Promise.all(kickPromises);
+
+    if (foundTarget && targetIsAdmin && kickPromises.length === 0) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_KICK, message: '无法对管理员进行踢出' });
+      return;
+    }
 
     if (roomId) {
       io.to(roomId).emit(EVENTS.SERVER.KICKED_LIST, { kicked: getKickedList(roomId) });
@@ -234,11 +256,14 @@ function handleAdminEvents(socket, io) {
     if (!isAdmin(socket.id)) return;
 
     let targetNickname = '';
+    let foundTarget = false;
+    let targetIsAdmin = false;
     const socketsToDisconnect = [];
     for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
       for (const [sid, user] of room.users) {
         if (user.deviceId === targetDeviceId) {
-          if (isUserIdAdmin(user.userId)) continue;
+          foundTarget = true;
+          if (isUserIdAdmin(user.userId)) { targetIsAdmin = true; continue; }
           const targetSocket = io.sockets.sockets.get(sid);
           if (targetSocket) {
             const conn = getConnection(sid);
@@ -250,6 +275,12 @@ function handleAdminEvents(socket, io) {
         }
       }
     }
+
+    if (foundTarget && targetIsAdmin && socketsToDisconnect.length === 0) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_BAN, message: '无法对管理员进行封禁' });
+      return;
+    }
+
     for (const ts of socketsToDisconnect) ts.disconnect(true);
 
     await addBan(targetDeviceId, targetNickname, reason || '违反规则');
@@ -277,10 +308,19 @@ function handleAdminEvents(socket, io) {
     if (!room) return;
 
     const targets = [];
+    let foundTarget = false;
     for (const [sid, user] of room.users) {
-      if (user.deviceId === targetDeviceId && !isUserIdAdmin(user.userId)) {
-        targets.push({ sid, userId: user.userId });
+      if (user.deviceId === targetDeviceId) {
+        foundTarget = true;
+        if (!isUserIdAdmin(user.userId)) {
+          targets.push({ sid, userId: user.userId });
+        }
       }
+    }
+
+    if (foundTarget && targets.length === 0) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_MUTE_TARGET, message: '无法对管理员进行禁言' });
+      return;
     }
 
     if (targets.length > 0) {
@@ -298,10 +338,12 @@ function handleAdminEvents(socket, io) {
         }
         const targetSocket = io.sockets.sockets.get(t.sid);
         if (targetSocket) {
+          const byAdmin = isAdmin(socket.id);
           targetSocket.emit('user:server-muted', {
             userId: t.userId,
             expiresAt: info.expiresAt,
             remaining: info.remaining,
+            byAdmin,
           });
         }
       }
@@ -378,14 +420,22 @@ function handleAdminEvents(socket, io) {
     const room = getRoom(conn.currentRoom);
     if (!room) return;
 
+    let foundTarget = false;
+    let mutedCount = 0;
     for (const [sid, user] of room.users) {
       if (user.userId === targetUserId) {
+        foundTarget = true;
         if (isUserIdAdmin(user.userId)) continue;
         const targetSocket = io.sockets.sockets.get(sid);
         if (targetSocket) {
-          targetSocket.emit('temp-muted', { userId: targetUserId });
+          const byAdmin = isAdmin(socket.id);
+          targetSocket.emit('temp-muted', { userId: targetUserId, byAdmin });
+          mutedCount++;
         }
       }
+    }
+    if (foundTarget && mutedCount === 0) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_TEMP_MUTE, message: '无法对管理员进行强制关麦' });
     }
   });
 }

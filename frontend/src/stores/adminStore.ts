@@ -39,7 +39,7 @@ export const useAdminStore = create<AdminState>((set) => ({
   showPanel: false,
   bans: [],
   kickedList: [],
-  config: { multiLogin: false, banDuration: 1440, muteDuration: 60, kickDuration: 60, pwdCooldown: 5, userChannelEnabled: true, userChannelMaxPerDevice: 1, userChannelMaxUsers: 10, userChannelAllowedBitrates: '48', userChannelAutoDelete: 10, userChannelMaxNameLen: 6, randomDeviceId: false },
+  config: { multiLogin: false, banDuration: 1440, muteDuration: 60, kickDuration: 60, pwdCooldown: 5, userChannelEnabled: false, userChannelMaxPerDevice: 1, userChannelMaxUsers: 10, userChannelAllowedBitrates: '48', userChannelAutoDelete: 10, userChannelMaxNameLen: 6, randomDeviceId: false },
   setAdmin: (v) => set({ isAdmin: v }),
   setShowPanel: (v) => set({ showPanel: v }),
   setBans: (b) => set({ bans: b }),

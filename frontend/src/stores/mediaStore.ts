@@ -24,6 +24,7 @@ interface MediaState {
   masterVolume: number;
   serverMutedUsers: Map<string, number>;
   amIServerMuted: boolean;
+  amIServerMutedByAdmin: boolean;
 
   setProducerTransport: (t: any) => void;
   setConsumerTransport: (t: any) => void;
@@ -46,7 +47,7 @@ interface MediaState {
   setServerMutedUser: (userId: string, expiresAt: number) => void;
   removeServerMutedUser: (userId: string) => void;
   clearServerMutedUsers: () => void;
-  setAmIServerMuted: (v: boolean) => void;
+  setAmIServerMuted: (v: boolean, byAdmin?: boolean) => void;
   resetVoice: () => void;
   reset: () => void;
 }
@@ -74,6 +75,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   })(),
   serverMutedUsers: new Map(),
   amIServerMuted: false,
+  amIServerMutedByAdmin: true,
 
   setProducerTransport: (t) => set({ producerTransport: t }),
   setConsumerTransport: (t) => set({ consumerTransport: t }),
@@ -148,9 +150,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       return { serverMutedUsers: m };
     }),
 
-  clearServerMutedUsers: () => set({ serverMutedUsers: new Map(), amIServerMuted: false }),
+  clearServerMutedUsers: () => set({ serverMutedUsers: new Map(), amIServerMuted: false, amIServerMutedByAdmin: true }),
 
-  setAmIServerMuted: (v) => set({ amIServerMuted: v }),
+  setAmIServerMuted: (v, byAdmin) => set({ amIServerMuted: v, amIServerMutedByAdmin: byAdmin ?? true }),
 
   toggleMuteUser: (deviceId) =>
     set((s) => {

@@ -120,7 +120,8 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.KICKED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
-    useRoomStore.getState().setNotification(`你已被踢出: ${data.reason}`);
+    const actor = data.byAdmin ? '管理员' : '频道创建者';
+    useRoomStore.getState().setNotification(`${actor}已将你踢出频道`);
     playSound('disconnected');
   });
 
@@ -257,10 +258,10 @@ function registerListeners() {
     if (data.siteName) useRoomStore.getState().setSiteName(data.siteName);
   });
 
-  socket.on('user:server-muted', (data: { userId: string; expiresAt: number; remaining: number }) => {
+  socket.on('user:server-muted', (data: { userId: string; expiresAt: number; remaining: number; byAdmin?: boolean }) => {
     useMediaStore.getState().setServerMutedUser(data.userId, data.expiresAt);
     if (data.userId === useUserStore.getState().userId) {
-      useMediaStore.getState().setAmIServerMuted(true);
+      useMediaStore.getState().setAmIServerMuted(true, data.byAdmin);
     }
   });
 

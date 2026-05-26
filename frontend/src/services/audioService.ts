@@ -62,6 +62,8 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   const savedGain = localStorage.getItem('vc_gain');
   if (savedGain) setMicGain(parseFloat(savedGain));
+  const savedMuted = localStorage.getItem('vc_muted');
+  if (savedMuted === 'true') micGainNode.gain.value = 0;
   const savedThreshold = localStorage.getItem('vc_threshold');
   if (savedThreshold) setNoiseGateThreshold(parseInt(savedThreshold));
 }

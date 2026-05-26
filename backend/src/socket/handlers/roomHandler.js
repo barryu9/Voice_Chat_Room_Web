@@ -52,10 +52,18 @@ function handleRoomEvents(socket, io) {
     const conn = getConnection(socket.id);
     if (!conn) return;
 
-    const { isKicked } = require('../../services/kickService');
+    const { isKicked, getKickRemaining } = require('../../services/kickService');
     const { isUserIdAdmin } = require('../../services/adminService');
     if (isKicked(roomId, conn.deviceId) && !isUserIdAdmin(conn.userId)) {
-      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ROOM_JOIN, message: '你已被踢出该频道，请稍后再试' });
+      const remaining = getKickRemaining(roomId, conn.deviceId);
+      let msg = '你已被踢出该频道';
+      if (remaining != null && remaining > 0) {
+        const sec = Math.ceil(remaining / 1000);
+        const min = Math.floor(sec / 60);
+        const s = sec % 60;
+        msg = min > 0 ? `你已被踢出该频道，${min}分${s}秒后可重新加入` : `${s}秒后可重新加入`;
+      }
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ROOM_JOIN, message: msg });
       return;
     }
 

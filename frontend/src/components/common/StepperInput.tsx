@@ -29,16 +29,16 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, min, max }) => 
   }, []);
 
   return (
-    <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden">
+    <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden h-8">
       <button
         onMouseDown={() => startRepeat(-1)}
         onMouseUp={stopRepeat}
         onMouseLeave={stopRepeat}
         onTouchStart={() => startRepeat(-1)}
         onTouchEnd={stopRepeat}
-        className="w-7 h-9 shrink-0 flex items-center justify-center text-gray-400 text-sm select-none"
+        className="w-7 h-7 shrink-0 flex items-center justify-center text-gray-400 text-sm select-none"
       >-</button>
-      <span className="w-px h-6 bg-gray-600/50 shrink-0" />
+      <span className="w-px h-4 bg-gray-600/50 shrink-0" />
       <input
         type="text"
         inputMode="numeric"
@@ -51,16 +51,16 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, min, max }) => 
           if (value < min) onChange(min);
           if (value > max) onChange(max);
         }}
-        className="flex-1 min-w-0 h-9 text-center bg-transparent text-sm text-white outline-none"
+        className="flex-1 min-w-0 h-7 text-center bg-transparent text-sm text-white outline-none"
       />
-      <span className="w-px h-6 bg-gray-600/50 shrink-0" />
+      <span className="w-px h-4 bg-gray-600/50 shrink-0" />
       <button
         onMouseDown={() => startRepeat(1)}
         onMouseUp={stopRepeat}
         onMouseLeave={stopRepeat}
         onTouchStart={() => startRepeat(1)}
         onTouchEnd={stopRepeat}
-        className="w-7 h-9 shrink-0 flex items-center justify-center text-gray-400 text-sm select-none"
+        className="w-7 h-7 shrink-0 flex items-center justify-center text-gray-400 text-sm select-none"
       >+</button>
     </div>
   );
