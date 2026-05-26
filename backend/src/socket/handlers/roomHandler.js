@@ -1,6 +1,34 @@
-const { getRoom, getRooms, broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
+const { getRoom, getRooms, broadcastAllRoomOnlineCounts, removeRoom } = require('../../mediasoup/roomManager');
 const { getConnection } = require('./connection');
 const { EVENTS } = require('../events');
+
+const autoDeleteTimers = new Map();
+
+async function startAutoDelete(roomId, io) {
+  autoDeleteTimers.set(roomId, true);
+  try {
+    const room = getRoom(roomId);
+    if (!room || room.users.size > 0) {
+      autoDeleteTimers.delete(roomId);
+      return;
+    }
+    console.log(`[AutoDelete] Deleting empty user channel ${roomId}...`);
+    const { deleteUserChannel, getAllChannels } = require('../../services/channelService');
+
+    if (room) await room.close();
+    await deleteUserChannel(roomId);
+    removeRoom(roomId);
+    const allCh = await getAllChannels();
+    io.emit('room:list', { rooms: allCh.map(c => ({ ...c })) });
+  } catch (e) {
+    console.error(`[AutoDelete] Failed to delete ${roomId}:`, e);
+  }
+  autoDeleteTimers.delete(roomId);
+}
+
+function clearAutoDelete(roomId) {
+  autoDeleteTimers.delete(roomId);
+}
 
 function handleRoomEvents(socket, io) {
 
@@ -20,7 +48,7 @@ function handleRoomEvents(socket, io) {
     if (typeof cb === 'function') cb(enriched);
   });
 
-  socket.on(EVENTS.CLIENT.ROOM_JOIN, async ({ roomId }) => {
+  socket.on(EVENTS.CLIENT.ROOM_JOIN, async ({ roomId, password }) => {
     const conn = getConnection(socket.id);
     if (!conn) return;
 
@@ -46,9 +74,51 @@ function handleRoomEvents(socket, io) {
       return;
     }
 
+    const { getAllChannels } = require('../../services/channelService');
+    const channels = await getAllChannels();
+    const ch = channels.find(c => c.roomId === roomId);
+    if (ch?.password && !isUserIdAdmin(conn.userId) && ch.creatorDeviceId !== conn.deviceId) {
+      const { getStatus, recordAttempt, lock, clear, MAX_ATTEMPTS } = require('../../services/passwordRateLimit');
+      const { getConfig, getDurationMs } = require('../../services/configService');
+
+      const status = getStatus(roomId, conn.deviceId);
+      if (status.locked) {
+        const waitMin = Math.ceil(status.waitSeconds / 60);
+        socket.emit(EVENTS.SERVER.ERROR, {
+          event: EVENTS.CLIENT.ROOM_JOIN,
+          message: `密码错误次数过多，请 ${waitMin} 分钟后再试`,
+        });
+        return;
+      }
+
+      if (!password || password !== ch.password) {
+        const count = recordAttempt(roomId, conn.deviceId);
+        if (count >= MAX_ATTEMPTS) {
+          const cdMin = await getConfig('config:pwd_retry_cooldown');
+          lock(roomId, conn.deviceId, getDurationMs(cdMin));
+          socket.emit(EVENTS.SERVER.ERROR, {
+            event: EVENTS.CLIENT.ROOM_JOIN,
+            message: `密码错误次数过多，请 ${cdMin} 分钟后再试`,
+          });
+        } else {
+          socket.emit(EVENTS.SERVER.ERROR, {
+            event: EVENTS.CLIENT.ROOM_JOIN,
+            message: `密码错误 (${count}/${MAX_ATTEMPTS})`,
+          });
+        }
+        return;
+      }
+
+      clear(roomId, conn.deviceId);
+    }
+
     conn.currentRoom = roomId;
     room.addUser(socket.id, { socketId: socket.id, userId: conn.userId, nickname: conn.nickname, deviceId: conn.deviceId });
     socket.join(roomId);
+
+    clearAutoDelete(roomId);
+    const { refreshActivity } = require('../../services/channelService');
+    refreshActivity(roomId).catch(() => {});
 
     const { getMutedList } = require('../../services/muteService');
     const mutedList = getMutedList(roomId);
@@ -141,6 +211,21 @@ function leaveCurrentRoom(socket, io) {
 
   conn.currentRoom = null;
   broadcastAllRoomOnlineCounts(io);
+
+  console.log(`[AutoDelete] leaveCurrentRoom: roomId=${roomId}, users.size=${room.users.size}`);
+  if (room.users.size === 0) {
+    console.log(`[AutoDelete] Room ${roomId} is empty, checking channel type...`);
+    const { refreshActivity, getAllChannels } = require('../../services/channelService');
+    refreshActivity(roomId).catch(() => {});
+    getAllChannels().then(async chs => {
+      const ch = chs.find(c => c.roomId === roomId);
+      console.log(`[AutoDelete] Channel ${roomId} found:`, ch ? `type=${ch.type}` : 'NOT FOUND');
+      if (ch?.type === 'user') {
+        console.log(`[AutoDelete] Starting auto-delete for user channel ${roomId}`);
+        await startAutoDelete(roomId, io);
+      }
+    }).catch((e) => console.error('[AutoDelete] Error in leaveCurrentRoom:', e));
+  }
 }
 
-module.exports = { handleRoomEvents, leaveCurrentRoom };
+module.exports = { handleRoomEvents, leaveCurrentRoom, startAutoDelete };

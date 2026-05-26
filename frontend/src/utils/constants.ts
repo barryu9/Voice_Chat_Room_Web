@@ -75,6 +75,11 @@ export type Channel = {
   voiceCount?: number;
   sortOrder?: number;
   audioBitrate?: number;
+  password?: string;
+  type?: string;
+  creatorUserId?: string;
+  creatorNickname?: string;
+  lastActivityAt?: string;
 };
 
 export const AUDIO_QUALITY_TIERS: { label: string; value: number; desc: string }[] = [

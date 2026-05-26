@@ -1,5 +1,5 @@
 import { useMediaStore } from '../stores/mediaStore';
-import { destroyNoiseSuppressor } from './rnnoiseService';
+import { destroyNoiseSuppressor, isNoiseSuppressorEnabled, setNoiseSuppressorEnabled as setRNEnabled } from './rnnoiseService';
 
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
@@ -11,6 +11,11 @@ let noiseGateThreshold = -50;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
 let rnnoiseConnected = false;
+let rnnoiseInput: AudioNode | null = null;
+let rnnoiseOutputTarget: AudioNode | null = null;
+let rnnoiseConnectOutput: ((target: AudioNode) => void) | null = null;
+let rnnoiseDisconnectOutput: (() => void) | null = null;
+let isBypassMode = true;
 
 export function getAudioContext(): AudioContext | null {
   return audioContext;
@@ -47,6 +52,8 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   if (!rnnoiseConnected) {
     micGainNode.connect(gateGainNode);
+  } else if (!isNoiseSuppressorEnabled()) {
+    micGainNode.connect(gateGainNode);
   }
   gateGainNode.connect(processedDestination);
 
@@ -64,8 +71,15 @@ async function tryConnectRNNoise(ctx: AudioContext) {
     const { createNoiseSuppressor } = await import('./rnnoiseService');
     const suppressor = await createNoiseSuppressor(ctx);
     if (suppressor && micGainNode && gateGainNode) {
-      micGainNode.connect(suppressor.inputNode);
-      suppressor.connectOutput(gateGainNode);
+      rnnoiseInput = suppressor.inputNode;
+      rnnoiseOutputTarget = gateGainNode;
+      rnnoiseConnectOutput = suppressor.connectOutput;
+      rnnoiseDisconnectOutput = suppressor.disconnectOutput;
+      if (isNoiseSuppressorEnabled()) {
+        suppressor.connectOutput(gateGainNode);
+        micGainNode.connect(suppressor.inputNode);
+        isBypassMode = false;
+      }
       rnnoiseConnected = true;
     }
   } catch {
@@ -77,12 +91,34 @@ export function getProcessedStream(): MediaStream | null {
   return processedDestination?.stream || null;
 }
 
+export function toggleNoiseSuppressor(enabled: boolean) {
+  if (!rnnoiseConnected || !micGainNode || !gateGainNode || !rnnoiseInput) return;
+
+  if (enabled && isBypassMode) {
+    micGainNode.disconnect();
+    micGainNode.connect(analyserNode!);
+    micGainNode.connect(rnnoiseInput);
+    rnnoiseConnectOutput?.(gateGainNode);
+    isBypassMode = false;
+  } else if (!enabled && !isBypassMode) {
+    micGainNode.disconnect();
+    micGainNode.connect(analyserNode!);
+    micGainNode.connect(gateGainNode);
+    rnnoiseDisconnectOutput?.();
+    isBypassMode = true;
+  }
+
+  setRNEnabled(enabled);
+}
+
 export function updateNoiseGate(level: number, threshold: number) {
   if (!gateGainNode) return;
   noiseGateThreshold = threshold;
   const target = level > threshold ? 1.0 : 0;
-  const current = gateGainNode.gain.value;
-  gateGainNode.gain.value = current + (target - current) * 0.3;
+  const now = gateGainNode.context.currentTime;
+  gateGainNode.gain.cancelScheduledValues(now);
+  const timeConstant = target > gateGainNode.gain.value ? 0.01 : 0.2;
+  gateGainNode.gain.setTargetAtTime(target, now, timeConstant);
 }
 
 export function setMicGain(value: number) {
@@ -235,6 +271,11 @@ export function cleanupLocalAudio() {
   if (rnnoiseConnected) {
     destroyNoiseSuppressor();
     rnnoiseConnected = false;
+    rnnoiseInput = null;
+    rnnoiseOutputTarget = null;
+    rnnoiseConnectOutput = null;
+    rnnoiseDisconnectOutput = null;
+    isBypassMode = true;
   }
   localStream = null;
 }

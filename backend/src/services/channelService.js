@@ -26,12 +26,23 @@ async function getAllChannels() {
 }
 
 async function createChannel(data) {
+  const existing = await Channel.findOne({ name: data.name }).lean();
+  if (existing) throw new Error('频道名已存在');
+
+  let sortOrder = data.sortOrder;
+  if (sortOrder === undefined || sortOrder === null) {
+    const maxCh = await Channel.findOne({}).sort({ sortOrder: -1 }).lean();
+    sortOrder = maxCh ? (maxCh.sortOrder || 0) + 1 : 0;
+  }
+
   const channel = await Channel.create({
     roomId: data.roomId || data.name.toLowerCase().replace(/\s+/g, '-'),
     name: data.name,
     maxUsers: data.maxUsers || 20,
-    sortOrder: data.sortOrder ?? 0,
+    sortOrder,
     audioBitrate: data.audioBitrate ?? 48,
+    password: data.password || '',
+    passwordText: data.passwordText || '',
   });
   return channel;
 }
@@ -40,6 +51,11 @@ async function updateChannel(roomId, updates) {
   const setFields = { ...updates };
   const newRoomId = setFields.newRoomId;
   delete setFields.newRoomId;
+
+  if (updates.name) {
+    const dup = await Channel.findOne({ name: updates.name, roomId: { $ne: roomId } }).lean();
+    if (dup) throw new Error('频道名已存在');
+  }
 
   if (newRoomId && newRoomId !== roomId) {
     setFields.roomId = newRoomId;
@@ -96,7 +112,60 @@ async function reorderChannels(items) {
   );
 }
 
+async function createUserChannel(data) {
+  const existing = await Channel.findOne({ name: data.name }).lean();
+  if (existing) throw new Error('频道名已存在');
+
+  const rid = 'user-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const ch = await Channel.create({
+    roomId: rid,
+    name: data.name,
+    maxUsers: data.maxUsers || 10,
+    sortOrder: 99999,
+    audioBitrate: data.audioBitrate || 48,
+    password: data.password || '',
+    passwordText: data.passwordText || '',
+    type: 'user',
+    creatorUserId: data.creatorUserId,
+    creatorNickname: data.creatorNickname,
+    creatorDeviceId: data.creatorDeviceId,
+    lastActivityAt: new Date(),
+  });
+  return ch;
+}
+
+async function getUserChannelCount(deviceId) {
+  return Channel.countDocuments({ type: 'user', creatorDeviceId: deviceId });
+}
+
+async function getUserChannelsByDevice(deviceId) {
+  return Channel.find({ type: 'user' }).lean();
+}
+
+async function updateUserChannel(roomId, deviceId, updates) {
+  const query = deviceId
+    ? { roomId, type: 'user', creatorDeviceId: deviceId }
+    : { roomId, type: 'user' };
+  const ch = await Channel.findOne(query);
+  if (!ch) return null;
+  const setFields = {};
+  if (updates.name !== undefined) setFields.name = updates.name;
+  if (updates.maxUsers !== undefined) setFields.maxUsers = updates.maxUsers;
+  if (updates.audioBitrate !== undefined) setFields.audioBitrate = updates.audioBitrate;
+  if (updates.password !== undefined) setFields.password = updates.password;
+  return Channel.findOneAndUpdate({ roomId }, { $set: setFields }, { new: true }).lean();
+}
+
+async function refreshActivity(roomId) {
+  await Channel.updateOne({ roomId, type: 'user' }, { $set: { lastActivityAt: new Date() } });
+}
+
+async function deleteUserChannel(roomId) {
+  await Channel.deleteOne({ roomId, type: 'user' });
+}
+
 module.exports = {
   initChannels, getAllChannels, createChannel, reorderChannels,
   updateChannel, deleteChannel, getAnnouncement, getSiteName, getAnnouncements, getSetting,
+  createUserChannel, getUserChannelCount, updateUserChannel, refreshActivity, deleteUserChannel, getUserChannelsByDevice,
 };

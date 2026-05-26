@@ -11,48 +11,72 @@ const { EVENTS } = require('../events');
 
 function handleAdminEvents(socket, io) {
 
+  async function isChannelCreator(roomId) {
+    if (!roomId) return false;
+    const conn = getConnection(socket.id);
+    if (!conn) return false;
+    const { getAllChannels } = require('../../services/channelService');
+    const chs = await getAllChannels();
+    const ch = chs.find(c => c.roomId === roomId);
+    return ch?.type === 'user' && ch?.creatorUserId === conn.userId;
+  }
+
+  async function hasMutePower(roomId) {
+    return isAdmin(socket.id) || await isChannelCreator(roomId);
+  }
+
   socket.on(EVENTS.CLIENT.ADMIN_AUTH, ({ password }) => {
     const conn = getConnection(socket.id);
     const success = authenticate(password, socket.id, conn?.deviceId || '');
     socket.emit(EVENTS.SERVER.ADMIN_AUTH_RESULT, { success, message: success ? 'Authenticated' : 'Wrong password' });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId, sortOrder, audioBitrate }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId, sortOrder, audioBitrate, password }) => {
     if (!isAdmin(socket.id)) return;
 
     const rid = (roomId && roomId.trim()) ? roomId.trim() : name.toLowerCase().replace(/\s+/g, '-');
-    const channel = await createChannel({ name, roomId: rid, maxUsers, sortOrder, audioBitrate });
+    try {
+      const channel = await createChannel({ name, roomId: rid, maxUsers, sortOrder, audioBitrate, password });
 
-    const room = createRoom(rid, channel.name, channel.maxUsers, channel.audioBitrate, io);
-    await room.init();
+      const room = createRoom(rid, channel.name, channel.maxUsers, channel.audioBitrate, io);
+      await room.init();
 
-    io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
-      roomId: rid, name: channel.name, maxUsers: channel.maxUsers,
-      sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
-    });
-    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已创建`, type: 'success' });
+      io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
+        roomId: rid, name: channel.name, maxUsers: channel.maxUsers,
+        sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
+        password: channel.password,
+      });
+      socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已创建`, type: 'success' });
+    } catch (e) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, message: '频道已存在或创建失败' });
+    }
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, async ({ roomId, newRoomId, name, maxUsers, sortOrder, audioBitrate }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, async ({ roomId, newRoomId, name, maxUsers, sortOrder, audioBitrate, password }) => {
     if (!isAdmin(socket.id)) return;
 
-    const channel = await updateChannel(roomId, { name, maxUsers, newRoomId, sortOrder, audioBitrate });
-    if (!channel) return;
+    try {
+      const channel = await updateChannel(roomId, { name, maxUsers, newRoomId, sortOrder, audioBitrate, password });
+      if (!channel) return;
 
-    const effectiveRoomId = newRoomId || roomId;
-    const room = getRoom(effectiveRoomId);
-    if (room) {
-      room.name = channel.name;
-      room.maxUsers = channel.maxUsers;
-      room.audioBitrate = channel.audioBitrate;
+      const effectiveRoomId = newRoomId || roomId;
+      const room = getRoom(effectiveRoomId);
+      if (room) {
+        room.name = channel.name;
+        room.maxUsers = channel.maxUsers;
+        room.audioBitrate = channel.audioBitrate;
+      }
+
+      io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
+        roomId, newRoomId: newRoomId || roomId,
+        name: channel.name, maxUsers: channel.maxUsers,
+        sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
+        password: channel.password,
+      });
+      socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已更新`, type: 'success' });
+    } catch (e) {
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, message: '频道名已存在或更新失败' });
     }
-
-    io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
-      roomId, newRoomId: newRoomId || roomId,
-      name: channel.name, maxUsers: channel.maxUsers,
-      sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
-    });
-    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已更新`, type: 'success' });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, async ({ roomId }) => {
@@ -92,6 +116,18 @@ function handleAdminEvents(socket, io) {
     const { getAllConfig } = require('../../services/configService');
     const config = await getAllConfig();
     socket.emit('admin:config-list', { config });
+  });
+
+  socket.on('user:channel-config', async () => {
+    const { getConfig } = require('../../services/configService');
+    const config = {
+      maxNameLen: await getConfig('config:user_channel_max_name_len'),
+      maxUsers: await getConfig('config:user_channel_max_users'),
+      allowedBitrates: await getConfig('config:user_channel_allowed_bitrates'),
+      maxPerDevice: await getConfig('config:user_channel_max_per_device'),
+      enabled: await getConfig('config:user_channel_enabled'),
+    };
+    socket.emit('user:channel-config', config);
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, async ({ message }) => {
@@ -146,7 +182,8 @@ function handleAdminEvents(socket, io) {
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_KICK, async ({ targetDeviceId }) => {
-    if (!isAdmin(socket.id)) return;
+    const conn = getConnection(socket.id);
+    if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
 
     let roomId = null;
     const kickPromises = [];
@@ -176,17 +213,17 @@ function handleAdminEvents(socket, io) {
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: '已踢出用户', type: 'warning' });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_KICKLIST, () => {
-    if (!isAdmin(socket.id)) return;
+  socket.on(EVENTS.CLIENT.ADMIN_KICKLIST, async () => {
     const conn = getConnection(socket.id);
+    if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
     if (!conn?.currentRoom) return;
     const list = getKickedList(conn.currentRoom);
     socket.emit(EVENTS.SERVER.KICKED_LIST, { kicked: list });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_UNKICK, ({ deviceId }) => {
-    if (!isAdmin(socket.id)) return;
+  socket.on(EVENTS.CLIENT.ADMIN_UNKICK, async ({ deviceId }) => {
     const conn = getConnection(socket.id);
+    if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
     if (!conn?.currentRoom) return;
     unkickUser(conn.currentRoom, deviceId);
     io.to(conn.currentRoom).emit(EVENTS.SERVER.KICKED_LIST, { kicked: getKickedList(conn.currentRoom) });
@@ -232,8 +269,8 @@ function handleAdminEvents(socket, io) {
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_MUTE_TARGET, async ({ targetDeviceId }) => {
-    if (!isAdmin(socket.id)) return;
     const conn = getConnection(socket.id);
+    if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
     if (!conn?.currentRoom) return;
 
     const room = getRoom(conn.currentRoom);
@@ -273,9 +310,9 @@ function handleAdminEvents(socket, io) {
     }
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_UNMUTE_TARGET, ({ targetDeviceId }) => {
-    if (!isAdmin(socket.id)) return;
+  socket.on(EVENTS.CLIENT.ADMIN_UNMUTE_TARGET, async ({ targetDeviceId }) => {
     const conn = getConnection(socket.id);
+    if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
     if (!conn?.currentRoom) return;
 
     const room = getRoom(conn.currentRoom);
@@ -333,9 +370,9 @@ function handleAdminEvents(socket, io) {
     io.emit(EVENTS.SERVER.ROOM_LIST, { rooms: enriched });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_TEMP_MUTE, ({ targetUserId }) => {
-    if (!isAdmin(socket.id)) return;
+  socket.on(EVENTS.CLIENT.ADMIN_TEMP_MUTE, async ({ targetUserId }) => {
     const conn = getConnection(socket.id);
+    if (!isAdmin(socket.id) && !(await isChannelCreator(conn?.currentRoom))) return;
     if (!conn?.currentRoom) return;
 
     const room = getRoom(conn.currentRoom);

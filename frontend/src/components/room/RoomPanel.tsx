@@ -5,23 +5,24 @@ import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { playSound } from '../../services/soundService';
-import { setNoiseSuppressorEnabled } from '../../services/rnnoiseService';
 import { UserGrid } from './UserGrid';
 import { AudioControls } from '../audio/AudioControls';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
 import { showToast } from '../common/Toast';
-import { setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume } from '../../services/audioService';
+import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume } from '../../services/audioService';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
+import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { useAdminStore } from '../../stores/adminStore';
 import { LatencyIndicator } from './LatencyIndicator';
 
 export const RoomPanel: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
   const setCurrentRoom = useUserStore((s) => s.setCurrentRoom);
+  const myUserId = useUserStore((s) => s.userId);
   const myDeviceId = useUserStore((s) => s.deviceId);
   const channels = useRoomStore((s) => s.channels);
   const notification = useRoomStore((s) => s.notification);
@@ -45,8 +46,10 @@ export const RoomPanel: React.FC = () => {
 
   const [connecting, setConnecting] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
   const durationRef = useRef<number>(0);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
+  const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === myUserId;
   const selfLatency = myDeviceId ? peerLatencies.get(myDeviceId) : undefined;
 
   const isAdmin = useAdminStore((s) => s.isAdmin);
@@ -54,7 +57,7 @@ export const RoomPanel: React.FC = () => {
   const [, kickTick] = useState(0);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isCreator) return;
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_KICKLIST);
     const handler = (data: any) => {
       useAdminStore.getState().setKickedList(data.kicked || []);
@@ -65,7 +68,7 @@ export const RoomPanel: React.FC = () => {
       getSocket()?.off(EVENTS.SERVER.KICKED_LIST, handler);
       clearInterval(timer);
     };
-  }, [isAdmin]);
+  }, [isAdmin, isCreator]);
 
   const fmtKick = (ms: number) => {
     if (ms <= 0) return '已过期';
@@ -161,7 +164,7 @@ export const RoomPanel: React.FC = () => {
   const handleNoiseSuppressionToggle = useCallback(() => {
     const next = !noiseSuppressionEnabled;
     setNoiseSuppressionEnabled(next);
-    setNoiseSuppressorEnabled(next);
+    toggleNoiseSuppressor(next);
   }, [noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
 
   const handleMasterVolumeChange = useCallback((v: number) => {
@@ -216,20 +219,39 @@ export const RoomPanel: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">
-              {currentChannel?.name || currentRoom}
+            <h1 className="text-2xl font-bold text-white flex items-center gap-1.5 flex-wrap">
+              {currentChannel?.password && (
+                <svg className="w-5 h-5 text-yellow-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              )}
+              {currentChannel?.type === 'user' && (
+                <span className={`text-[10px] px-1 py-px rounded border shrink-0 ${currentChannel?.password ? 'text-yellow-400 border-yellow-500/30' : 'text-primary-300 border-primary-500/30'} leading-none`}>
+                   临时
+                </span>
+              )}
+              <span>{currentChannel?.name || currentRoom}</span>
               {selfLatency != null && (
                 <span className="ml-2 inline-flex items-center align-middle"><LatencyIndicator latency={selfLatency} /></span>
               )}
             </h1>
             <p className="text-gray-500 text-sm">
-              #{currentRoom}
+              {currentChannel?.type === 'user' && currentChannel?.creatorNickname
+                ? `创建者：${currentChannel.creatorNickname}`
+                : `#${currentRoom}`}
               <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/5">
                 {getAudioQualityLabel(currentChannel?.audioBitrate ?? 32)}
               </span>
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {isCreator && (
+              <button onClick={() => setShowEditModal(true)} className="text-gray-500 hover:text-gray-300 transition-colors p-1" title="编辑频道">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
             <SoundSettings />
             <button
               onClick={handleLeaveRoom}
@@ -306,7 +328,7 @@ export const RoomPanel: React.FC = () => {
           )}
         </div>
 
-        {isAdmin && kickedList.length > 0 && (
+        {(isAdmin || isCreator) && kickedList.length > 0 && (
           <div className="glass-panel p-3 mb-4">
             <h4 className="text-xs font-medium text-gray-400 mb-2">被踢出用户（冷却中）</h4>
             <div className="flex flex-wrap gap-2">
@@ -329,6 +351,16 @@ export const RoomPanel: React.FC = () => {
           <UserGrid />
         </div>
       </div>
+
+      {showEditModal && currentChannel && (
+        <EditUserChannelModal
+          channel={currentChannel}
+          maxNameLen={6}
+          maxUsers={20}
+          allowedBitrates={[48, 64]}
+          onClose={() => setShowEditModal(false)}
+        />
+      )}
     </div>
   );
 };

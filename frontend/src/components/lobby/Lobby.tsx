@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import { useUserStore, ConnectionState } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
@@ -13,6 +13,10 @@ import { AdminLogin } from '../admin/AdminLogin';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
+import { ChannelPasswordModal } from './ChannelPasswordModal';
+import { CreateUserChannelModal } from './CreateUserChannelModal';
+import { EditUserChannelModal } from './EditUserChannelModal';
+import { showToast } from '../common/Toast';
 
 export const Lobby: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
@@ -28,24 +32,90 @@ export const Lobby: React.FC = () => {
   const announcements = useRoomStore((s) => s.announcements);
   const siteName = useRoomStore((s) => s.siteName);
   const showAdmin = useAdminStore((s) => s.isAdmin);
+  const adminConfig = useAdminStore((s) => s.config);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
+  const allowedBitrates = adminConfig.userChannelAllowedBitrates.split(',').filter(Boolean).map(Number);
   const [editingNickname, setEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState('');
+  const [editError, setEditError] = useState('');
+  const [pwdRoomId, setPwdRoomId] = useState('');
+  const [pwdError, setPwdError] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editChannelRoomId, setEditChannelRoomId] = useState('');
+  const editChannel = channels.find(c => c.roomId === editChannelRoomId);
   const connectionState = useUserStore((s) => s.connectionState);
   const reconnectAttempt = useUserStore((s) => s.reconnectAttempt);
+  const pwdRoomRef = useRef(pwdRoomId);
+  useEffect(() => {
+    pwdRoomRef.current = pwdRoomId;
+  }, [pwdRoomId]);
 
   useEffect(() => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_LIST);
+    getSocket()?.emit('user:channel-config');
+    const handler = (config: any) => {
+      useAdminStore.getState().setConfig({
+        ...useAdminStore.getState().config,
+        userChannelEnabled: config.enabled !== false,
+        userChannelMaxNameLen: config.maxNameLen ?? 6,
+        userChannelMaxUsers: config.maxUsers ?? 10,
+        userChannelAllowedBitrates: config.allowedBitrates ?? '48',
+        userChannelMaxPerDevice: config.maxPerDevice ?? 1,
+      });
+    };
+    getSocket()?.on('user:channel-config', handler);
+    return () => { getSocket()?.off('user:channel-config', handler); };
   }, []);
 
   useEffect(() => {
-    if (!announcement) return;
-    const timer = setTimeout(() => setNotification(''), 10000);
-    return () => clearTimeout(timer);
-  }, [announcement, setNotification]);
+    const handler = (data: any) => {
+      showToast(`频道 "${data.roomId}" 已删除`, 'success');
+    };
+    getSocket()?.on('user:channel-deleted', handler);
+    return () => { getSocket()?.off('user:channel-deleted', handler); };
+  }, []);
+
+  // Persistent password error handler (only for active modal)
+  useEffect(() => {
+    const handler = (data: any) => {
+      if (data.event === EVENTS.CLIENT.ROOM_JOIN && pwdRoomRef.current) {
+        setPwdError(data.message || '密码错误');
+      }
+    };
+    getSocket()?.on(EVENTS.SERVER.ERROR, handler);
+    return () => { getSocket()?.off(EVENTS.SERVER.ERROR, handler); };
+  }, []);
 
   const handleJoin = (roomId: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId });
+  };
+
+  const handleJoinWithPwd = (roomId: string) => {
+    if (showAdmin) {
+      handleJoin(roomId);
+      return;
+    }
+    setPwdRoomId(roomId);
+    setPwdError('');
+  };
+
+  const handlePwdSubmit = async (password: string) => {
+    getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: pwdRoomId, password });
+  };
+
+  const handlePwdClose = () => {
+    setPwdRoomId('');
+    setPwdError('');
+  };
+
+  const handleEditChannel = (roomId: string) => {
+    setEditChannelRoomId(roomId);
+  };
+
+  const handleDeleteChannel = (roomId: string) => {
+    if (window.confirm('确定要删除该频道吗？')) {
+      getSocket()?.emit('user:channel-delete', { roomId });
+    }
   };
 
   const handleLogout = () => {
@@ -59,6 +129,7 @@ export const Lobby: React.FC = () => {
 
   const handleStartEditNickname = () => {
     setNewNickname(nickname);
+    setEditError('');
     setEditingNickname(true);
   };
 
@@ -69,7 +140,7 @@ export const Lobby: React.FC = () => {
       return;
     }
     if (containsBlockedWord(trimmed)) {
-      useRoomStore.getState().setNotification('昵称包含违规词汇，请修改');
+      setEditError('昵称包含违规词汇，请修改');
       return;
     }
     getSocket()?.emit('user:updateNickname', { nickname: trimmed });
@@ -104,6 +175,9 @@ export const Lobby: React.FC = () => {
             </h1>
             <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
               已登录: <span className="text-gray-300">{nickname}</span>
+              {import.meta.env.DEV && (
+                <span className="text-[10px] text-gray-600">uid:{userId?.slice(0,6)} did:{deviceId?.slice(0,8)}</span>
+              )}
               <button
                 onClick={handleStartEditNickname}
                 className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
@@ -111,20 +185,6 @@ export const Lobby: React.FC = () => {
                 编辑
               </button>
             </p>
-            {editingNickname && (
-              <div className="flex items-center gap-1 mt-1">
-                <input
-                  value={newNickname}
-                  onChange={(e) => setNewNickname(e.target.value)}
-                  maxLength={16}
-                  className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1 text-sm text-white focus:outline-none focus:border-primary-500/50 w-36"
-                  autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveNickname(); if (e.key === 'Escape') setEditingNickname(false); }}
-                />
-                <button onClick={handleSaveNickname} className="text-xs bg-primary-600 hover:bg-primary-500 text-white px-2 py-1 rounded-lg">保存</button>
-                <button onClick={() => setEditingNickname(false)} className="text-xs bg-gray-600 hover:bg-gray-500 text-white px-2 py-1 rounded-lg">取消</button>
-              </div>
-            )}
           </div>
           <div className="flex gap-3">
             <SoundSettings />
@@ -159,27 +219,96 @@ export const Lobby: React.FC = () => {
           </div>
         )}
 
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-white mb-1">频道列表</h2>
-          <p className="text-gray-500 text-sm">选择一个频道加入语音聊天</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {channels.map((ch) => (
-            <ChannelCard
-              key={ch.roomId}
-              channel={ch}
-              onJoin={handleJoin}
-              disabled={currentRoom === ch.roomId}
-            />
-          ))}
-          {channels.length === 0 && (
-            <div className="col-span-full text-center py-16 text-gray-600">
-              <p className="text-lg">暂无可用频道</p>
+        {channels.length === 0 ? (
+          <div className="text-center py-16 text-gray-600">
+            <p className="text-lg">暂无可用频道</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-white mb-1">固定频道</h2>
+              <p className="text-gray-500 text-sm">管理员创建的频道</p>
             </div>
-          )}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {channels.filter(c => c.type !== 'user').map((ch) => (
+                <ChannelCard key={ch.roomId} channel={ch} onJoin={handleJoin} onJoinWithPwd={handleJoinWithPwd} disabled={currentRoom === ch.roomId} currentUserId={userId} />
+              ))}
+            </div>
+
+            {adminConfig.userChannelEnabled && (
+            <>
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-1">临时频道</h2>
+                <p className="text-gray-500 text-sm">临时频道，无人时自动删除</p>
+              </div>
+              <button onClick={() => setShowCreateModal(true)} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all">
+                + 创建频道
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {channels.filter(c => c.type === 'user').map((ch) => (
+                <ChannelCard key={ch.roomId} channel={ch} onJoin={handleJoin} onJoinWithPwd={handleJoinWithPwd} disabled={currentRoom === ch.roomId} isAdmin={showAdmin} currentUserId={userId} onEdit={handleEditChannel} onDelete={handleDeleteChannel} />
+              ))}
+            </div>
+            </>
+            )}
+          </>
+        )}
       </div>
+
+      {editingNickname && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
+            <h3 className="text-lg font-semibold text-white mb-4">修改昵称</h3>
+            <input
+              value={newNickname}
+              onChange={(e) => { setNewNickname(e.target.value); setEditError(''); }}
+              maxLength={16}
+              placeholder="输入新昵称"
+              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 mb-2"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveNickname();
+                if (e.key === 'Escape') setEditingNickname(false);
+              }}
+            />
+            {editError && <p className="text-red-400 text-xs mb-3">{editError}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => setEditingNickname(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl transition-all">取消</button>
+              <button onClick={handleSaveNickname} className="flex-1 bg-primary-600 hover:bg-primary-500 text-white text-sm py-2.5 rounded-xl transition-all">保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pwdRoomId && (
+        <ChannelPasswordModal
+          channelName={channels.find(c => c.roomId === pwdRoomId)?.name || pwdRoomId}
+          onSubmit={handlePwdSubmit}
+          onClose={handlePwdClose}
+          error={pwdError}
+        />
+      )}
+
+      {showCreateModal && (
+        <CreateUserChannelModal
+          onClose={() => setShowCreateModal(false)}
+          maxNameLen={adminConfig.userChannelMaxNameLen}
+          maxUsers={adminConfig.userChannelMaxUsers}
+          allowedBitrates={allowedBitrates}
+        />
+      )}
+
+      {editChannel && (
+        <EditUserChannelModal
+          channel={editChannel}
+          maxNameLen={adminConfig.userChannelMaxNameLen}
+          maxUsers={adminConfig.userChannelMaxUsers}
+          allowedBitrates={allowedBitrates}
+          onClose={() => setEditChannelRoomId('')}
+        />
+      )}
     </div>
   );
 };

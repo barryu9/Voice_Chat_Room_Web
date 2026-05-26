@@ -124,6 +124,13 @@ function registerListeners() {
     playSound('disconnected');
   });
 
+  socket.on('room:closed', (data) => {
+    useUserStore.getState().setCurrentRoom(null);
+    useMediaStore.getState().reset();
+    useRoomStore.getState().setNotification(data.message || '频道已关闭');
+    playSound('disconnected');
+  });
+
   socket.on(EVENTS.SERVER.BANNED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
@@ -157,6 +164,7 @@ function registerListeners() {
             maxUsers: data.maxUsers,
             sortOrder: data.sortOrder,
             audioBitrate: data.audioBitrate,
+            password: data.password,
           });
         } else {
           useRoomStore.getState().updateChannel(data.roomId, {
@@ -164,6 +172,7 @@ function registerListeners() {
             maxUsers: data.maxUsers,
             sortOrder: data.sortOrder,
             audioBitrate: data.audioBitrate,
+            password: data.password,
           });
         }
       } else {
@@ -173,6 +182,7 @@ function registerListeners() {
           maxUsers: data.maxUsers,
           sortOrder: data.sortOrder,
           audioBitrate: data.audioBitrate,
+          password: data.password,
         });
       }
     }
@@ -221,7 +231,11 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.ERROR, (data) => {
     console.error(`[Error] ${data.event}: ${data.message}`);
-    useRoomStore.getState().setNotification(data.message);
+    const isRoomJoin = data.event === EVENTS.CLIENT.ROOM_JOIN;
+    const isPasswordError = data.message?.includes('密码');
+    if (!isRoomJoin || !isPasswordError) {
+      useRoomStore.getState().setNotification(data.message);
+    }
   });
 
   socket.on('latency:update', (data: { deviceId: string; latency: number }) => {
@@ -270,5 +284,25 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.KICKED_LIST, (data: { kicked: Array<{ deviceId: string; nickname?: string; expiresAt: number }> }) => {
     useAdminStore.getState().setKickedList(data.kicked || []);
+  });
+
+  socket.on('admin:config-list', (data: any) => {
+    if (data.config) {
+      useAdminStore.getState().setConfig({
+        ...useAdminStore.getState().config,
+        multiLogin: !!data.config['config:multi_login'],
+        banDuration: data.config['config:ban_duration'] ?? 1440,
+        muteDuration: data.config['config:mute_duration'] ?? 60,
+        kickDuration: data.config['config:kick_duration'] ?? 60,
+        pwdCooldown: data.config['config:pwd_retry_cooldown'] ?? 5,
+        randomDeviceId: !!data.config['config:random_device_id'],
+        userChannelEnabled: !!data.config['config:user_channel_enabled'],
+        userChannelMaxPerDevice: data.config['config:user_channel_max_per_device'] ?? 1,
+        userChannelMaxUsers: data.config['config:user_channel_max_users'] ?? 10,
+        userChannelAllowedBitrates: data.config['config:user_channel_allowed_bitrates'] ?? '48',
+        userChannelAutoDelete: data.config['config:user_channel_auto_delete'] ?? 10,
+        userChannelMaxNameLen: data.config['config:user_channel_max_name_len'] ?? 6,
+      });
+    }
   });
 }

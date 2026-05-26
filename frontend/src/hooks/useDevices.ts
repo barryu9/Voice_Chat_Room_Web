@@ -68,7 +68,12 @@ export function useDevices() {
       currentStreamRef.current.getTracks().forEach((t) => t.stop());
     }
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { deviceId: deviceId ? { exact: deviceId } : undefined },
+      audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
       video: false,
     });
     currentStreamRef.current = stream;

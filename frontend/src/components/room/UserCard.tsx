@@ -20,6 +20,10 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const activeSpeakers = useRoomStore((s) => s.activeSpeakers);
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const currentUserId = useUserStore((s) => s.userId);
+  const currentRoom = useUserStore((s) => s.currentRoom);
+  const channels = useRoomStore((s) => s.channels);
+  const currentChannel = channels.find(c => c.roomId === currentRoom);
+  const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === currentUserId;
   const mutedUsers = useMediaStore((s) => s.mutedUsers);
   const toggleMuteUser = useMediaStore((s) => s.toggleMuteUser);
   const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
@@ -188,8 +192,8 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         </div>
       )}
 
-      {/* Admin menu */}
-      {isAdmin && !isSelf && (
+      {/* Admin/Creator menu */}
+      {(isAdmin || isCreator) && !isSelf && (
         <div className="absolute top-1 right-1">
           <button
             onClick={() => setShowMenu(!showMenu)}
@@ -206,7 +210,9 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
               )}
               <button onClick={handleKick} className="text-xs text-orange-300 hover:bg-orange-500/10 px-2 py-1 rounded text-left">踢出</button>
               <button onClick={handleTempMute} className="text-xs text-yellow-400 hover:bg-yellow-500/10 px-2 py-1 rounded text-left">强制关麦</button>
-              <button onClick={handleBan} className="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded text-left">封禁</button>
+              {isAdmin && (
+                <button onClick={handleBan} className="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded text-left">封禁</button>
+              )}
             </div>
           )}
         </div>

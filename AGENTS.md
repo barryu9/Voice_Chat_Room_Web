@@ -57,3 +57,9 @@ login → room:join (no USER_JOINED yet)
 - AudioContext resume must be awaited
 - Windows npm: must use `cmd /c "npm ..."` in PowerShell due to execution policy
 - `npx tsc --noEmit` for TS check, `npx vite build` for production build
+
+## Rules for Admin Panel Settings
+- **All settings must show current values as defaults** — never show empty/placeholder values when editing
+- **Every save action must give user feedback** — use `showToast('xxx已更新', 'success')` after each emit
+- Settings must be re-fetched from server after save to ensure consistency (`admin:config-getall`)
+- Use `useEffect` to sync UI state with current values when the panel opens

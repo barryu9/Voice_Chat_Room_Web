@@ -7,6 +7,7 @@ const { handleTransportEvents } = require('./handlers/transportHandler');
 const { handleProducerEvents } = require('./handlers/producerHandler');
 const { handleConsumerEvents } = require('./handlers/consumerHandler');
 const { handleAdminEvents } = require('./handlers/adminHandler');
+const { handleUserChannelEvents } = require('./handlers/userChannelHandler');
 
 let io;
 
@@ -29,6 +30,7 @@ function initSocket(server) {
     handleProducerEvents(socket, io);
     handleConsumerEvents(socket);
     handleAdminEvents(socket, io);
+    handleUserChannelEvents(socket, io);
   });
 
   return io;

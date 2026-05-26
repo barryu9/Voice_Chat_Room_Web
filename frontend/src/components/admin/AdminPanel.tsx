@@ -3,6 +3,7 @@ import { getSocket } from '../../services/socketService';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/constants';
+import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
 
@@ -60,7 +61,7 @@ const KickedSection: React.FC = () => {
   );
 };
 
-const SettingsPanel: React.FC = () => {
+const UserChannelSettingsPanel: React.FC = () => {
   const config = useAdminStore((s) => s.config);
 
   React.useEffect(() => {
@@ -68,10 +69,13 @@ const SettingsPanel: React.FC = () => {
     const handler = (data: any) => {
       if (data.config) {
         useAdminStore.getState().setConfig({
-          multiLogin: !!data.config['config:multi_login'],
-          banDuration: data.config['config:ban_duration'] ?? 1440,
-          muteDuration: data.config['config:mute_duration'] ?? 60,
-          kickDuration: data.config['config:kick_duration'] ?? 60,
+          ...useAdminStore.getState().config,
+          userChannelMaxPerDevice: data.config['config:user_channel_max_per_device'] ?? 1,
+          userChannelMaxUsers: data.config['config:user_channel_max_users'] ?? 10,
+          userChannelAllowedBitrates: data.config['config:user_channel_allowed_bitrates'] ?? '48',
+          userChannelAutoDelete: data.config['config:user_channel_auto_delete'] ?? 10,
+          userChannelMaxNameLen: data.config['config:user_channel_max_name_len'] ?? 6,
+          userChannelEnabled: !!data.config['config:user_channel_enabled'],
         });
       }
     };
@@ -82,6 +86,99 @@ const SettingsPanel: React.FC = () => {
   const save = (key: string, value: any) => {
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
     getSocket()?.emit('admin:config-getall');
+    showToast('设置已保存', 'success');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">同设备最大创建数</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="0" max="20" value={config.userChannelMaxPerDevice}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, userChannelMaxPerDevice: parseInt(e.target.value) || 0 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:user_channel_max_per_device', config.userChannelMaxPerDevice)} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">最大人数上限</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="2" max="100" value={config.userChannelMaxUsers}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, userChannelMaxUsers: parseInt(e.target.value) || 2 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:user_channel_max_users', config.userChannelMaxUsers)} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">可选音质</h4>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {AUDIO_QUALITY_TIERS.map((t) => {
+            const selected = config.userChannelAllowedBitrates.split(',').includes(String(t.value));
+            return (
+              <label key={t.value} className="flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={() => {
+                    const arr = config.userChannelAllowedBitrates.split(',').filter(Boolean);
+                    const idx = arr.indexOf(String(t.value));
+                    if (idx >= 0) arr.splice(idx, 1);
+                    else arr.push(String(t.value));
+                    const newVal = arr.join(',');
+                    useAdminStore.getState().setConfig({ ...config, userChannelAllowedBitrates: newVal });
+                    save('config:user_channel_allowed_bitrates', newVal);
+                  }}
+                  className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-primary-500 focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-300">{t.label} ({t.desc})</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">频道名最大字数</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="1" max="20" value={config.userChannelMaxNameLen}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, userChannelMaxNameLen: parseInt(e.target.value) || 1 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:user_channel_max_name_len', config.userChannelMaxNameLen)} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const SettingsPanel: React.FC = () => {
+  const config = useAdminStore((s) => s.config);
+
+  React.useEffect(() => {
+    getSocket()?.emit('admin:config-getall');
+    const handler = (data: any) => {
+      if (data.config) {
+        useAdminStore.getState().setConfig({
+          ...useAdminStore.getState().config,
+          multiLogin: !!data.config['config:multi_login'],
+          banDuration: data.config['config:ban_duration'] ?? 1440,
+          muteDuration: data.config['config:mute_duration'] ?? 60,
+          kickDuration: data.config['config:kick_duration'] ?? 60,
+          pwdCooldown: data.config['config:pwd_retry_cooldown'] ?? 5,
+          randomDeviceId: !!data.config['config:random_device_id'],
+          userChannelEnabled: !!data.config['config:user_channel_enabled'],
+        });
+      }
+    };
+    getSocket()?.on('admin:config-list', handler);
+    return () => { getSocket()?.off('admin:config-list', handler); };
+  }, []);
+
+  const save = (key: string, value: any) => {
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
+    getSocket()?.emit('admin:config-getall');
+    showToast('设置已保存', 'success');
   };
 
   return (
@@ -96,6 +193,36 @@ const SettingsPanel: React.FC = () => {
           className={`relative w-9 h-5 rounded-full transition-colors ${config.multiLogin ? 'bg-primary-500' : 'bg-gray-600'}`}
         >
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.multiLogin ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+
+      <div className="glass-card p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white">随机设备ID <span className="text-[10px] text-yellow-400">(DEV)</span></p>
+          <p className="text-xs text-gray-500">每次打开页面使用随机设备ID，便于多开测试</p>
+        </div>
+        <button
+          onClick={() => {
+            const next = !config.randomDeviceId;
+            localStorage.setItem('vc_random_device_id', String(next));
+            save('config:random_device_id', next);
+          }}
+          className={`relative w-9 h-5 rounded-full transition-colors ${config.randomDeviceId ? 'bg-primary-500' : 'bg-gray-600'}`}
+        >
+          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.randomDeviceId ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+
+      <div className="glass-card p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white">临时频道功能</p>
+          <p className="text-xs text-gray-500">允许用户自行创建临时语音频道</p>
+        </div>
+        <button
+          onClick={() => save('config:user_channel_enabled', !config.userChannelEnabled)}
+          className={`relative w-9 h-5 rounded-full transition-colors ${config.userChannelEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+        >
+          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.userChannelEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
 
@@ -131,6 +258,17 @@ const SettingsPanel: React.FC = () => {
             className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
+
+      <div className="glass-card p-4 space-y-3">
+        <h4 className="text-sm font-medium text-gray-300">密码错误冷却（分钟）</h4>
+        <div className="flex items-center gap-2">
+          <input type="number" min="1" value={config.pwdCooldown}
+            onChange={(e) => useAdminStore.getState().setConfig({ ...config, pwdCooldown: parseInt(e.target.value) || 1 })}
+            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
+          <button onClick={() => save('config:pwd_retry_cooldown', config.pwdCooldown)}
+            className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -142,23 +280,34 @@ export const AdminPanel: React.FC = () => {
   const setChannels = useRoomStore((s) => s.setChannels);
   const siteName = useRoomStore((s) => s.siteName);
 
-  const [tab, setTab] = useState<'channels' | 'announcement' | 'bans' | 'settings'>('channels');
+  const [tab, setTab] = useState<'channels' | 'announcement' | 'bans' | 'settings' | 'userchannels'>('channels');
   const [newName, setNewName] = useState('');
   const [newRoomId, setNewRoomId] = useState('');
   const [newMax, setNewMax] = useState(20);
   const [newAudioBitrate, setNewAudioBitrate] = useState(48);
+  const [newPassword, setNewPassword] = useState('');
   const [editRoomId, setEditRoomId] = useState('');
   const [editNewRoomId, setEditNewRoomId] = useState('');
   const [editName, setEditName] = useState('');
   const [editMax, setEditMax] = useState(20);
   const [editAudioBitrate, setEditAudioBitrate] = useState(32);
+  const [editPassword, setEditPassword] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [siteNameText, setSiteNameText] = useState(siteName);
   const [versionText, setVersionText] = useState(useRoomStore((s) => s.version));
   const [footerText, setFooterText] = useState(useRoomStore((s) => s.loginFooter));
   const [adminAnnouncements, setAdminAnnouncements] = useState<Array<{ id: string; message: string; createdAt: string; active: boolean }>>([]);
+
+  useEffect(() => {
+    if (showPanel) {
+      setSiteNameText(siteName);
+      setVersionText(useRoomStore.getState().version);
+      setFooterText(useRoomStore.getState().loginFooter);
+    }
+  }, [showPanel, siteName]);
 
   useEffect(() => {
     if (showPanel && tab === 'announcement') {
@@ -178,26 +327,50 @@ export const AdminPanel: React.FC = () => {
 
   const handleCreate = () => {
     if (!newName.trim()) return;
+    const pwd = newPassword.trim();
+
+    let failed = false;
+    const onError = (data: any) => {
+      if (data.event === EVENTS.CLIENT.ADMIN_CHANNEL_CREATE) {
+        failed = true;
+        showToast(data.message || '创建失败', 'error');
+      }
+    };
+    getSocket()?.once(EVENTS.SERVER.ERROR, onError);
+
     getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, {
       name: newName.trim(),
       maxUsers: newMax,
       roomId: newRoomId.trim() || undefined,
       audioBitrate: newAudioBitrate,
+      password: pwd,
     });
     setNewName('');
     setNewRoomId('');
-    showToast(`频道 "${newName.trim()}" 已创建`, 'success');
+    setNewPassword('');
+    setShowCreate(false);
+
+    setTimeout(() => {
+      if (!failed) {
+        showToast(`频道 "${newName.trim()}" 已创建`, 'success');
+      }
+    }, 500);
   };
 
   const handleUpdate = () => {
     if (!editRoomId || !editName.trim()) return;
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, {
+    const pwd = editPassword.trim();
+    const updates: any = {
       roomId: editRoomId,
       newRoomId: editNewRoomId.trim() || undefined,
       name: editName.trim(),
       maxUsers: editMax,
       audioBitrate: editAudioBitrate,
-    });
+    };
+    if (pwd !== '') {
+      updates.password = pwd;
+    }
+    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, updates);
     setEditRoomId('');
     showToast(`频道 "${editName.trim()}" 已更新`, 'success');
   };
@@ -282,8 +455,8 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-40 flex items-start justify-center pt-16 bg-black/40 backdrop-blur-sm">
-      <div className="glass-panel w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto animate-in slide-in-from-top-4 fade-in">
-        <div className="sticky top-0 bg-gray-900/90 backdrop-blur-xl p-5 border-b border-gray-700/50 flex items-center justify-between">
+      <div className="glass-panel w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col animate-in slide-in-from-top-4 fade-in isolate">
+        <div className="shrink-0 bg-gray-900/90 backdrop-blur-xl p-5 border-b border-gray-700/50 flex items-center justify-between rounded-t-2xl overflow-hidden">
           <h2 className="text-xl font-bold text-white">管理面板</h2>
           <button
             onClick={() => setShowPanel(false)}
@@ -294,8 +467,8 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700/50 px-5">
-          {(['channels', 'announcement', 'bans', 'settings'] as const).map((t) => (
+        <div className="flex border-b border-gray-700/50 px-5 shrink-0">
+          {(['channels', 'announcement', 'bans', 'settings', 'userchannels'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -305,56 +478,25 @@ export const AdminPanel: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              {t === 'channels' ? '频道管理' : t === 'announcement' ? '公告设置' : t === 'bans' ? '封禁列表' : '系统设置'}
+              {t === 'channels' ? '频道管理' : t === 'announcement' ? '公告设置' : t === 'bans' ? '封禁列表' : t === 'settings' ? '系统设置' : '临时频道'}
             </button>
           ))}
         </div>
 
-        <div className="p-5">
+        <div className="flex-1 overflow-y-auto min-h-0 p-5">
           {/* Channels Tab */}
           {tab === 'channels' && (
             <div className="space-y-4">
-              {/* Create */}
-              <div className="glass-card p-4 space-y-3">
-                <h4 className="text-sm font-medium text-gray-300">新建频道</h4>
-                <div className="flex flex-wrap gap-2">
-                  <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="频道名称" className="flex-1 min-w-[100px] bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
-                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="简称（可选）" className="w-24 sm:w-28 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50" />
-                  <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden shrink-0">
-                    <button
-                      onClick={() => setNewMax(Math.max(2, newMax - 1))}
-                      className="w-7 h-9 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm shrink-0"
-                    >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      value={newMax}
-                      onChange={(e) => { const v = parseInt(e.target.value); if (v >= 2 && v <= 100) setNewMax(v); }}
-                      className="w-10 text-center bg-transparent text-sm text-white border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <button
-                      onClick={() => setNewMax(Math.min(100, newMax + 1))}
-                      className="w-7 h-9 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm shrink-0"
-                    >
-                      +
-                    </button>
-                  </div>
-                  <select
-                    value={newAudioBitrate}
-                    onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))}
-                    className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50"
-                  >
-                    {AUDIO_QUALITY_TIERS.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label} {t.desc}</option>
-                    ))}
-                  </select>
-                  <button onClick={handleCreate} className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all shrink-0">创建</button>
-                </div>
-              </div>
+              {/* Create button */}
+              <button
+                onClick={() => setShowCreate(true)}
+                className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all"
+              >
+                + 新建频道
+              </button>
 
               {/* List */}
-              {channels.map((ch, index) => (
+              {channels.filter(c => c.type !== 'user').map((ch, index) => (
                 <div
                   key={ch.roomId}
                   draggable={editRoomId !== ch.roomId}
@@ -385,7 +527,14 @@ export const AdminPanel: React.FC = () => {
                           </svg>
                         </button>
                       )}
-                      <span className="text-white font-medium">{ch.name}</span>
+                      <span className="text-white font-medium flex items-center gap-1">
+                        {ch.password && (
+                          <svg className="w-3 h-3 text-yellow-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        )}
+                        {ch.name}
+                      </span>
                     </div>
                     <span className="text-xs text-gray-500">{ch.roomId}</span>
                   </div>
@@ -402,26 +551,7 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div className="w-28">
                           <label className="block text-xs text-gray-500 mb-1">人数上限</label>
-                          <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden">
-                            <button
-                              onClick={() => setEditMax(Math.max(2, editMax - 1))}
-                              className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm leading-none shrink-0"
-                            >
-                              −
-                            </button>
-                            <input
-                              type="number"
-                              value={editMax}
-                              onChange={(e) => { const v = parseInt(e.target.value); if (v >= 2 && v <= 100) setEditMax(v); }}
-                              className="w-10 text-center bg-transparent text-sm text-white border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                            <button
-                              onClick={() => setEditMax(Math.min(100, editMax + 1))}
-                              className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors text-sm leading-none shrink-0"
-                            >
-                              +
-                            </button>
-                          </div>
+                          <StepperInput value={editMax} onChange={setEditMax} min={2} max={100} />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">音质</label>
@@ -435,6 +565,10 @@ export const AdminPanel: React.FC = () => {
                             ))}
                           </select>
                         </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">密码</label>
+                          <input value={editPassword} onChange={(e) => setEditPassword(e.target.value)} type="text" placeholder={ch.password || '4-16位（可选）'} maxLength={16} className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-7" />
+                        </div>
                         <button onClick={handleUpdate} className="bg-primary-600 hover:bg-primary-500 text-white text-xs px-3 py-1.5 rounded-lg h-8">保存</button>
                         <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-xs px-3 py-1.5 rounded-lg h-8">取消</button>
                       </div>
@@ -444,7 +578,7 @@ export const AdminPanel: React.FC = () => {
                       <span className="text-sm text-gray-400">上限: {ch.maxUsers}</span>
                       <span className="text-xs text-gray-500">{getAudioQualityLabel(ch.audioBitrate ?? 32)}</span>
                       <div className="flex-1" />
-                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
+                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(''); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
                       {!ch.isDefault && (
                         <button onClick={() => handleDelete(ch.roomId)} className="text-sm text-red-400 hover:text-red-300">删除</button>
                       )}
@@ -533,8 +667,52 @@ export const AdminPanel: React.FC = () => {
 
           {tab === 'settings' && <SettingsPanel />}
 
+          {tab === 'userchannels' && <UserChannelSettingsPanel />}
+
         </div>
       </div>
+
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-panel p-5 w-full max-w-lg mx-4 animate-in zoom-in-95 fade-in duration-200">
+            <h3 className="text-lg font-semibold text-white mb-4">新建频道</h3>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-xs text-gray-500">频道名称</span>
+                <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：大厅" maxLength={20} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+              </label>
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <span className="text-xs text-gray-500">简称（可选）</span>
+                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="如：lobby" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                </label>
+                <label className="w-32">
+                  <span className="text-xs text-gray-500">人数上限</span>
+                  <div className="mt-1">
+                    <StepperInput value={newMax} onChange={setNewMax} min={2} max={100} />
+                  </div>
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <span className="text-xs text-gray-500">音质</span>
+                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
+                    {AUDIO_QUALITY_TIERS.map((t) => (<option key={t.value} value={t.value}>{t.label} {t.desc}</option>))}
+                  </select>
+                </label>
+                <label className="flex-1">
+                  <span className="text-xs text-gray-500">密码（可选）</span>
+                  <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="4-16位" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                </label>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={() => setShowCreate(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl">取消</button>
+                <button onClick={handleCreate} disabled={!newName.trim()} className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2.5 rounded-xl">创建</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

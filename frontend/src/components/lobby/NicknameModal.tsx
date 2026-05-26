@@ -32,6 +32,12 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
   const reconnectAttempt = useUserStore((s) => s.reconnectAttempt);
 
   const cfg = connectionStatusConfig[connectionState];
+  const isLoginError = !!(error && !error.includes('违规'));
+
+  // Priority: login error > banned > connection failed
+  const statusText = isLoginError ? error : cfg.text;
+  const statusColor = isLoginError ? 'text-red-400' : cfg.color;
+  const statusIcon = isLoginError ? '✕' : cfg.icon;
 
   useEffect(() => {
     getSocket()?.emit('site:info');
@@ -107,41 +113,44 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
                 className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 transition-all"
                 autoFocus
               />
-              {error && (
+              {error && !isLoginError && (
                 <p className="text-red-400 text-xs mt-1.5">{error}</p>
               )}
             </div>
 
-            <div className={`flex items-center gap-2 text-xs ${cfg.color} justify-center`}>
-              <span className={connectionState === 'reconnecting' || connectionState === 'connecting' ? 'animate-spin inline-block' : ''}>
-                {cfg.icon}
-              </span>
-              <span>
-                {connectionState === 'reconnecting' && reconnectAttempt > 0
-                  ? `${cfg.text} (${reconnectAttempt}/5)`
-                  : cfg.text}
-              </span>
-            </div>
+            <div className={`flex items-center gap-2 text-xs ${statusColor} justify-center`}>
+                <span className={connectionState === 'reconnecting' || connectionState === 'connecting' ? 'animate-spin inline-block' : ''}>
+                  {statusIcon}
+                </span>
+                <span>
+                  {connectionState === 'reconnecting' && reconnectAttempt > 0 && !isLoginError
+                    ? `${statusText} (${reconnectAttempt}/5)`
+                    : statusText}
+                </span>
+              </div>
 
-            <button
-              type="submit"
-              disabled={
-                !nickname.trim() ||
-                !deviceId ||
-                loading ||
-                connectionState === 'connecting' ||
-                connectionState === 'failed'
-              }
-              className="w-full bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white font-medium py-3 rounded-xl transition-all active:scale-[0.98]"
-            >
-              {loading
-                ? '连接中...'
-                : connectionState === 'failed'
-                  ? '服务器不可用'
-                  : connectionState === 'connecting' || connectionState === 'reconnecting'
-                    ? '等待连接...'
-                    : '进入聊天室'}
-            </button>
+              <button
+                type="submit"
+                disabled={
+                  !nickname.trim() ||
+                  !deviceId ||
+                  loading ||
+                  connectionState === 'connecting' ||
+                  connectionState === 'failed' ||
+                  isLoginError
+                }
+                className="w-full bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white font-medium py-3 rounded-xl transition-all active:scale-[0.98]"
+              >
+                {loading
+                  ? '连接中...'
+                  : isLoginError
+                    ? '无法登录'
+                    : connectionState === 'failed'
+                      ? '服务器不可用'
+                      : connectionState === 'connecting' || connectionState === 'reconnecting'
+                        ? '等待连接...'
+                        : '进入聊天室'}
+              </button>
           </form>
         </div>
 

@@ -169,6 +169,16 @@ function handleConnection(socket, io) {
           try { t?.close(); } catch (e) { /* ignore */ }
           room.removeTransport(tid);
         }
+
+        if (room.users.size === 0) {
+          const { refreshActivity, getAllChannels } = require('../../services/channelService');
+          refreshActivity(conn.currentRoom).catch(() => {});
+          const { startAutoDelete } = require('./roomHandler');
+          getAllChannels().then(async chs => {
+            const ch = chs.find(c => c.roomId === conn.currentRoom);
+            if (ch?.type === 'user') await startAutoDelete(conn.currentRoom, io);
+          }).catch((e) => console.error('[AutoDelete] Error in disconnect:', e));
+        }
       }
       const { broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
       broadcastAllRoomOnlineCounts(io);
