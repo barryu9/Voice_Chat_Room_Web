@@ -35,6 +35,9 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
 
   useEffect(() => {
     getSocket()?.emit('site:info');
+    const onErr = (data: any) => setError(data.message || '登录失败');
+    getSocket()?.on(EVENTS.SERVER.LOGIN_ERROR, onErr);
+    return () => { getSocket()?.off(EVENTS.SERVER.LOGIN_ERROR, onErr); };
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
