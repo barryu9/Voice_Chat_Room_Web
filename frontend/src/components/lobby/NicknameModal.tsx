@@ -37,6 +37,11 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
     getSocket()?.emit('site:info');
     const onErr = (data: any) => setError(data.message || '登录失败');
     getSocket()?.on(EVENTS.SERVER.LOGIN_ERROR, onErr);
+    const existing = useRoomStore.getState().notification;
+    if (existing && existing.includes('登录')) {
+      setError(existing);
+      useRoomStore.getState().setNotification('');
+    }
     return () => { getSocket()?.off(EVENTS.SERVER.LOGIN_ERROR, onErr); };
   }, []);
 
