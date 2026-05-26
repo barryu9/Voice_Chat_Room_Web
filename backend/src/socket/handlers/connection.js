@@ -34,6 +34,58 @@ function handleConnection(socket, io) {
     let existingSid = null;
     for (const [sid, conn] of connections) {
       if (conn.deviceId === deviceId && sid !== socket.id) {
+        const existingSocket = io.sockets.sockets.get(sid);
+        if (!existingSocket || !existingSocket.connected) {
+          // Stale connection — clean up the old entry
+          if (conn.currentRoom) {
+            const { getRoom } = require('../../mediasoup/roomManager');
+            const room = getRoom(conn.currentRoom);
+            if (room) {
+              room.removeUser(sid);
+              const producers = room.getProducersForUser(sid);
+              for (const p of producers) {
+                const info = room.removeProducer(p.producerId);
+                if (info?.instance) try { info.instance.close(); } catch (e) {}
+                room.removeConsumersForProducer(p.producerId);
+                room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
+                  producerId: p.producerId,
+                  deviceId: conn.deviceId,
+                });
+              }
+              if (producers.length > 0) {
+                room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
+                  userId: conn.userId,
+                  deviceId: conn.deviceId,
+                  nickname: conn.nickname,
+                });
+              }
+              const transportsToRemove = [];
+              for (const [tid, t] of room.transports) {
+                if (t.appData.socketId === sid) transportsToRemove.push(tid);
+              }
+              for (const tid of transportsToRemove) {
+                const t = room.getTransport(tid);
+                try { t?.close(); } catch (e) {}
+                room.removeTransport(tid);
+              }
+              if (room.users.size === 0) {
+                const { refreshActivity, getAllChannels } = require('../../services/channelService');
+                refreshActivity(conn.currentRoom).catch(() => {});
+                const { startAutoDelete } = require('./roomHandler');
+                getAllChannels().then(async chs => {
+                  const ch = chs.find(c => c.roomId === conn.currentRoom);
+                  if (ch?.type === 'user') await startAutoDelete(conn.currentRoom, io);
+                }).catch(() => {});
+              }
+            }
+            const { broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
+            broadcastAllRoomOnlineCounts(io);
+          }
+          const { removeAdmin } = require('../../services/adminService');
+          removeAdmin(sid);
+          connections.delete(sid);
+          continue;
+        }
         existingSid = sid;
         break;
       }
