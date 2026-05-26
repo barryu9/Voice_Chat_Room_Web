@@ -47,7 +47,7 @@ echo "  语音聊天室 - 前端部署"
 echo "  前端:  https://${DOMAIN_FRONTEND:-$PUBLIC_IP_FRONTEND}"
 echo "  后端:  $BACKEND_URL"
 echo "  端口:  $NGINX_PORT"
-echo "  版本:  v2026.05.26.1"
+echo "  版本:  v2026.05.27.1"
 echo "========================================"
 
 echo "[1/3] 检查 Docker..."
