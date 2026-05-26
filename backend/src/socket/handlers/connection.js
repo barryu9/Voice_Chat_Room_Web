@@ -21,8 +21,11 @@ function handleConnection(socket, io) {
 
     const banned = await isBanned(deviceId);
     if (banned) {
-      socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: 'You have been banned' });
-      socket.disconnect(true);
+      const Ban = require('../../models/Ban');
+      const ban = await Ban.findOne({ deviceId });
+      const remain = ban?.expiresAt ? Math.max(0, Math.ceil((new Date(ban.expiresAt).getTime() - Date.now()) / 1000)) : 0;
+      const remainStr = remain > 0 ? `，解封剩余 ${Math.floor(remain / 60)} 分 ${remain % 60} 秒` : '';
+      socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: `已被封禁${remainStr}` });
       return;
     }
 
@@ -40,7 +43,6 @@ function handleConnection(socket, io) {
         socket.emit('dev:multi-login', { message: '本设备登录了多个账号' });
       } else {
         socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '该设备已经在其他地方登录过了' });
-        socket.disconnect(true);
         return;
       }
     }

@@ -67,8 +67,13 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
       onClose();
     };
 
+    const onError = (data: any) => {
+      setError(data.message || '登录失败');
+      setLoading(false);
+    };
+
     socket.once(EVENTS.SERVER.LOGIN_SUCCESS, onSuccess);
-    socket.once(EVENTS.SERVER.LOGIN_ERROR, () => setLoading(false));
+    socket.once(EVENTS.SERVER.LOGIN_ERROR, onError);
   };
 
   return (
