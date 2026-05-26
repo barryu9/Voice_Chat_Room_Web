@@ -44,11 +44,6 @@ function handleConnection(socket, io) {
         return;
       }
     }
-        socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '本设备已在其他地方登录' });
-        socket.disconnect(true);
-        return;
-      }
-    }
 
     const userId = socket.id;
     connections.set(socket.id, {
