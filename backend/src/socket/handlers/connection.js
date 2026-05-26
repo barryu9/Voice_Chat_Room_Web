@@ -39,11 +39,11 @@ function handleConnection(socket, io) {
       if (multiLogin) {
         socket.emit('dev:multi-login', { message: '本设备登录了多个账号' });
       } else {
-        const existingSocket = io.sockets.sockets.get(existingSid);
-        if (existingSocket) {
-          existingSocket.emit(EVENTS.SERVER.FORCE_LOGOUT, { message: '本设备已在其他地方登录' });
-          existingSocket.disconnect(true);
-        }
+        socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '该设备已经在其他地方登录过了' });
+        socket.disconnect(true);
+        return;
+      }
+    }
         socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: '本设备已在其他地方登录' });
         socket.disconnect(true);
         return;
