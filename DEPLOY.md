@@ -1,18 +1,18 @@
 # 语音聊天室 - 部署指南
 
-版本: **v2026.05.25.2**
+版本: **v2026.05.26.1**
 
 ## 架构
 
 ```
 ┌─────────────────────┐     ┌─────────────────────┐
 │  前端服务器          │     │  后端服务器          │
-│  38.95.75.238       │     │  120.76.229.15      │
+│  <前端IP>            │     │  <后端IP>            │
 │                     │     │                     │
 │  Nginx (Docker)     │     │  Mediasoup (Docker)  │
 │  127.0.0.1:8080     │◄───►│  0.0.0.0:3001        │
 │                     │     │  MongoDB (Docker)    │
-│  chat.pokepal.fun   │     │  talk.pokepal.fun    │
+│  <前端域名>          │     │  <后端域名>          │
 └─────────────────────┘     └─────────────────────┘
         WebRTC UDP: 40000-49999
 ```
@@ -21,12 +21,13 @@
 
 | 场景 | 在哪台服务器 | 命令 |
 |---|---|---|
-| 全栈部署 | 后端 120.76.229.15 | `bash deploy.sh` |
-| 仅后端 | 后端 120.76.229.15 | `bash deploy-backend.sh` |
-| 仅前端 | 前端 38.95.75.238 | `bash deploy-frontend.sh` |
+| 全栈部署 | 后端服务器 | `bash deploy.sh` |
+| 仅后端 | 后端服务器 | `bash deploy-backend.sh` |
+| 仅前端 | 前端服务器 | `bash deploy-frontend.sh` |
 
 ## 前置条件
 
+- 复制 `deploy.conf.example` 为 `deploy.conf` 并填写实际值
 - 服务器已安装 Git，能访问 Gitee
 - 云服务器安全组已开放以下端口:
 
@@ -45,9 +46,19 @@
 ```bash
 git clone https://gitee.com/barrix/voice-chat-room.git
 cd voice-chat-room
+cp deploy.conf.example deploy.conf
+# 编辑 deploy.conf 填入实际的 IP、域名、密码
 ```
 
-### 2. 运行部署脚本
+### 2. 上传屏蔽词库（可选）
+
+```bash
+cp frontend/src/utils/blockedWords.example.ts frontend/src/utils/blockedWords.ts
+cp backend/src/utils/blockedWords.example.js backend/src/utils/blockedWords.js
+# 编辑词库文件填入需要屏蔽的词汇
+```
+
+### 3. 运行部署脚本
 
 ```bash
 # 全栈 (后端服务器)
@@ -60,16 +71,14 @@ bash deploy-backend.sh
 bash deploy-frontend.sh
 ```
 
-### 3. 验证
+### 4. 验证
 
 ```bash
 # 后端健康检查
 curl http://127.0.0.1:3001/health
-# → {"status":"ok","uptime":...}
 
 # 前端状态
 curl -I http://127.0.0.1:8080
-# → HTTP/1.1 200 OK
 
 # 容器状态
 docker compose -f docker/docker-compose.yml ps
@@ -80,19 +89,18 @@ docker compose -f docker/docker-compose.yml ps
 ```bash
 cd voice-chat-room
 git pull
-bash deploy.sh           # 或 deploy-backend.sh / deploy-frontend.sh
+bash deploy.sh
 ```
 
 ## 反向代理配置
 
-### 前端 Nginx (chat.pokepal.fun → 38.95.75.238)
+### 前端 Nginx
 
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name chat.pokepal.fun;
+    server_name <前端域名>;
 
-    # SSL 证书配置...
     ssl_certificate     /path/to/fullchain.pem;
     ssl_certificate_key /path/to/privkey.pem;
 
@@ -115,14 +123,15 @@ server {
 }
 ```
 
-### 后端 Nginx (talk.pokepal.fun → 120.76.229.15)
+### 后端 Nginx
 
 ```nginx
 server {
     listen 443 ssl http2;
-    server_name talk.pokepal.fun;
+    server_name <后端域名>;
 
-    # SSL 证书配置...
+    ssl_certificate     /path/to/fullchain.pem;
+    ssl_certificate_key /path/to/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:3001;
@@ -166,7 +175,7 @@ docker system df
 ```bash
 # 本地打包
 tar --exclude=node_modules --exclude=dist --exclude=.git -czf vc.tar.gz .
-scp vc.tar.gz root@120.76.229.15:/root/
+scp vc.tar.gz root@<服务器IP>:/root/
 
 # 服务器解压
 mkdir -p voice-chat-room && cd voice-chat-room
@@ -175,11 +184,11 @@ tar -xzf ../vc.tar.gz
 
 ## 环境变量
 
-部署脚本自动生成 `docker/.env`:
+部署脚本自动从 `deploy.conf` 生成 `docker/.env`:
 
-| 变量 | 说明 | 示例 |
-|---|---|---|
-| `PUBLIC_IP` | 服务器公网 IP (WebRTC 信令) | `120.76.229.15` |
-| `ADMIN_PASSWORD` | 管理面板密码 | `barry422` |
-| `MONGODB_URI` | MongoDB 连接串 | `mongodb://127.0.0.1:27017/voice-chat-prod` |
-| `CORS_ORIGIN` | 前端域名 | `https://chat.pokepal.fun` |
+| 变量 | 说明 |
+|---|---|
+| `PUBLIC_IP` | 服务器公网 IP (WebRTC 信令) |
+| `ADMIN_PASSWORD` | 管理面板密码 |
+| `MONGODB_URI` | MongoDB 连接串 |
+| `CORS_ORIGIN` | 前端域名 (HTTPS) |
