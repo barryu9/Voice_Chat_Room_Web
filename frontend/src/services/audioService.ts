@@ -27,11 +27,15 @@ export function getAudioContext(): AudioContext | null {
 export async function initAudioContext(): Promise<AudioContext> {
   if (!audioContext) {
     audioContext = new AudioContext();
+    // Share native AudioContext with tone.js so all Tone nodes use the same context
+    // Tone.setContext expects BaseContext in v15, but raw AudioContext works at runtime
     Tone.setContext(audioContext as any);
   }
   if (audioContext.state === 'suspended') {
     await audioContext.resume();
   }
+  // Ensure tone.js internal state is ready (required by browser autoplay policy)
+  await Tone.start();
   return audioContext;
 }
 
