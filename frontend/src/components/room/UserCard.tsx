@@ -8,7 +8,7 @@ import { useUserStore } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { useMediaStore } from '../../stores/mediaStore';
 import { getSocket } from '../../services/socketService';
-import { muteRemote, unmuteRemote } from '../../services/audioService';
+import { muteRemote, setRemoteVolume } from '../../services/audioService';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS } from '../../utils/constants';
 
@@ -63,7 +63,8 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
     const pid = getProducerIdByDeviceId(user.deviceId);
     if (!pid) return;
     if (isMuted) {
-      unmuteRemote(pid);
+      const savedGain = useMediaStore.getState().remoteAudioGains.get(user.deviceId) ?? 1.0;
+      setRemoteVolume(pid, savedGain);
     } else {
       muteRemote(pid);
     }
@@ -123,6 +124,9 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
       {/* Name + Badge */}
       <div className="text-center">
+        {isMuted && (
+          <p className="text-[10px] text-red-400 mb-0.5">已被你静音</p>
+        )}
         <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[80px] sm:max-w-[100px]">
           {user.nickname}
           {isSelf && <span className="text-gray-500 text-xs ml-1">(我)</span>}

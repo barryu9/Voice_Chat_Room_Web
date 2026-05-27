@@ -72,7 +72,7 @@ export const RemoteVolume: React.FC<RemoteVolumeProps> = ({ producerDeviceId }) 
     <div className="flex items-center gap-0.5">
       <input
         type="range"
-        min="0"
+        min="0.1"
         max="1"
         step="0.05"
         value={value}
