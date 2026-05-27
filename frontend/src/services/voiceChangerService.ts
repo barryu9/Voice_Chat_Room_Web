@@ -65,12 +65,29 @@ export function initVoiceChanger(): void {
 }
 
 export function switchPreset(presetId: string): void {
-  if (!chainReady) return;
-  disconnectVoiceChanger();
-  disposeChain();
-  chainReady = false;
-  useVoiceChangerStore.getState().setChainReady(false);
-  initVoiceChanger();
+  if (!chainReady || !inputGain || !outputGain) return;
+
+  // Dispose only the middle chain nodes — keep inputGain/outputGain alive
+  // so that outputGain.output → rnnoiseNode (and other untracked bridges)
+  // are never disconnected, preserving the RNNoise AudioWorklet's RNN state.
+  for (const node of chainNodes) {
+    try { node.dispose(); } catch {}
+  }
+  chainNodes = [];
+
+  const preset = VOICE_PRESETS[presetId];
+  if (!preset) return;
+
+  const nodes = preset.factory();
+
+  let prev: Tone.ToneAudioNode = inputGain;
+  for (const node of nodes) {
+    prev.connect(node);
+    chainNodes.push(node);
+    prev = node;
+  }
+  prev.connect(outputGain);
+
   useVoiceChangerStore.getState().applyPreset(presetId);
 }
 

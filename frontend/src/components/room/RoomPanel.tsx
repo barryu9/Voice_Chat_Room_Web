@@ -217,7 +217,6 @@ export const RoomPanel: React.FC = () => {
 
   const handleVoiceChangerPresetChange = useCallback((presetId: string) => {
     switchPreset(presetId);
-    reconnectAudioGraph();
   }, []);
 
   useEffect(() => {
