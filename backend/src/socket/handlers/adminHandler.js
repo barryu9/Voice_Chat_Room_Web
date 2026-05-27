@@ -3,7 +3,7 @@ const { isAdmin, authenticate, removeAdmin, isUserIdAdmin } = require('../../ser
 const { isBanned, addBan, removeBan, getBanList } = require('../../services/banService');
 const { muteUsers, unmuteUsers, isUserMuted, getMutedList } = require('../../services/muteService');
 const { kickUser, unkickUser, isKicked, getKickedList } = require('../../services/kickService');
-const { createChannel, updateChannel, deleteChannel, getSiteName } = require('../../services/channelService');
+const { createChannel, updateChannel, deleteChannel, getSiteName, serializeChannel, serializeChannels } = require('../../services/channelService');
 const { getRoom, createRoom, removeRoom } = require('../../mediasoup/roomManager');
 const { getConnection } = require('./connection');
 const { leaveCurrentRoom } = require('./roomHandler');
@@ -44,7 +44,7 @@ function handleAdminEvents(socket, io) {
       io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
         roomId: rid, name: channel.name, maxUsers: channel.maxUsers,
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
-        password: channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
+        hasPassword: !!channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
       });
       socket.emit('admin:channel-created', { roomId: rid, name: channel.name });
       socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已创建`, type: 'success' });
@@ -72,7 +72,7 @@ function handleAdminEvents(socket, io) {
         roomId, newRoomId: newRoomId || roomId,
         name: channel.name, maxUsers: channel.maxUsers,
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
-        password: channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
+        hasPassword: !!channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
       });
       socket.emit('admin:channel-updated', { roomId, name: channel.name });
       socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已更新`, type: 'success' });
@@ -387,7 +387,9 @@ function handleAdminEvents(socket, io) {
         for (const p of producers) {
           const info = room.getProducer(p.producerId);
           if (info?.instance) {
-            try { info.instance.resume(); } catch (e) { /* ignore */ }
+            try {
+              if (!info.selfMuted) info.instance.resume();
+            } catch (e) { /* ignore */ }
             info.muted = false;
           }
         }
@@ -420,7 +422,7 @@ function handleAdminEvents(socket, io) {
         voiceCount: room ? room.getVoiceUserCount() : 0,
       };
     });
-    io.emit(EVENTS.SERVER.ROOM_LIST, { rooms: enriched });
+    io.emit(EVENTS.SERVER.ROOM_LIST, { rooms: serializeChannels(enriched) });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_TEMP_MUTE, async ({ targetUserId }) => {

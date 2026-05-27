@@ -26,6 +26,7 @@ function handleProducerEvents(socket, io) {
       deviceId: conn.deviceId,
       kind,
       muted: false,
+      selfMuted: false,
     };
 
     const isFirstProducer = room.getProducersForUser(socket.id).length === 0;
@@ -132,8 +133,8 @@ function handleProducerEvents(socket, io) {
       if (info?.instance) {
         try {
           if (muted) info.instance.pause();
-          else info.instance.resume();
-          info.muted = muted;
+          else if (!info.muted) info.instance.resume();
+          info.selfMuted = muted;
         } catch (e) { /* ignore */ }
       }
     }

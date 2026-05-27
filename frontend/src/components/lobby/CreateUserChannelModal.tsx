@@ -42,6 +42,10 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
     setLoading(true);
     setError('');
     const password = pwd.trim();
+    getSocket()?.once('user:channel-created', () => {
+      setLoading(false);
+      onClose();
+    });
     getSocket()?.emit('user:channel-create', {
       name: trimmed,
       maxUsers: Math.min(max, maxUsers),
@@ -50,13 +54,6 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
       voiceChangerEnabled,
     });
   };
-
-  useEffect(() => {
-    getSocket()?.once('user:channel-created', () => {
-      setLoading(false);
-      onClose();
-    });
-  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">

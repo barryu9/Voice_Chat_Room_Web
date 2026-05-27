@@ -25,6 +25,19 @@ async function getAllChannels() {
   return Channel.find({}).sort({ sortOrder: 1, createdAt: 1 }).lean();
 }
 
+function serializeChannel(channel) {
+  if (!channel) return channel;
+  const plain = typeof channel.toObject === 'function' ? channel.toObject() : { ...channel };
+  const hasPassword = !!plain.password;
+  delete plain.password;
+  delete plain.passwordText;
+  return { ...plain, hasPassword };
+}
+
+function serializeChannels(channels) {
+  return channels.map(serializeChannel);
+}
+
 async function createChannel(data) {
   const existing = await Channel.findOne({ name: data.name }).lean();
   if (existing) throw new Error('频道名已存在');
@@ -171,4 +184,5 @@ module.exports = {
   initChannels, getAllChannels, createChannel, reorderChannels,
   updateChannel, deleteChannel, getAnnouncement, getSiteName, getAnnouncements, getSetting,
   createUserChannel, getUserChannelCount, updateUserChannel, refreshActivity, deleteUserChannel, getUserChannelsByDevice,
+  serializeChannel, serializeChannels,
 };

@@ -6,8 +6,7 @@ import {
   setMicMute, setNoiseGateThreshold, getAudioLevel, cleanupLocalAudio,
   updateNoiseGate, getProcessedStream, toggleVoiceChanger,
 } from '../services/audioService';
-import { initVoiceChanger, updateVoiceChangerParams, destroyVoiceChanger } from '../services/voiceChangerService';
-import type { VoiceParams } from '../utils/voicePresets';
+import { initVoiceChanger, destroyVoiceChanger } from '../services/voiceChangerService';
 
 export function useAudioGraph() {
   const [gain, setGain] = useState(() => {
@@ -82,8 +81,8 @@ export function useAudioGraph() {
     return getProcessedStream()?.getAudioTracks()[0] || null;
   }, []);
 
-  const startVoiceChanger = useCallback(async () => {
-    await initVoiceChanger();
+  const startVoiceChanger = useCallback(() => {
+    initVoiceChanger();
     toggleVoiceChanger(true);
   }, []);
 
@@ -91,13 +90,9 @@ export function useAudioGraph() {
     toggleVoiceChanger(false);
   }, []);
 
-  const applyVoiceParams = useCallback((params: VoiceParams) => {
-    updateVoiceChangerParams(params);
-  }, []);
-
   return {
     gain, muted, threshold, audioLevel,
     setupLocal, updateGain, toggleMute, forceMute, updateThreshold, cleanup, switchStream,
-    initAudioContext, startVoiceChanger, stopVoiceChanger, applyVoiceParams,
+    initAudioContext, startVoiceChanger, stopVoiceChanger,
   };
 }

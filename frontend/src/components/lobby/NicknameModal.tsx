@@ -69,11 +69,6 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
       return;
     }
 
-    socket.emit(EVENTS.CLIENT.USER_LOGIN, {
-      nickname: trimmed,
-      deviceId,
-    });
-
     const onSuccess = (data: any) => {
       setLogin(data.userId, data.nickname, data.deviceId);
       setCookie('vc_nickname', data.nickname);
@@ -88,6 +83,11 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
 
     socket.once(EVENTS.SERVER.LOGIN_SUCCESS, onSuccess);
     socket.once(EVENTS.SERVER.LOGIN_ERROR, onError);
+
+    socket.emit(EVENTS.CLIENT.USER_LOGIN, {
+      nickname: trimmed,
+      deviceId,
+    });
   };
 
   return (

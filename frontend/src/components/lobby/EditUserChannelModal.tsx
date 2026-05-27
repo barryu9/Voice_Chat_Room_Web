@@ -5,7 +5,7 @@ import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 
 interface Props {
-  channel: { roomId: string; name: string; maxUsers: number; audioBitrate?: number; password?: string; voiceChangerEnabled?: boolean };
+  channel: { roomId: string; name: string; maxUsers: number; audioBitrate?: number; password?: string; hasPassword?: boolean; voiceChangerEnabled?: boolean };
   maxNameLen: number;
   maxUsers: number;
   allowedBitrates: number[];
@@ -16,12 +16,12 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
   const [name, setName] = useState(channel.name);
   const [max, setMax] = useState(channel.maxUsers);
   const [bitrate, setBitrate] = useState(channel.audioBitrate || allowedBitrates[0] || 48);
-  const [pwd, setPwd] = useState(channel.password || '');
+  const [pwd, setPwd] = useState('');
   const [vcEnabled, setVcEnabled] = useState(channel.voiceChangerEnabled !== false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const origPwd = useRef(channel.password || '');
+  const origPwd = useRef('');
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -93,7 +93,7 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
           <label>
             <span className="text-xs text-gray-400">密码（留空清除密码）</span>
             <input type="text" value={pwd} onChange={(e) => setPwd(e.target.value)}
-              placeholder={channel.password || '4-16位（可选）'}
+              placeholder={channel.hasPassword ? '****' : '4-16位（可选）'}
               maxLength={16}
               className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>

@@ -1,4 +1,4 @@
-const { createUserChannel, getUserChannelCount, updateUserChannel, deleteUserChannel, getAllChannels } = require('../../services/channelService');
+const { createUserChannel, getUserChannelCount, updateUserChannel, deleteUserChannel, getAllChannels, serializeChannels } = require('../../services/channelService');
 const { createRoom, removeRoom, destroyRoom, getRooms, getRoom } = require('../../mediasoup/roomManager');
 const { getConnection } = require('./connection');
 const { containsBlockedWord } = require('../../utils/blockedWords');
@@ -73,7 +73,7 @@ function handleUserChannelEvents(socket, io) {
       socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId: ch.roomId, users: [], count: 0 });
 
       const allCh = await getAllChannels();
-      io.emit('room:list', { rooms: allCh.map(c => ({ ...c })) });
+      io.emit('room:list', { rooms: serializeChannels(allCh) });
       socket.emit('user:channel-created', { roomId: ch.roomId });
     } catch (e) {
       socket.emit('user:channel-error', { message: '创建失败' });
@@ -123,7 +123,7 @@ function handleUserChannelEvents(socket, io) {
     }
 
     const allCh = await getAllChannels();
-    io.emit('room:list', { rooms: allCh.map(c => ({ ...c })) });
+    io.emit('room:list', { rooms: serializeChannels(allCh) });
     socket.emit('user:channel-updated', { roomId: data.roomId });
   });
 
@@ -164,7 +164,7 @@ function handleUserChannelEvents(socket, io) {
     if (room) await room.close();
 
     const allCh = await getAllChannels();
-    io.emit('room:list', { rooms: allCh.map(c => ({ ...c })) });
+    io.emit('room:list', { rooms: serializeChannels(allCh) });
     socket.emit('user:channel-deleted', { roomId: data.roomId });
   });
 

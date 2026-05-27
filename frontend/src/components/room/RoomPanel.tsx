@@ -7,7 +7,7 @@ import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
 import { playSound } from '../../services/soundService';
 import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph } from '../../services/audioService';
-import { initVoiceChanger, updateVoiceChangerParams } from '../../services/voiceChangerService';
+import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
@@ -182,37 +182,44 @@ export const RoomPanel: React.FC = () => {
     playSound(isAllMuted ? 'soundResumed' : 'soundMuted');
   }, [isAllMuted, toggleMuteAll]);
 
+  const [noiseTransiting, setNoiseTransiting] = useState(false);
   const handleNoiseSuppressionToggle = useCallback(() => {
+    if (noiseTransiting) return;
     const next = !noiseSuppressionEnabled;
+    setNoiseTransiting(true);
     setNoiseSuppressionEnabled(next);
     toggleNoiseSuppressor(next);
-  }, [noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
+    setTimeout(() => setNoiseTransiting(false), 300);
+  }, [noiseTransiting, noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
 
   const voiceChangerGlobalEnabled = useAdminStore((s) => s.config.voiceChangerEnabled);
   const voiceChangerChannelEnabled = currentChannel?.voiceChangerEnabled !== false;
   const voiceChangerAllowed = voiceChangerGlobalEnabled && voiceChangerChannelEnabled;
   const voiceChangerEnabled = useVoiceChangerStore((s) => s.enabled);
+  const [vcTransiting, setVcTransiting] = useState(false);
 
   const handleVoiceChangerToggle = useCallback((enabled: boolean) => {
+    if (vcTransiting) return;
+    setVcTransiting(true);
     if (enabled) {
       useVoiceChangerStore.getState().setEnabled(true);
-      initVoiceChanger().then(() => {
-        if (useVoiceChangerStore.getState().enabled) {
-          reconnectAudioGraph();
-        }
-      });
+      initVoiceChanger();
+      if (useVoiceChangerStore.getState().enabled) {
+        reconnectAudioGraph();
+      }
+      setVcTransiting(false);
     } else {
       useVoiceChangerStore.getState().setEnabled(false);
       reconnectAudioGraph();
+      setVcTransiting(false);
     }
+  }, [vcTransiting]);
+
+  const handleVoiceChangerPresetChange = useCallback((presetId: string) => {
+    switchPreset(presetId);
+    reconnectAudioGraph();
   }, []);
 
-  const handleVoiceChangerParamsChange = useCallback(() => {
-    const params = useVoiceChangerStore.getState().getParams();
-    updateVoiceChangerParams(params);
-  }, []);
-
-  // Auto-disable voice changer when channel/global config disallows it
   useEffect(() => {
     if (!voiceChangerAllowed && voiceChangerEnabled) {
       handleVoiceChangerToggle(false);
@@ -269,13 +276,13 @@ export const RoomPanel: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-1.5 flex-wrap">
-              {currentChannel?.password && (
+              {currentChannel?.hasPassword && (
                 <svg className="w-5 h-5 text-yellow-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               )}
               {currentChannel?.type === 'user' && (
-                <span className={`text-[10px] px-1 py-px rounded border shrink-0 ${currentChannel?.password ? 'text-yellow-400 border-yellow-500/30' : 'text-primary-300 border-primary-500/30'} leading-none`}>
+                <span className={`text-[10px] px-1 py-px rounded border shrink-0 ${currentChannel?.hasPassword ? 'text-yellow-400 border-yellow-500/30' : 'text-primary-300 border-primary-500/30'} leading-none`}>
                    临时
                 </span>
               )}
@@ -344,6 +351,7 @@ export const RoomPanel: React.FC = () => {
               useMediaStore.getState().setNoiseGateThreshold(v);
             }}
             onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
+            noiseTransiting={noiseTransiting}
             inputs={audioInputs}
             outputs={audioOutputs}
             selectedInput={selectedInput}
@@ -357,7 +365,8 @@ export const RoomPanel: React.FC = () => {
             amIServerMuted={amIServerMuted}
             voiceChangerEnabled={voiceChangerAllowed}
             onVoiceChangerToggle={handleVoiceChangerToggle}
-            onVoiceChangerParamsChange={handleVoiceChangerParamsChange}
+            onVoiceChangerPresetChange={handleVoiceChangerPresetChange}
+            vcTransiting={vcTransiting}
           />
 
           <div className="flex-1" />

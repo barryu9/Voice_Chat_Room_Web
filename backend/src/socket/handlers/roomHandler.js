@@ -19,7 +19,8 @@ async function startAutoDelete(roomId, io) {
     await deleteUserChannel(roomId);
     removeRoom(roomId);
     const allCh = await getAllChannels();
-    io.emit('room:list', { rooms: allCh.map(c => ({ ...c })) });
+    const { serializeChannels } = require('../../services/channelService');
+    io.emit('room:list', { rooms: serializeChannels(allCh) });
   } catch (e) {
     console.error(`[AutoDelete] Failed to delete ${roomId}:`, e);
   }
@@ -65,10 +66,6 @@ function handleRoomEvents(socket, io) {
       }
       socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ROOM_JOIN, message: msg });
       return;
-    }
-
-    if (conn.currentRoom) {
-      leaveCurrentRoom(socket, io);
     }
 
     const room = getRoom(roomId);
@@ -118,6 +115,10 @@ function handleRoomEvents(socket, io) {
       }
 
       clear(roomId, conn.deviceId);
+    }
+
+    if (conn.currentRoom) {
+      leaveCurrentRoom(socket, io);
     }
 
     conn.currentRoom = roomId;

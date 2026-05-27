@@ -37,7 +37,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
   channel, onJoin, onJoinWithPwd, onEdit, onDelete, isAdmin, disabled, currentUserId,
 }) => {
   const qualityName = getQualityName(channel.audioBitrate);
-  const hasPassword = !!channel.password;
+  const hasPassword = !!channel.hasPassword;
   const isUserChannel = channel.type === 'user';
   const status = fmtStatus(channel);
   const isCreator = isUserChannel && currentUserId === channel.creatorUserId;

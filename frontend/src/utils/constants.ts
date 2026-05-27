@@ -76,6 +76,7 @@ export type Channel = {
   sortOrder?: number;
   audioBitrate?: number;
   password?: string;
+  hasPassword?: boolean;
   type?: string;
   creatorUserId?: string;
   creatorNickname?: string;

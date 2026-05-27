@@ -33,7 +33,7 @@ git pull && bash deploy.sh
 ## Key Design Decisions
 - **No registration**: deviceId via FingerprintJS (fallback to localStorage random ID)
 - **Voice-only room grid**: users appear ONLY after clicking "加入语音" (creating a producer)
-- **Speaker indicator**: only shows when audio level > noise gate threshold (`mediaStore.noiseGateThreshold`, default -45dB)
+- **Speaker indicator**: remote speakers use server-side fixed threshold (-55dB via AudioLevelObserver); self uses local noise gate threshold (user-adjustable, default -45dB)
 - **Remote audio playback**: native `<audio>` elements (NOT Web Audio API) — more reliable across browsers
 - **Voice disconnect**: emits `producer:close` via Socket.io to reliably trigger `USER_LEFT` broadcast
 - **DB**: MongoDB for persistent config (channels, bans, settings); Node.js Map for volatile WebRTC state

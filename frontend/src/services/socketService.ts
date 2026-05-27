@@ -182,7 +182,7 @@ function registerListeners() {
             maxUsers: data.maxUsers,
             sortOrder: data.sortOrder,
             audioBitrate: data.audioBitrate,
-            password: data.password,
+            hasPassword: data.hasPassword,
             voiceChangerEnabled: data.voiceChangerEnabled,
           });
         } else {
@@ -191,7 +191,7 @@ function registerListeners() {
             maxUsers: data.maxUsers,
             sortOrder: data.sortOrder,
             audioBitrate: data.audioBitrate,
-            password: data.password,
+            hasPassword: data.hasPassword,
             voiceChangerEnabled: data.voiceChangerEnabled,
           });
         }
@@ -202,7 +202,7 @@ function registerListeners() {
           maxUsers: data.maxUsers,
           sortOrder: data.sortOrder,
           audioBitrate: data.audioBitrate,
-          password: data.password,
+          hasPassword: data.hasPassword,
           voiceChangerEnabled: data.voiceChangerEnabled,
         });
       }

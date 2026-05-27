@@ -1,5 +1,5 @@
 const { isBanned } = require('../../services/banService');
-const { getAllChannels } = require('../../services/channelService');
+const { getAllChannels, serializeChannels } = require('../../services/channelService');
 const { containsBlockedWord } = require('../../utils/blockedWords');
 const { EVENTS } = require('../events');
 
@@ -125,7 +125,7 @@ function handleConnection(socket, io) {
       userId,
       nickname: trimmed,
       deviceId,
-      rooms: enriched,
+      rooms: serializeChannels(enriched),
     });
 
     const { getAnnouncements, getSiteName, getSetting } = require('../../services/channelService');

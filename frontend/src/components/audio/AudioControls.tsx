@@ -9,6 +9,7 @@ interface AudioControlsProps {
   onGainChange: (v: number) => void;
   onThresholdChange: (v: number) => void;
   onNoiseSuppressionToggle: () => void;
+  noiseTransiting: boolean;
   inputs: { deviceId: string; label: string }[];
   outputs: { deviceId: string; label: string }[];
   selectedInput: string; selectedOutput: string;
@@ -20,7 +21,8 @@ interface AudioControlsProps {
   onMasterVolumeChange: (v: number) => void;
   voiceChangerEnabled: boolean;
   onVoiceChangerToggle: (enabled: boolean) => void;
-  onVoiceChangerParamsChange: () => void;
+  onVoiceChangerPresetChange: (presetId: string) => void;
+  vcTransiting: boolean;
 }
 
 function levelPercent(db: number): number {
@@ -59,12 +61,12 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   gain, muted, threshold, audioLevel,
   noiseSuppressionEnabled,
   onToggleMute, onGainChange, onThresholdChange,
-  onNoiseSuppressionToggle,
+  onNoiseSuppressionToggle, noiseTransiting,
   inputs, outputs, selectedInput, selectedOutput,
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
   onToggleMuteAll, onMasterVolumeChange,
-  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerParamsChange,
+  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, vcTransiting,
 }) => {
   const [micOpen, setMicOpen] = useState(false);
   const [speakerOpen, setSpeakerOpen] = useState(false);
@@ -243,10 +245,10 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-400">降噪</span>
           <button
-            onClick={onNoiseSuppressionToggle}
+            onClick={noiseTransiting ? undefined : onNoiseSuppressionToggle}
             className={`relative w-9 h-5 rounded-full transition-colors ${
               noiseSuppressionEnabled ? 'bg-primary-500' : 'bg-gray-600'
-            }`}
+            } ${noiseTransiting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
               noiseSuppressionEnabled ? 'translate-x-4' : 'translate-x-0.5'
@@ -256,7 +258,8 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         {voiceChangerEnabled && (
           <VoiceChangerControls
             onToggle={onVoiceChangerToggle}
-            onParamsChange={onVoiceChangerParamsChange}
+            onPresetChange={onVoiceChangerPresetChange}
+            transiting={vcTransiting}
           />
         )}
       </Popover>
