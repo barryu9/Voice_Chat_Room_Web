@@ -646,7 +646,7 @@ export const AdminPanel: React.FC = () => {
                           <select
                             value={editAudioBitrate}
                             onChange={(e) => setEditAudioBitrate(parseInt(e.target.value))}
-                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 text-xs text-white focus:outline-none focus:border-primary-500/50 h-7"
+                            className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 text-sm text-white focus:outline-none focus:border-primary-500/50"
                           >
                             {AUDIO_QUALITY_TIERS.map((t) => (
                               <option key={t.value} value={t.value}>{t.label}</option>
@@ -801,7 +801,7 @@ export const AdminPanel: React.FC = () => {
               <div className="flex gap-2">
                 <label className="flex-1">
                   <span className="text-xs text-gray-400">音质</span>
-                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 mt-1 text-xs text-white focus:outline-none focus:border-primary-500/50">
+                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
                     {AUDIO_QUALITY_TIERS.map((t) => (<option key={t.value} value={t.value}>{t.label} {t.desc}</option>))}
                   </select>
                 </label>
