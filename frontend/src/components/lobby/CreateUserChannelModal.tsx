@@ -74,7 +74,7 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
             </label>
             <label className="flex-1">
               <span className="text-xs text-gray-500">音质</span>
-              <select value={bitrate} onChange={(e) => setBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
+              <select value={bitrate} onChange={(e) => setBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
                 {AUDIO_QUALITY_TIERS.filter(t => allowedBitrates.includes(t.value)).map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}

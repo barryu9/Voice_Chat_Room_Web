@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import type { UserInfo } from '../../utils/constants';
 import { getAvatarColor, getInitial } from '../../utils/helpers';
@@ -31,8 +31,18 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const speaker = activeSpeakers.get(user.deviceId);
-  const isSpeaking = !!speaker?.isSpeaking;
+  const myAudioLevel = useMediaStore((s) => s.myAudioLevel);
+  const noiseGateThreshold = useMediaStore((s) => s.noiseGateThreshold);
   const isSelf = user.userId === currentUserId;
+  const speakingHoldUntil = useRef(0);
+  const rawSpeaking = isSelf
+    ? myAudioLevel > noiseGateThreshold
+    : !!speaker?.isSpeaking;
+  if (rawSpeaking) {
+    speakingHoldUntil.current = Date.now() + 1000;
+  }
+  const isSpeaking = rawSpeaking || Date.now() < speakingHoldUntil.current;
+  const speakingLevel = isSelf ? myAudioLevel : (speaker?.level ?? -100);
   const isMuted = mutedUsers.has(user.deviceId);
   const serverMutedUsers = useMediaStore((s) => s.serverMutedUsers);
   const [now, setNow] = useState(Date.now());
@@ -91,7 +101,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   return (
     <div
       className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 group/hover ${
-        isSpeaking ? 'ring-1 ring-green-500/50 shadow-lg shadow-green-500/10' : ''
+        isSpeaking ? 'ring-2 ring-green-400/60 shadow-lg shadow-green-400/20 scale-[1.02]' : ''
       } ${isSelf ? 'ring-1 ring-primary-500/30' : ''}`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
@@ -108,7 +118,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         >
           {initial}
         </div>
-        <SpeakingIndicator isSpeaking={isSpeaking} level={speaker?.level ?? -100} />
+        <SpeakingIndicator isSpeaking={isSpeaking} level={speakingLevel} />
       </div>
 
       {/* Name + Badge */}
@@ -128,7 +138,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="w-0.5 bg-green-400 rounded-full animate-audio-bar"
+                className="w-1 bg-green-400 rounded-full animate-audio-bar"
                 style={{
                   height: `${4 + Math.random() * 12}px`,
                   animationDelay: `${i * 0.1}s`,

@@ -46,6 +46,7 @@ function handleAdminEvents(socket, io) {
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
         password: channel.password,
       });
+      socket.emit('admin:channel-created', { roomId: rid, name: channel.name });
       socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已创建`, type: 'success' });
     } catch (e) {
       socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, message: '频道已存在或创建失败' });
@@ -73,6 +74,7 @@ function handleAdminEvents(socket, io) {
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
         password: channel.password,
       });
+      socket.emit('admin:channel-updated', { roomId, name: channel.name });
       socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已更新`, type: 'success' });
     } catch (e) {
       socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, message: '频道名已存在或更新失败' });
@@ -99,6 +101,7 @@ function handleAdminEvents(socket, io) {
     if (room) await room.close();
 
     io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, { roomId, deleted: true });
+    socket.emit('admin:channel-deleted', { roomId });
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道已删除`, type: 'warning' });
   });
 
@@ -165,6 +168,7 @@ function handleAdminEvents(socket, io) {
 
     const active = list.filter((a) => a.active);
     io.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements: active });
+    socket.emit('admin:announcement-created', { id: entry.id, message: entry.message });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, async ({ id }) => {
@@ -185,6 +189,7 @@ function handleAdminEvents(socket, io) {
 
     const active = list.filter((a) => a.active);
     io.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements: active });
+    socket.emit('admin:announcement-deleted', { id });
   });
 
   socket.on('admin:announcements:list', async () => {

@@ -4,6 +4,7 @@ import {
   setMicMute, setNoiseGateThreshold, getAudioLevel, cleanupLocalAudio,
   updateNoiseGate, getProcessedStream,
 } from '../services/audioService';
+import { useMediaStore } from '../stores/mediaStore';
 
 export function useAudioGraph() {
   const [gain, setGain] = useState(() => {
@@ -16,7 +17,7 @@ export function useAudioGraph() {
   });
   const [threshold, setThreshold] = useState(() => {
     const saved = localStorage.getItem('vc_threshold');
-    return saved ? parseInt(saved) : -50;
+    return saved ? parseInt(saved) : -45;
   });
   const [audioLevel, setAudioLevel] = useState(-100);
   const animRef = useRef<number>(0);
@@ -57,6 +58,7 @@ export function useAudioGraph() {
     const loop = () => {
       const level = getAudioLevel();
       setAudioLevel(level);
+      useMediaStore.getState().setMyAudioLevel(level);
       updateNoiseGate(level, threshold);
       animRef.current = requestAnimationFrame(loop);
     };

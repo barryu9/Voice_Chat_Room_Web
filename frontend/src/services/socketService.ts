@@ -9,6 +9,16 @@ import { playSound } from './soundService';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 
 let socket: Socket | null = null;
+const speakerExpiryTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+
+function clearSpeakingAfter(deviceId: string, delayMs: number) {
+  const existing = speakerExpiryTimers.get(deviceId);
+  if (existing) clearTimeout(existing);
+  speakerExpiryTimers.set(deviceId, setTimeout(() => {
+    useRoomStore.getState().setActiveSpeaker(deviceId, -100, false);
+    speakerExpiryTimers.delete(deviceId);
+  }, delayMs));
+}
 
 export function getSocket(): Socket | null {
   return socket;
@@ -108,9 +118,14 @@ function registerListeners() {
   });
 
   socket.on(EVENTS.SERVER.ACTIVE_SPEAKER, (data) => {
-    const threshold = useMediaStore.getState().noiseGateThreshold;
-    const isSpeaking = data.isSpeaking && data.level > threshold;
+    const isSpeaking = data.isSpeaking;
     useRoomStore.getState().setActiveSpeaker(data.deviceId, data.level, isSpeaking);
+    if (isSpeaking) {
+      clearSpeakingAfter(data.deviceId, 1000);
+    } else {
+      const timer = speakerExpiryTimers.get(data.deviceId);
+      if (timer) { clearTimeout(timer); speakerExpiryTimers.delete(data.deviceId); }
+    }
   });
 
   socket.on(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, (data: { announcements: Array<{ id: string; message: string; createdAt: string }> }) => {
@@ -201,6 +216,8 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.SELF_MUTED, (data) => {
     const store = useRoomStore.getState();
     store.setActiveSpeaker(data.deviceId, -100, false);
+    const timer = speakerExpiryTimers.get(data.deviceId);
+    if (timer) { clearTimeout(timer); speakerExpiryTimers.delete(data.deviceId); }
   });
 
   socket.on(EVENTS.SERVER.NEW_PRODUCER, (data) => {

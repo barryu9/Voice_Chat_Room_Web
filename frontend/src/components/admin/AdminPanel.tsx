@@ -7,6 +7,20 @@ import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
 
+function saveSettingAck(key: string, value: any, successMsg: string) {
+  const socket = getSocket();
+  if (!socket) { showToast('连接已断开', 'error'); return; }
+  socket.once(EVENTS.SERVER.SETTINGS_UPDATED, (data: any) => {
+    if (data.key !== key) return;
+    socket.emit('admin:config-getall');
+    showToast(successMsg, 'success');
+  });
+  socket.once(EVENTS.SERVER.ERROR, (data: any) => {
+    showToast(data.message || '保存失败', 'error');
+  });
+  socket.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
+}
+
 const KickedSection: React.FC = () => {
   const kickedList = useAdminStore((s) => s.kickedList);
   const [, setTick] = React.useState(0);
@@ -83,10 +97,8 @@ const UserChannelSettingsPanel: React.FC = () => {
     return () => { getSocket()?.off('admin:config-list', handler); };
   }, []);
 
-  const save = (key: string, value: any) => {
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
-    getSocket()?.emit('admin:config-getall');
-    showToast('设置已保存', 'success');
+  const save = (key: string, value: any, msg: string) => {
+    saveSettingAck(key, value, msg);
   };
 
   return (
@@ -97,7 +109,7 @@ const UserChannelSettingsPanel: React.FC = () => {
           <p className="text-xs text-gray-500">允许用户自行创建临时语音频道</p>
         </div>
         <button
-          onClick={() => save('config:user_channel_enabled', !config.userChannelEnabled)}
+          onClick={() => save('config:user_channel_enabled', !config.userChannelEnabled, '临时频道功能已更新')}
           className={`relative w-9 h-5 rounded-full transition-colors ${config.userChannelEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
         >
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.userChannelEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -110,7 +122,7 @@ const UserChannelSettingsPanel: React.FC = () => {
           <input type="number" min="0" max="20" value={config.userChannelMaxPerDevice}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, userChannelMaxPerDevice: parseInt(e.target.value) || 0 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:user_channel_max_per_device', config.userChannelMaxPerDevice)} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+          <button onClick={() => save('config:user_channel_max_per_device', config.userChannelMaxPerDevice, '最大创建数已更新')} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
 
@@ -120,7 +132,7 @@ const UserChannelSettingsPanel: React.FC = () => {
           <input type="number" min="2" max="100" value={config.userChannelMaxUsers}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, userChannelMaxUsers: parseInt(e.target.value) || 2 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:user_channel_max_users', config.userChannelMaxUsers)} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+          <button onClick={() => save('config:user_channel_max_users', config.userChannelMaxUsers, '人数上限已更新')} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
 
@@ -141,7 +153,7 @@ const UserChannelSettingsPanel: React.FC = () => {
                     else arr.push(String(t.value));
                     const newVal = arr.join(',');
                     useAdminStore.getState().setConfig({ ...config, userChannelAllowedBitrates: newVal });
-                    save('config:user_channel_allowed_bitrates', newVal);
+                    save('config:user_channel_allowed_bitrates', newVal, '可选音质已更新');
                   }}
                   className="w-3.5 h-3.5 rounded border-gray-600 bg-gray-800 text-primary-500 focus:ring-primary-500"
                 />
@@ -158,7 +170,7 @@ const UserChannelSettingsPanel: React.FC = () => {
           <input type="number" min="1" max="20" value={config.userChannelMaxNameLen}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, userChannelMaxNameLen: parseInt(e.target.value) || 1 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:user_channel_max_name_len', config.userChannelMaxNameLen)} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
+          <button onClick={() => save('config:user_channel_max_name_len', config.userChannelMaxNameLen, '频道名最大字数已更新')} className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
     </div>
@@ -187,10 +199,8 @@ const SettingsPanel: React.FC = () => {
     return () => { getSocket()?.off('admin:config-list', handler); };
   }, []);
 
-  const save = (key: string, value: any) => {
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
-    getSocket()?.emit('admin:config-getall');
-    showToast('设置已保存', 'success');
+  const save = (key: string, value: any, msg: string) => {
+    saveSettingAck(key, value, msg);
   };
 
   return (
@@ -201,7 +211,7 @@ const SettingsPanel: React.FC = () => {
           <p className="text-xs text-gray-500">同一设备可同时登录多个账号</p>
         </div>
         <button
-          onClick={() => save('config:multi_login', !config.multiLogin)}
+          onClick={() => save('config:multi_login', !config.multiLogin, '多设备登录已更新')}
           className={`relative w-9 h-5 rounded-full transition-colors ${config.multiLogin ? 'bg-primary-500' : 'bg-gray-600'}`}
         >
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.multiLogin ? 'translate-x-4' : 'translate-x-0.5'}`} />
@@ -217,7 +227,7 @@ const SettingsPanel: React.FC = () => {
           onClick={() => {
             const next = !config.randomDeviceId;
             localStorage.setItem('vc_random_device_id', String(next));
-            save('config:random_device_id', next);
+            save('config:random_device_id', next, '随机设备ID已更新');
           }}
           className={`relative w-9 h-5 rounded-full transition-colors ${config.randomDeviceId ? 'bg-primary-500' : 'bg-gray-600'}`}
         >
@@ -231,7 +241,7 @@ const SettingsPanel: React.FC = () => {
           <input type="number" min="1" value={config.banDuration}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, banDuration: parseInt(e.target.value) || 1 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:ban_duration', config.banDuration)}
+          <button onClick={() => save('config:ban_duration', config.banDuration, '封禁时长已更新')}
             className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
@@ -242,7 +252,7 @@ const SettingsPanel: React.FC = () => {
           <input type="number" min="1" value={config.muteDuration}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, muteDuration: parseInt(e.target.value) || 1 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:mute_duration', config.muteDuration)}
+          <button onClick={() => save('config:mute_duration', config.muteDuration, '禁言时长已更新')}
             className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
@@ -253,7 +263,7 @@ const SettingsPanel: React.FC = () => {
           <input type="number" min="1" value={config.kickDuration}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, kickDuration: parseInt(e.target.value) || 1 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:kick_duration', config.kickDuration)}
+          <button onClick={() => save('config:kick_duration', config.kickDuration, '踢出冷却时长已更新')}
             className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
@@ -264,7 +274,7 @@ const SettingsPanel: React.FC = () => {
           <input type="number" min="1" value={config.pwdCooldown}
             onChange={(e) => useAdminStore.getState().setConfig({ ...config, pwdCooldown: parseInt(e.target.value) || 1 })}
             className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50" />
-          <button onClick={() => save('config:pwd_retry_cooldown', config.pwdCooldown)}
+          <button onClick={() => save('config:pwd_retry_cooldown', config.pwdCooldown, '密码错误冷却已更新')}
             className="text-sm bg-primary-600 hover:bg-primary-500 text-white px-3 py-1.5 rounded-lg">保存</button>
         </div>
       </div>
@@ -294,6 +304,8 @@ export const AdminPanel: React.FC = () => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [creating, setCreating] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [siteNameText, setSiteNameText] = useState(siteName);
   const [versionText, setVersionText] = useState(useRoomStore((s) => s.version));
@@ -327,57 +339,71 @@ export const AdminPanel: React.FC = () => {
   const handleCreate = () => {
     if (!newName.trim()) return;
     const pwd = newPassword.trim();
+    const trimmed = newName.trim();
+    const socket = getSocket();
+    if (!socket) return;
+    setCreating(true);
+    setCreateError('');
 
-    let failed = false;
-    const onError = (data: any) => {
+    socket.once('admin:channel-created', () => {
+      setCreating(false);
+      setShowCreate(false);
+      setNewName('');
+      setNewRoomId('');
+      setNewPassword('');
+      showToast(`频道 "${trimmed}" 已创建`, 'success');
+    });
+    socket.once(EVENTS.SERVER.ERROR, (data: any) => {
       if (data.event === EVENTS.CLIENT.ADMIN_CHANNEL_CREATE) {
-        failed = true;
-        showToast(data.message || '创建失败', 'error');
+        setCreating(false);
+        setCreateError(data.message || '创建失败');
       }
-    };
-    getSocket()?.once(EVENTS.SERVER.ERROR, onError);
-
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, {
-      name: newName.trim(),
+    });
+    socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, {
+      name: trimmed,
       maxUsers: newMax,
       roomId: newRoomId.trim() || undefined,
       audioBitrate: newAudioBitrate,
       password: pwd,
     });
-    setNewName('');
-    setNewRoomId('');
-    setNewPassword('');
-    setShowCreate(false);
-
-    setTimeout(() => {
-      if (!failed) {
-        showToast(`频道 "${newName.trim()}" 已创建`, 'success');
-      }
-    }, 500);
   };
 
   const handleUpdate = () => {
     if (!editRoomId || !editName.trim()) return;
     const pwd = editPassword.trim();
+    const trimmed = editName.trim();
     const updates: any = {
       roomId: editRoomId,
       newRoomId: editNewRoomId.trim() || undefined,
-      name: editName.trim(),
+      name: trimmed,
       maxUsers: editMax,
       audioBitrate: editAudioBitrate,
     };
     if (pwd !== '') {
       updates.password = pwd;
     }
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, updates);
+    const socket = getSocket();
+    if (!socket) return;
+    socket.once('admin:channel-updated', () => {
+      showToast(`频道 "${trimmed}" 已更新`, 'success');
+    });
+    socket.once(EVENTS.SERVER.ERROR, (data: any) => {
+      if (data.event === EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE) {
+        showToast(data.message || '更新失败', 'error');
+      }
+    });
+    socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, updates);
     setEditRoomId('');
-    showToast(`频道 "${editName.trim()}" 已更新`, 'success');
   };
 
   const handleDelete = (roomId: string) => {
     if (window.confirm('确定要删除该频道吗？频道内的所有用户将被踢出。')) {
-      getSocket()?.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
-      showToast('频道已删除', 'success');
+      const socket = getSocket();
+      if (!socket) return;
+      socket.once('admin:channel-deleted', () => {
+        showToast('频道已删除', 'success');
+      });
+      socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
     }
   };
 
@@ -419,35 +445,40 @@ export const AdminPanel: React.FC = () => {
 
   const handleAnnouncement = () => {
     if (!announcementText.trim()) return;
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, { message: announcementText.trim() });
+    const socket = getSocket();
+    if (!socket) return;
+    socket.once('admin:announcement-created', () => {
+      showToast('公告已发布', 'success');
+      refreshAnnouncements();
+    });
+    socket.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, { message: announcementText.trim() });
     setAnnouncementText('');
-    showToast('公告已发布', 'success');
-    setTimeout(() => refreshAnnouncements(), 500);
   };
 
   const handleDeleteAnnouncement = (id: string) => {
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, { id });
-    setAdminAnnouncements((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, active: false } : a))
-    );
-    showToast('公告已删除', 'success');
+    const socket = getSocket();
+    if (!socket) return;
+    socket.once('admin:announcement-deleted', () => {
+      setAdminAnnouncements((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, active: false } : a))
+      );
+      showToast('公告已删除', 'success');
+    });
+    socket.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, { id });
   };
 
   const handleSiteName = () => {
     if (!siteNameText.trim()) return;
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'siteName', value: siteNameText.trim() });
-    showToast('站点名称已更新', 'success');
+    saveSettingAck('siteName', siteNameText.trim(), '站点名称已更新');
   };
 
   const handleVersion = () => {
     if (!versionText.trim()) return;
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'version', value: versionText.trim() });
-    showToast('版本号已更新', 'success');
+    saveSettingAck('version', versionText.trim(), '版本号已更新');
   };
 
   const handleFooterText = () => {
-    getSocket()?.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key: 'loginFooter', value: footerText });
-    showToast('登录页公告已更新', 'success');
+    saveSettingAck('loginFooter', footerText, '登录页公告已更新');
   };
 
   const refreshAnnouncements = () => {
@@ -490,7 +521,7 @@ export const AdminPanel: React.FC = () => {
             <div className="space-y-4">
               {/* Create button */}
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={() => { setShowCreate(true); setCreateError(''); }}
                 className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all"
               >
                 + 新建频道
@@ -559,7 +590,7 @@ export const AdminPanel: React.FC = () => {
                           <select
                             value={editAudioBitrate}
                             onChange={(e) => setEditAudioBitrate(parseInt(e.target.value))}
-                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-primary-500/50 h-8"
+                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 text-sm text-white focus:outline-none focus:border-primary-500/50 h-8"
                           >
                             {AUDIO_QUALITY_TIERS.map((t) => (
                               <option key={t.value} value={t.value}>{t.label}</option>
@@ -699,7 +730,7 @@ export const AdminPanel: React.FC = () => {
               <div className="flex gap-2">
                 <label className="flex-1">
                   <span className="text-xs text-gray-500">音质</span>
-                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-2 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
+                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
                     {AUDIO_QUALITY_TIERS.map((t) => (<option key={t.value} value={t.value}>{t.label} {t.desc}</option>))}
                   </select>
                 </label>
@@ -708,9 +739,10 @@ export const AdminPanel: React.FC = () => {
                   <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="4-16位" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
                 </label>
               </div>
+              {createError && <p className="text-red-400 text-xs">{createError}</p>}
               <div className="flex gap-2 pt-2">
-                <button onClick={() => setShowCreate(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl">取消</button>
-                <button onClick={handleCreate} disabled={!newName.trim()} className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2.5 rounded-xl">创建</button>
+                <button onClick={() => { setShowCreate(false); setCreateError(''); }} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl" disabled={creating}>取消</button>
+                <button onClick={handleCreate} disabled={!newName.trim() || creating} className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2.5 rounded-xl">{creating ? '创建中...' : '创建'}</button>
               </div>
             </div>
           </div>

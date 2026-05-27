@@ -14,10 +14,8 @@ interface MicControllerProps {
   onNoiseSuppressionStrengthChange: (v: number) => void;
 }
 
-function levelPercent(db: number, threshold: number): number {
-  const minDb = threshold;
-  const maxDb = 0;
-  return Math.max(0, Math.min(100, ((db - minDb) / (maxDb - minDb)) * 100));
+function levelPercent(db: number): number {
+  return Math.max(0, Math.min(100, ((db + 45) / 30) * 100));
 }
 
 export const MicController: React.FC<MicControllerProps> = ({
@@ -26,7 +24,7 @@ export const MicController: React.FC<MicControllerProps> = ({
   onToggleMute, onGainChange, onThresholdChange,
   onNoiseSuppressionToggle, onNoiseSuppressionStrengthChange,
 }) => {
-  const pct = levelPercent(audioLevel, threshold);
+  const pct = levelPercent(audioLevel);
 
   return (
     <div className="flex items-center gap-3">
@@ -74,7 +72,7 @@ export const MicController: React.FC<MicControllerProps> = ({
           <input
             type="range"
             min="-60"
-            max="0"
+            max="-30"
             step="1"
             value={threshold}
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}

@@ -18,6 +18,7 @@ interface MediaState {
   isMicMuted: boolean;
   isVoiceConnected: boolean;
   noiseGateThreshold: number;
+  myAudioLevel: number;
   mutedUsers: Set<string>;
   isAllMuted: boolean;
   noiseSuppressionEnabled: boolean;
@@ -40,6 +41,7 @@ interface MediaState {
   setMicMuted: (m: boolean) => void;
   setVoiceConnected: (v: boolean) => void;
   setNoiseGateThreshold: (v: number) => void;
+  setMyAudioLevel: (v: number) => void;
   toggleMuteUser: (deviceId: string) => void;
   toggleMuteAll: () => void;
   setNoiseSuppressionEnabled: (v: boolean) => void;
@@ -62,7 +64,11 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   remoteAudioGains: new Map(),
   isMicMuted: false,
   isVoiceConnected: false,
-  noiseGateThreshold: -50,
+  noiseGateThreshold: (() => {
+    const saved = localStorage.getItem('vc_threshold');
+    return saved !== null ? parseInt(saved) : -45;
+  })(),
+  myAudioLevel: -100,
   mutedUsers: new Set(),
   isAllMuted: false,
   noiseSuppressionEnabled: (() => {
@@ -128,6 +134,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   setMicMuted: (m) => set({ isMicMuted: m }),
   setVoiceConnected: (v) => set({ isVoiceConnected: v }),
   setNoiseGateThreshold: (v) => set({ noiseGateThreshold: v }),
+  setMyAudioLevel: (v) => set({ myAudioLevel: v }),
 
   setNoiseSuppressionEnabled: (v) => set({ noiseSuppressionEnabled: v }),
 
@@ -187,7 +194,11 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       remoteAudioGains: new Map(),
       isMicMuted: false,
       isVoiceConnected: false,
-      noiseGateThreshold: -50,
+      noiseGateThreshold: (() => {
+        const saved = localStorage.getItem('vc_threshold');
+        return saved !== null ? parseInt(saved) : -45;
+      })(),
+      myAudioLevel: -100,
       mutedUsers: new Set(),
       isAllMuted: false,
     }),

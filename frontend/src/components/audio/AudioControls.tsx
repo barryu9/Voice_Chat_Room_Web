@@ -19,9 +19,8 @@ interface AudioControlsProps {
   onMasterVolumeChange: (v: number) => void;
 }
 
-function levelPercent(db: number, threshold: number): number {
-  const maxDb = -20;
-  return Math.max(0, Math.min(100, ((db - threshold) / (maxDb - threshold)) * 100));
+function levelPercent(db: number): number {
+  return Math.max(0, Math.min(100, ((db + 45) / 30) * 100));
 }
 
 const Popover: React.FC<{
@@ -69,7 +68,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   const speakerBtnRef = useRef<HTMLButtonElement | null>(null);
   const micArrowRef = useRef<HTMLButtonElement | null>(null);
   const speakerArrowRef = useRef<HTMLButtonElement | null>(null);
-  const pct = levelPercent(audioLevel, threshold);
+  const pct = levelPercent(audioLevel);
 
   // Click outside closes
   useEffect(() => {
@@ -230,7 +229,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </div>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs text-gray-500 w-10 shrink-0">阈值</span>
-              <input type="range" min="-100" max="0" step="1" value={threshold}
+              <input type="range" min="-60" max="-30" step="1" value={threshold}
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{threshold}dB</span>

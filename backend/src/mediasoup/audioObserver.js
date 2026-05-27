@@ -2,16 +2,16 @@ const { EVENTS } = require('../socket/events');
 
 async function createAudioLevelObserver(router, roomId, io) {
   const audioLevelObserver = await router.createAudioLevelObserver({
-    maxEntries: 1,
-    threshold: -60,
-    interval: 300,
+    maxEntries: 3,
+    threshold: -65,
+    interval: 200,
   });
 
   audioLevelObserver.on('volumes', (volumes) => {
     for (const volume of volumes) {
       const { producer, volume: level } = volume;
       const producerId = producer.id;
-      const isSpeaking = level > -50;
+      const isSpeaking = level > -55;
 
       const { getRoom } = require('./roomManager');
       const room = getRoom(roomId);
