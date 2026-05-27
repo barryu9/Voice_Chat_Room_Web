@@ -7,6 +7,9 @@ let inputGain: Tone.Gain | null = null;
 let outputGain: Tone.Gain | null = null;
 let chainNodes: Tone.ToneAudioNode[] = [];
 let chainReady = false;
+// Track external connections so we only break those, not the internal Tone chain
+let externalSource: AudioNode | null = null;
+let externalDest: AudioNode | null = null;
 
 export function isVoiceChangerReady(): boolean {
   return chainReady;
@@ -72,13 +75,22 @@ export function switchPreset(presetId: string): void {
 
 export function connectVoiceChanger(sourceNode: AudioNode, destNode: AudioNode): void {
   if (!chainReady || !inputGain || !outputGain) return;
+  externalSource = sourceNode;
+  externalDest = destNode;
   sourceNode.connect((inputGain as any).input);
   (outputGain as any).output.connect(destNode);
 }
 
 export function disconnectVoiceChanger(): void {
-  try { (inputGain as any)?.input?.disconnect(); } catch {}
-  try { (outputGain as any)?.output?.disconnect(); } catch {}
+  // Only disconnect the external native → Tone bridges, NOT the internal Tone chain
+  if (externalSource && inputGain) {
+    try { externalSource.disconnect((inputGain as any).input); } catch {}
+  }
+  if (externalDest && outputGain) {
+    try { (outputGain as any).output.disconnect(externalDest); } catch {}
+  }
+  externalSource = null;
+  externalDest = null;
 }
 
 export function destroyVoiceChanger(): void {
