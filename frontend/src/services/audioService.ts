@@ -2,6 +2,7 @@ import { useMediaStore } from '../stores/mediaStore';
 import { useVoiceChangerStore } from '../stores/voiceChangerStore';
 import { destroyNoiseSuppressor, isNoiseSuppressorEnabled, setNoiseSuppressorEnabled as setRNEnabled } from './rnnoiseService';
 import { isVoiceChangerReady, connectVoiceChanger, disconnectVoiceChanger, getVoiceChangerOutput } from './voiceChangerService';
+import * as Tone from 'tone';
 
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
@@ -25,12 +26,15 @@ export function getAudioContext(): AudioContext | null {
 
 export async function initAudioContext(): Promise<AudioContext> {
   if (!audioContext) {
-    audioContext = new AudioContext();
+    const toneCtx = new Tone.Context();
+    Tone.setContext(toneCtx);
+    const rawCtx = (toneCtx as any)._context as AudioContext;
+    if (rawCtx) audioContext = rawCtx;
   }
-  if (audioContext.state === 'suspended') {
+  if (audioContext && audioContext.state === 'suspended') {
     await audioContext.resume();
   }
-  return audioContext;
+  return audioContext!;
 }
 
 export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
