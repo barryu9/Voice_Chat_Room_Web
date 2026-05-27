@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { getSocket } from '../../services/socketService';
@@ -308,6 +308,7 @@ const SettingsPanel: React.FC = () => {
 export const AdminPanel: React.FC = () => {
   const showPanel = useAdminStore((s) => s.showPanel);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
+  const voiceChangerGlobalEnabled = useAdminStore((s) => s.config.voiceChangerEnabled);
   const channels = useRoomStore((s) => s.channels);
   const setChannels = useRoomStore((s) => s.setChannels);
   const siteName = useRoomStore((s) => s.siteName);
@@ -318,7 +319,7 @@ export const AdminPanel: React.FC = () => {
   const [newMax, setNewMax] = useState(20);
   const [newAudioBitrate, setNewAudioBitrate] = useState(48);
   const [newPassword, setNewPassword] = useState('');
-  const [newVoiceChangerEnabled, setNewVoiceChangerEnabled] = useState(true);
+  const [newVoiceChangerEnabled, setNewVoiceChangerEnabled] = useState(voiceChangerGlobalEnabled);
   const [editRoomId, setEditRoomId] = useState('');
   const [editNewRoomId, setEditNewRoomId] = useState('');
   const [editName, setEditName] = useState('');
@@ -327,6 +328,7 @@ export const AdminPanel: React.FC = () => {
   const [editPassword, setEditPassword] = useState('');
   const [editVoiceChangerEnabled, setEditVoiceChangerEnabled] = useState(true);
   const [editError, setEditError] = useState('');
+  const editPwdTouched = useRef(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -411,7 +413,7 @@ export const AdminPanel: React.FC = () => {
       audioBitrate: editAudioBitrate,
       voiceChangerEnabled: editVoiceChangerEnabled,
     };
-    if (pwd !== '') {
+    if (editPwdTouched.current) {
       updates.password = pwd;
     }
     const socket = getSocket();
@@ -653,14 +655,19 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-xs text-gray-400 mb-1">密码</label>
-                          <input value={editPassword} onChange={(e) => setEditPassword(e.target.value)} type="text" placeholder={ch.hasPassword ? '****' : '4-16位（可选）'} maxLength={16} className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
+                          <input value={editPassword}
+                            onFocus={() => { if (ch.hasPassword && !editPwdTouched.current) { setEditPassword(''); } }}
+                            onBlur={() => { if (ch.hasPassword && editPassword === '' && !editPwdTouched.current) { setEditPassword('••••••'); } }}
+                            onKeyDown={() => { editPwdTouched.current = true; }}
+                            onChange={(e) => { setEditPassword(e.target.value); }}
+                            type="text" placeholder={ch.hasPassword ? '' : '4-16位（可选）'} maxLength={16} className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
                       </div>
                       <div className="flex items-center gap-2 ml-1">
-                         <span className="text-xs text-gray-400">允许变声器</span>
+                         <span className={`text-xs ${voiceChangerGlobalEnabled ? 'text-gray-400' : 'text-gray-600'}`}>允许变声器</span>
                         <button
-                          onClick={() => setEditVoiceChangerEnabled(!editVoiceChangerEnabled)}
-                          className={`relative w-9 h-5 rounded-full transition-colors ${editVoiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+                          onClick={voiceChangerGlobalEnabled ? () => setEditVoiceChangerEnabled(!editVoiceChangerEnabled) : undefined}
+                          className={`relative w-9 h-5 rounded-full transition-colors ${editVoiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'} ${!voiceChangerGlobalEnabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                         >
                           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${editVoiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                         </button>
@@ -676,7 +683,7 @@ export const AdminPanel: React.FC = () => {
                       <span className="text-sm text-gray-400">上限: {ch.maxUsers}</span>
                       <span className="text-xs text-gray-500">{getAudioQualityLabel(ch.audioBitrate ?? 32)}</span>
                       <div className="flex-1" />
-                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(''); setEditVoiceChangerEnabled(ch.voiceChangerEnabled ?? true); setEditError(''); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
+                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(ch.hasPassword ? '••••••' : ''); editPwdTouched.current = false; setEditVoiceChangerEnabled(ch.voiceChangerEnabled ?? true); setEditError(''); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
                       {!ch.isDefault && (
                         <button onClick={() => handleDelete(ch.roomId)} className="text-sm text-red-400 hover:text-red-300">删除</button>
                       )}
@@ -804,10 +811,10 @@ export const AdminPanel: React.FC = () => {
                 </label>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">允许变声器</span>
+                <span className={`text-xs ${voiceChangerGlobalEnabled ? 'text-gray-400' : 'text-gray-600'}`}>允许变声器</span>
                 <button
-                  onClick={() => setNewVoiceChangerEnabled(!newVoiceChangerEnabled)}
-                  className={`relative w-9 h-5 rounded-full transition-colors ${newVoiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+                  onClick={voiceChangerGlobalEnabled ? () => setNewVoiceChangerEnabled(!newVoiceChangerEnabled) : undefined}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${newVoiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'} ${!voiceChangerGlobalEnabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${newVoiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                 </button>

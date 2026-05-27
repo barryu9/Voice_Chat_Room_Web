@@ -8,14 +8,15 @@ interface Props {
   maxNameLen: number;
   maxUsers: number;
   allowedBitrates: number[];
+  voiceChangerGlobalEnabled: boolean;
 }
 
-export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, maxUsers, allowedBitrates }) => {
+export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, maxUsers, allowedBitrates, voiceChangerGlobalEnabled }) => {
   const [name, setName] = useState('');
   const [max, setMax] = useState(Math.min(10, maxUsers));
   const [bitrate, setBitrate] = useState(allowedBitrates[0] || 48);
   const [pwd, setPwd] = useState('');
-  const [voiceChangerEnabled, setVoiceChangerEnabled] = useState(true);
+  const [voiceChangerEnabled, setVoiceChangerEnabled] = useState(voiceChangerGlobalEnabled);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -85,10 +86,10 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
             <input type="text" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="4-16位（可选）" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">允许变声器</span>
+            <span className={`text-xs ${voiceChangerGlobalEnabled ? 'text-gray-400' : 'text-gray-600'}`}>允许变声器</span>
             <button
-              onClick={() => setVoiceChangerEnabled(!voiceChangerEnabled)}
-              className={`relative w-9 h-5 rounded-full transition-colors ${voiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+              onClick={voiceChangerGlobalEnabled ? () => setVoiceChangerEnabled(!voiceChangerEnabled) : undefined}
+              className={`relative w-9 h-5 rounded-full transition-colors ${voiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'} ${!voiceChangerGlobalEnabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${voiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </button>

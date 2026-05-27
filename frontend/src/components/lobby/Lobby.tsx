@@ -312,6 +312,7 @@ export const Lobby: React.FC = () => {
           maxNameLen={adminConfig.userChannelMaxNameLen}
           maxUsers={adminConfig.userChannelMaxUsers}
           allowedBitrates={allowedBitrates}
+          voiceChangerGlobalEnabled={adminConfig.voiceChangerEnabled}
         />
       )}
 
@@ -322,6 +323,7 @@ export const Lobby: React.FC = () => {
           maxUsers={adminConfig.userChannelMaxUsers}
           allowedBitrates={allowedBitrates}
           onClose={() => setEditChannelRoomId('')}
+          voiceChangerGlobalEnabled={adminConfig.voiceChangerEnabled}
         />
       )}
     </div>

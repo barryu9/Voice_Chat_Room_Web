@@ -34,7 +34,7 @@ function clearAutoDelete(roomId) {
 function handleRoomEvents(socket, io) {
 
   socket.on(EVENTS.CLIENT.ROOM_LIST, async (_, cb) => {
-    const { getAllChannels } = require('../../services/channelService');
+    const { getAllChannels, serializeChannels } = require('../../services/channelService');
     const channels = await getAllChannels();
     const rooms = getRooms();
     const enriched = channels.map((ch) => {
@@ -45,8 +45,8 @@ function handleRoomEvents(socket, io) {
         voiceCount: room ? room.getVoiceUserCount() : 0,
       };
     });
-    socket.emit(EVENTS.SERVER.ROOM_LIST, { rooms: enriched });
-    if (typeof cb === 'function') cb(enriched);
+    socket.emit(EVENTS.SERVER.ROOM_LIST, { rooms: serializeChannels(enriched) });
+    if (typeof cb === 'function') cb(serializeChannels(enriched));
   });
 
   socket.on(EVENTS.CLIENT.ROOM_JOIN, async ({ roomId, password }) => {

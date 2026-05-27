@@ -423,6 +423,7 @@ export const RoomPanel: React.FC = () => {
           maxUsers={20}
           allowedBitrates={[48, 64]}
           onClose={() => setShowEditModal(false)}
+          voiceChangerGlobalEnabled={voiceChangerGlobalEnabled}
         />
       )}
     </div>

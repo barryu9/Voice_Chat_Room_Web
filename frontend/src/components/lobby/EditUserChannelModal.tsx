@@ -10,18 +10,20 @@ interface Props {
   maxUsers: number;
   allowedBitrates: number[];
   onClose: () => void;
+  voiceChangerGlobalEnabled: boolean;
 }
 
-export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, maxUsers, allowedBitrates, onClose }) => {
+export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, maxUsers, allowedBitrates, onClose, voiceChangerGlobalEnabled }) => {
   const [name, setName] = useState(channel.name);
   const [max, setMax] = useState(channel.maxUsers);
   const [bitrate, setBitrate] = useState(channel.audioBitrate || allowedBitrates[0] || 48);
-  const [pwd, setPwd] = useState('');
-  const [vcEnabled, setVcEnabled] = useState(channel.voiceChangerEnabled !== false);
+  const hasPwd = !!channel.hasPassword;
+  const [pwd, setPwd] = useState(hasPwd ? '••••••' : '');
+  const [vcEnabled, setVcEnabled] = useState(channel.voiceChangerEnabled !== false && voiceChangerGlobalEnabled);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const origPwd = useRef('');
+  const pwdTouched = useRef(false);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -57,7 +59,7 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
       onClose();
     };
     const updates: any = { roomId: channel.roomId, name: trimmed, maxUsers: Math.min(max, maxUsers), audioBitrate: bitrate, voiceChangerEnabled: vcEnabled };
-    if (pwd !== origPwd.current) {
+    if (pwdTouched.current) {
       updates.password = pwd;
     }
     socket.once('user:channel-error', handleError);
@@ -92,16 +94,20 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
           </div>
           <label>
             <span className="text-xs text-gray-400">密码（留空清除密码）</span>
-            <input type="text" value={pwd} onChange={(e) => setPwd(e.target.value)}
-              placeholder={channel.hasPassword ? '****' : '4-16位（可选）'}
+            <input type="text" value={pwd}
+              onFocus={() => { if (hasPwd && !pwdTouched.current) { setPwd(''); } }}
+              onBlur={() => { if (hasPwd && pwd === '' && !pwdTouched.current) { setPwd('••••••'); } }}
+              onKeyDown={() => { pwdTouched.current = true; }}
+              onChange={(e) => { setPwd(e.target.value); }}
+              placeholder={hasPwd ? '' : '4-16位（可选）'}
               maxLength={16}
               className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">允许变声器</span>
+            <span className={`text-xs ${voiceChangerGlobalEnabled ? 'text-gray-400' : 'text-gray-600'}`}>允许变声器</span>
             <button
-              onClick={() => setVcEnabled(!vcEnabled)}
-              className={`relative w-9 h-5 rounded-full transition-colors ${vcEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+              onClick={voiceChangerGlobalEnabled ? () => setVcEnabled(!vcEnabled) : undefined}
+              className={`relative w-9 h-5 rounded-full transition-colors ${vcEnabled ? 'bg-primary-500' : 'bg-gray-600'} ${!voiceChangerGlobalEnabled ? 'opacity-40 cursor-not-allowed' : ''}`}
             >
               <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </button>
