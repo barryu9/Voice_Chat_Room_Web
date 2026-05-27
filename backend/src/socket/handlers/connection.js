@@ -186,6 +186,7 @@ function handleConnection(socket, io) {
       const room = getRoom(conn.currentRoom);
       if (room) {
         room.removeUser(socket.id);
+        room.removeVcState(conn.deviceId);
 
         const producers = room.getProducersForUser(socket.id);
         const hadProducers = producers.length > 0;
