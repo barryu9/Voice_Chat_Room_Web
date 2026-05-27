@@ -26,15 +26,13 @@ export function getAudioContext(): AudioContext | null {
 
 export async function initAudioContext(): Promise<AudioContext> {
   if (!audioContext) {
-    const toneCtx = new Tone.Context();
-    Tone.setContext(toneCtx);
-    const rawCtx = (toneCtx as any)._context as AudioContext;
-    if (rawCtx) audioContext = rawCtx;
+    audioContext = new AudioContext();
+    Tone.setContext(audioContext as any);
   }
-  if (audioContext && audioContext.state === 'suspended') {
+  if (audioContext.state === 'suspended') {
     await audioContext.resume();
   }
-  return audioContext!;
+  return audioContext;
 }
 
 export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
