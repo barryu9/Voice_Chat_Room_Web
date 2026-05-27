@@ -2,22 +2,24 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useUserStore } from '../../stores/userStore';
 import { useRoomStore } from '../../stores/roomStore';
 import { useMediaStore } from '../../stores/mediaStore';
+import { useAdminStore } from '../../stores/adminStore';
+import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
-import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { playSound } from '../../services/soundService';
-import { UserGrid } from './UserGrid';
-import { AudioControls } from '../audio/AudioControls';
+import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph } from '../../services/audioService';
+import { initVoiceChanger, updateVoiceChangerParams } from '../../services/voiceChangerService';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
+import { UserGrid } from './UserGrid';
+import { AudioControls } from '../audio/AudioControls';
 import { showToast } from '../common/Toast';
-import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume } from '../../services/audioService';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
 import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
-import { useAdminStore } from '../../stores/adminStore';
 import { LatencyIndicator } from './LatencyIndicator';
+import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 
 export const RoomPanel: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
@@ -26,7 +28,6 @@ export const RoomPanel: React.FC = () => {
   const myDeviceId = useUserStore((s) => s.deviceId);
   const channels = useRoomStore((s) => s.channels);
   const notification = useRoomStore((s) => s.notification);
-  const setNotification = useRoomStore((s) => s.setNotification);
   const announcements = useRoomStore((s) => s.announcements);
   const peerLatencies = useRoomStore((s) => s.peerLatencies);
   const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
@@ -185,6 +186,37 @@ export const RoomPanel: React.FC = () => {
     toggleNoiseSuppressor(next);
   }, [noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
 
+  const voiceChangerGlobalEnabled = useAdminStore((s) => s.config.voiceChangerEnabled);
+  const voiceChangerChannelEnabled = currentChannel?.voiceChangerEnabled !== false;
+  const voiceChangerAllowed = voiceChangerGlobalEnabled && voiceChangerChannelEnabled;
+  const voiceChangerEnabled = useVoiceChangerStore((s) => s.enabled);
+
+  const handleVoiceChangerToggle = useCallback((enabled: boolean) => {
+    if (enabled) {
+      useVoiceChangerStore.getState().setEnabled(true);
+      initVoiceChanger().then(() => {
+        if (useVoiceChangerStore.getState().enabled) {
+          reconnectAudioGraph();
+        }
+      });
+    } else {
+      useVoiceChangerStore.getState().setEnabled(false);
+      reconnectAudioGraph();
+    }
+  }, []);
+
+  const handleVoiceChangerParamsChange = useCallback(() => {
+    const params = useVoiceChangerStore.getState().getParams();
+    updateVoiceChangerParams(params);
+  }, []);
+
+  // Auto-disable voice changer when channel/global config disallows it
+  useEffect(() => {
+    if (!voiceChangerAllowed && voiceChangerEnabled) {
+      handleVoiceChangerToggle(false);
+    }
+  }, [voiceChangerAllowed, voiceChangerEnabled, handleVoiceChangerToggle]);
+
   const handleMasterVolumeChange = useCallback((v: number) => {
     setMasterVolume(v);
     applyMasterVolume();
@@ -199,12 +231,6 @@ export const RoomPanel: React.FC = () => {
     }
     return () => clearInterval(durationRef.current);
   }, [isVoiceConnected]);
-
-  useEffect(() => {
-    if (!notification) return;
-    const timer = setTimeout(() => setNotification(''), 10000);
-    return () => clearTimeout(timer);
-  }, [notification, setNotification]);
 
   const fmt = (d: number) => {
     const m = Math.floor(d / 60).toString().padStart(2, '0');
@@ -327,6 +353,9 @@ export const RoomPanel: React.FC = () => {
             onToggleMuteAll={handleToggleMuteAll}
             onMasterVolumeChange={handleMasterVolumeChange}
             amIServerMuted={amIServerMuted}
+            voiceChangerEnabled={voiceChangerAllowed}
+            onVoiceChangerToggle={handleVoiceChangerToggle}
+            onVoiceChangerParamsChange={handleVoiceChangerParamsChange}
           />
 
           <div className="flex-1" />

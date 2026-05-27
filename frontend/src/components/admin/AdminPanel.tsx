@@ -1,23 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { getSocket } from '../../services/socketService';
 import { useRoomStore } from '../../stores/roomStore';
 import { useAdminStore } from '../../stores/adminStore';
-import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/constants';
+import { getSocket } from '../../services/socketService';
 import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
+import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/constants';
 
 function saveSettingAck(key: string, value: any, successMsg: string) {
   const socket = getSocket();
   if (!socket) { showToast('连接已断开', 'error'); return; }
-  socket.once(EVENTS.SERVER.SETTINGS_UPDATED, (data: any) => {
+  const onAck = (data: any) => {
+    socket.off(EVENTS.SERVER.ERROR, onError);
     if (data.key !== key) return;
     socket.emit('admin:config-getall');
     showToast(successMsg, 'success');
-  });
-  socket.once(EVENTS.SERVER.ERROR, (data: any) => {
+  };
+  const onError = (data: any) => {
+    socket.off(EVENTS.SERVER.SETTINGS_UPDATED, onAck);
     showToast(data.message || '保存失败', 'error');
-  });
+  };
+  socket.on(EVENTS.SERVER.SETTINGS_UPDATED, onAck);
+  socket.on(EVENTS.SERVER.ERROR, onError);
   socket.emit(EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE, { key, value });
 }
 
@@ -192,6 +196,7 @@ const SettingsPanel: React.FC = () => {
           kickDuration: data.config['config:kick_duration'] ?? 60,
           pwdCooldown: data.config['config:pwd_retry_cooldown'] ?? 5,
           randomDeviceId: !!data.config['config:random_device_id'],
+          voiceChangerEnabled: !!data.config['config:voice_changer_enabled'],
         });
       }
     };
@@ -232,6 +237,19 @@ const SettingsPanel: React.FC = () => {
           className={`relative w-9 h-5 rounded-full transition-colors ${config.randomDeviceId ? 'bg-primary-500' : 'bg-gray-600'}`}
         >
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.randomDeviceId ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+
+      <div className="glass-card p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white">全局变声器</p>
+          <p className="text-xs text-gray-500">关闭后所有频道隐藏变声器功能</p>
+        </div>
+        <button
+          onClick={() => save('config:voice_changer_enabled', !config.voiceChangerEnabled, '变声器全局开关已更新')}
+          className={`relative w-9 h-5 rounded-full transition-colors ${config.voiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+        >
+          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${config.voiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
 
@@ -295,12 +313,14 @@ export const AdminPanel: React.FC = () => {
   const [newMax, setNewMax] = useState(20);
   const [newAudioBitrate, setNewAudioBitrate] = useState(48);
   const [newPassword, setNewPassword] = useState('');
+  const [newVoiceChangerEnabled, setNewVoiceChangerEnabled] = useState(true);
   const [editRoomId, setEditRoomId] = useState('');
   const [editNewRoomId, setEditNewRoomId] = useState('');
   const [editName, setEditName] = useState('');
   const [editMax, setEditMax] = useState(20);
   const [editAudioBitrate, setEditAudioBitrate] = useState(32);
   const [editPassword, setEditPassword] = useState('');
+  const [editVoiceChangerEnabled, setEditVoiceChangerEnabled] = useState(true);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -345,26 +365,30 @@ export const AdminPanel: React.FC = () => {
     setCreating(true);
     setCreateError('');
 
-    socket.once('admin:channel-created', () => {
+    const onSuccess = () => {
+      socket.off(EVENTS.SERVER.ERROR, onError);
       setCreating(false);
       setShowCreate(false);
       setNewName('');
       setNewRoomId('');
       setNewPassword('');
       showToast(`频道 "${trimmed}" 已创建`, 'success');
-    });
-    socket.once(EVENTS.SERVER.ERROR, (data: any) => {
-      if (data.event === EVENTS.CLIENT.ADMIN_CHANNEL_CREATE) {
-        setCreating(false);
-        setCreateError(data.message || '创建失败');
-      }
-    });
+    };
+    const onError = (data: any) => {
+      socket.off('admin:channel-created', onSuccess);
+      if (data.event !== EVENTS.CLIENT.ADMIN_CHANNEL_CREATE) return;
+      setCreating(false);
+      setCreateError(data.message || '创建失败');
+    };
+    socket.once('admin:channel-created', onSuccess);
+    socket.once(EVENTS.SERVER.ERROR, onError);
     socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, {
       name: trimmed,
       maxUsers: newMax,
       roomId: newRoomId.trim() || undefined,
       audioBitrate: newAudioBitrate,
       password: pwd,
+      voiceChangerEnabled: newVoiceChangerEnabled,
     });
   };
 
@@ -378,20 +402,24 @@ export const AdminPanel: React.FC = () => {
       name: trimmed,
       maxUsers: editMax,
       audioBitrate: editAudioBitrate,
+      voiceChangerEnabled: editVoiceChangerEnabled,
     };
     if (pwd !== '') {
       updates.password = pwd;
     }
     const socket = getSocket();
     if (!socket) return;
-    socket.once('admin:channel-updated', () => {
+    const onSuccess = () => {
+      socket.off(EVENTS.SERVER.ERROR, onError);
       showToast(`频道 "${trimmed}" 已更新`, 'success');
-    });
-    socket.once(EVENTS.SERVER.ERROR, (data: any) => {
-      if (data.event === EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE) {
-        showToast(data.message || '更新失败', 'error');
-      }
-    });
+    };
+    const onError = (data: any) => {
+      socket.off('admin:channel-updated', onSuccess);
+      if (data.event !== EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE) return;
+      showToast(data.message || '更新失败', 'error');
+    };
+    socket.once('admin:channel-updated', onSuccess);
+    socket.once(EVENTS.SERVER.ERROR, onError);
     socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, updates);
     setEditRoomId('');
   };
@@ -400,9 +428,15 @@ export const AdminPanel: React.FC = () => {
     if (window.confirm('确定要删除该频道吗？频道内的所有用户将被踢出。')) {
       const socket = getSocket();
       if (!socket) return;
-      socket.once('admin:channel-deleted', () => {
+      const onSuccess = () => {
+        socket.off(EVENTS.SERVER.ERROR, onError);
         showToast('频道已删除', 'success');
-      });
+      };
+      const onError = () => {
+        socket.off('admin:channel-deleted', onSuccess);
+      };
+      socket.once('admin:channel-deleted', onSuccess);
+      socket.once(EVENTS.SERVER.ERROR, onError);
       socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
     }
   };
@@ -447,10 +481,16 @@ export const AdminPanel: React.FC = () => {
     if (!announcementText.trim()) return;
     const socket = getSocket();
     if (!socket) return;
-    socket.once('admin:announcement-created', () => {
+    const onSuccess = () => {
+      socket.off(EVENTS.SERVER.ERROR, onError);
       showToast('公告已发布', 'success');
       refreshAnnouncements();
-    });
+    };
+    const onError = () => {
+      socket.off('admin:announcement-created', onSuccess);
+    };
+    socket.once('admin:announcement-created', onSuccess);
+    socket.once(EVENTS.SERVER.ERROR, onError);
     socket.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_CREATE, { message: announcementText.trim() });
     setAnnouncementText('');
   };
@@ -458,12 +498,18 @@ export const AdminPanel: React.FC = () => {
   const handleDeleteAnnouncement = (id: string) => {
     const socket = getSocket();
     if (!socket) return;
-    socket.once('admin:announcement-deleted', () => {
+    const onSuccess = () => {
+      socket.off(EVENTS.SERVER.ERROR, onError);
       setAdminAnnouncements((prev) =>
         prev.map((a) => (a.id === id ? { ...a, active: false } : a))
       );
       showToast('公告已删除', 'success');
-    });
+    };
+    const onError = () => {
+      socket.off('admin:announcement-deleted', onSuccess);
+    };
+    socket.once('admin:announcement-deleted', onSuccess);
+    socket.once(EVENTS.SERVER.ERROR, onError);
     socket.emit(EVENTS.CLIENT.ADMIN_ANNOUNCEMENT_DELETE, { id });
   };
 
@@ -574,23 +620,23 @@ export const AdminPanel: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex flex-wrap gap-2 items-end">
                         <div className="flex-1 min-w-[100px]">
-                          <label className="block text-xs text-gray-500 mb-1">频道名称</label>
+                          <label className="block text-xs text-gray-400 mb-1">频道名称</label>
                           <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="如：大厅" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
                         <div className="w-24">
-                          <label className="block text-xs text-gray-500 mb-1">简称</label>
+                          <label className="block text-xs text-gray-400 mb-1">简称</label>
                           <input value={editNewRoomId} onChange={(e) => setEditNewRoomId(e.target.value)} placeholder="如：lobby" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
                         <div className="w-28">
-                          <label className="block text-xs text-gray-500 mb-1">人数上限</label>
+                          <label className="block text-xs text-gray-400 mb-1">人数上限</label>
                           <StepperInput value={editMax} onChange={setEditMax} min={2} max={100} />
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">音质</label>
+                          <label className="block text-xs text-gray-400 mb-1">音质</label>
                           <select
                             value={editAudioBitrate}
                             onChange={(e) => setEditAudioBitrate(parseInt(e.target.value))}
-                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 text-sm text-white focus:outline-none focus:border-primary-500/50 h-8"
+                            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 text-xs text-white focus:outline-none focus:border-primary-500/50 h-7"
                           >
                             {AUDIO_QUALITY_TIERS.map((t) => (
                               <option key={t.value} value={t.value}>{t.label}</option>
@@ -598,9 +644,18 @@ export const AdminPanel: React.FC = () => {
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">密码</label>
+                          <label className="block text-xs text-gray-400 mb-1">密码</label>
                           <input value={editPassword} onChange={(e) => setEditPassword(e.target.value)} type="text" placeholder={ch.password || '4-16位（可选）'} maxLength={16} className="w-32 bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                         </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-1">
+                         <span className="text-xs text-gray-400">允许变声器</span>
+                        <button
+                          onClick={() => setEditVoiceChangerEnabled(!editVoiceChangerEnabled)}
+                          className={`relative w-9 h-5 rounded-full transition-colors ${editVoiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+                        >
+                          <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${editVoiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        </button>
                       </div>
                       <div className="flex justify-end gap-2">
                         <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-sm px-3 py-1.5 rounded-lg">取消</button>
@@ -612,7 +667,7 @@ export const AdminPanel: React.FC = () => {
                       <span className="text-sm text-gray-400">上限: {ch.maxUsers}</span>
                       <span className="text-xs text-gray-500">{getAudioQualityLabel(ch.audioBitrate ?? 32)}</span>
                       <div className="flex-1" />
-                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(''); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
+                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(''); setEditVoiceChangerEnabled(ch.voiceChangerEnabled ?? true); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
                       {!ch.isDefault && (
                         <button onClick={() => handleDelete(ch.roomId)} className="text-sm text-red-400 hover:text-red-300">删除</button>
                       )}
@@ -712,16 +767,16 @@ export const AdminPanel: React.FC = () => {
             <h3 className="text-lg font-semibold text-white mb-4">新建频道</h3>
             <div className="space-y-3">
               <label className="block">
-                <span className="text-xs text-gray-500">频道名称</span>
-                <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：大厅" maxLength={20} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                <span className="text-xs text-gray-400">频道名称</span>
+                <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="如：大厅" maxLength={20} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
               </label>
               <div className="flex gap-2">
                 <label className="flex-1">
-                  <span className="text-xs text-gray-500">简称（可选）</span>
-                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="如：lobby" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                  <span className="text-xs text-gray-400">简称（可选）</span>
+                  <input value={newRoomId} onChange={(e) => setNewRoomId(e.target.value)} placeholder="如：lobby" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                 </label>
                 <label className="w-32">
-                  <span className="text-xs text-gray-500">人数上限</span>
+                  <span className="text-xs text-gray-400">人数上限</span>
                   <div className="mt-1">
                     <StepperInput value={newMax} onChange={setNewMax} min={2} max={100} />
                   </div>
@@ -729,15 +784,24 @@ export const AdminPanel: React.FC = () => {
               </div>
               <div className="flex gap-2">
                 <label className="flex-1">
-                  <span className="text-xs text-gray-500">音质</span>
-                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
+                  <span className="text-xs text-gray-400">音质</span>
+                  <select value={newAudioBitrate} onChange={(e) => setNewAudioBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 mt-1 text-xs text-white focus:outline-none focus:border-primary-500/50">
                     {AUDIO_QUALITY_TIERS.map((t) => (<option key={t.value} value={t.value}>{t.label} {t.desc}</option>))}
                   </select>
                 </label>
                 <label className="flex-1">
-                  <span className="text-xs text-gray-500">密码（可选）</span>
-                  <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="4-16位" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+                  <span className="text-xs text-gray-400">密码（可选）</span>
+                  <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="4-16位" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
                 </label>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">允许变声器</span>
+                <button
+                  onClick={() => setNewVoiceChangerEnabled(!newVoiceChangerEnabled)}
+                  className={`relative w-9 h-5 rounded-full transition-colors ${newVoiceChangerEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+                >
+                  <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${newVoiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </button>
               </div>
               {createError && <p className="text-red-400 text-xs">{createError}</p>}
               <div className="flex gap-2 pt-2">

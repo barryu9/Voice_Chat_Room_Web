@@ -5,7 +5,7 @@ import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 
 interface Props {
-  channel: { roomId: string; name: string; maxUsers: number; audioBitrate?: number; password?: string };
+  channel: { roomId: string; name: string; maxUsers: number; audioBitrate?: number; password?: string; voiceChangerEnabled?: boolean };
   maxNameLen: number;
   maxUsers: number;
   allowedBitrates: number[];
@@ -17,6 +17,7 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
   const [max, setMax] = useState(channel.maxUsers);
   const [bitrate, setBitrate] = useState(channel.audioBitrate || allowedBitrates[0] || 48);
   const [pwd, setPwd] = useState(channel.password || '');
+  const [vcEnabled, setVcEnabled] = useState(channel.voiceChangerEnabled !== false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -30,12 +31,8 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
       showToast('频道已更新', 'success');
       onClose();
     };
-    getSocket()?.on('user:channel-error', handleError);
-    getSocket()?.on('user:channel-updated', handleSuccess);
-    return () => {
-      getSocket()?.off('user:channel-error', handleError);
-      getSocket()?.off('user:channel-updated', handleSuccess);
-    };
+    getSocket()?.once('user:channel-error', handleError);
+    getSocket()?.once('user:channel-updated', handleSuccess);
   }, []);
 
   const handleSave = async () => {
@@ -46,7 +43,7 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
     }
     setSaving(true);
     setError('');
-    const updates: any = { roomId: channel.roomId, name: trimmed, maxUsers: Math.min(max, maxUsers), audioBitrate: bitrate };
+    const updates: any = { roomId: channel.roomId, name: trimmed, maxUsers: Math.min(max, maxUsers), audioBitrate: bitrate, voiceChangerEnabled: vcEnabled };
     if (pwd !== origPwd.current) {
       updates.password = pwd;
     }
@@ -59,19 +56,19 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
         <h3 className="text-lg font-semibold text-white mb-4">编辑频道</h3>
         <div className="space-y-3">
           <label>
-            <span className="text-xs text-gray-500">频道名 (≤{maxNameLen}字)</span>
-            <input ref={inputRef} value={name} onChange={(e) => { setName(e.target.value); setError(''); }} maxLength={maxNameLen} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+            <span className="text-xs text-gray-400">频道名 (≤{maxNameLen}字)</span>
+            <input ref={inputRef} value={name} onChange={(e) => { setName(e.target.value); setError(''); }} maxLength={maxNameLen} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>
           <div className="flex gap-2">
             <label className="flex-1">
-              <span className="text-xs text-gray-500">人数上限</span>
+              <span className="text-xs text-gray-400">人数上限</span>
               <div className="mt-1">
                 <StepperInput value={max} onChange={setMax} min={2} max={maxUsers} />
               </div>
             </label>
             <label className="flex-1">
-              <span className="text-xs text-gray-500">音质</span>
-              <select value={bitrate} onChange={(e) => setBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
+              <span className="text-xs text-gray-400">音质</span>
+              <select value={bitrate} onChange={(e) => setBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 mt-1 text-xs text-white focus:outline-none focus:border-primary-500/50">
                 {AUDIO_QUALITY_TIERS.filter(t => allowedBitrates.includes(t.value)).map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
@@ -79,16 +76,25 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
             </label>
           </div>
           <label>
-            <span className="text-xs text-gray-500">密码（留空清除密码）</span>
+            <span className="text-xs text-gray-400">密码（留空清除密码）</span>
             <input type="text" value={pwd} onChange={(e) => setPwd(e.target.value)}
               placeholder={channel.password || '4-16位（可选）'}
               maxLength={16}
-              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50" />
+              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">允许变声器</span>
+            <button
+              onClick={() => setVcEnabled(!vcEnabled)}
+              className={`relative w-9 h-5 rounded-full transition-colors ${vcEnabled ? 'bg-primary-500' : 'bg-gray-600'}`}
+            >
+              <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${vcEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
           {error && <p className="text-red-400 text-xs">{error}</p>}
           <div className="flex gap-2 pt-2">
             <button onClick={onClose} disabled={saving} className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white text-sm py-2.5 rounded-xl">取消</button>
-            <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2.5 rounded-xl">{saving ? '保存中...' : '保存'}</button>
+            <button onClick={handleSave} disabled={!name.trim() || saving} className="flex-1 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 disabled:text-gray-400 text-white text-sm py-2.5 rounded-xl">{saving ? '保存中...' : '保存'}</button>
           </div>
         </div>
       </div>

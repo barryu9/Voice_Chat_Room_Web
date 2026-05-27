@@ -14,6 +14,7 @@ const DEFAULTS = {
   'config:user_channel_auto_delete': isDev ? 2 : 10,    // minutes
   'config:user_channel_max_name_len': isDev ? 6 : 6,
   'config:user_channel_enabled': true,
+  'config:voice_changer_enabled': true,
   'config:random_device_id': isDev,
 };
 

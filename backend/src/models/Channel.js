@@ -14,6 +14,7 @@ const channelSchema = new mongoose.Schema({
   creatorNickname: { type: String, default: '' },
   creatorDeviceId: { type: String, default: '' },
   lastActivityAt:  { type: Date },
+  voiceChangerEnabled: { type: Boolean, default: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Channel', channelSchema);

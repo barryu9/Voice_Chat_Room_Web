@@ -1,10 +1,11 @@
 import { io, Socket } from 'socket.io-client';
-import { EVENTS } from '../utils/constants';
 import { useRoomStore } from '../stores/roomStore';
 import { useUserStore } from '../stores/userStore';
 import { useAdminStore } from '../stores/adminStore';
 import { useMediaStore } from '../stores/mediaStore';
 import { playSound } from './soundService';
+import { showToast } from '../components/common/Toast';
+import { EVENTS } from '../utils/constants';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 
@@ -87,6 +88,7 @@ function registerListeners() {
   });
 
   socket.on(EVENTS.SERVER.LOGIN_ERROR, (data) => {
+    // NicknameModal reads this for auto-login failure fallback
     useRoomStore.getState().setNotification(`登录失败: ${data.message}`);
   });
 
@@ -150,14 +152,14 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.BANNED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
-    useRoomStore.getState().setNotification(`你已被封禁: ${data.reason}`);
+    showToast(`你已被封禁: ${data.reason}`, 'error');
     playSound('disconnected');
   });
 
   socket.on(EVENTS.SERVER.FORCE_LOGOUT, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
-    useRoomStore.getState().setNotification(data.message);
+    showToast(data.message || '你已被强制下线', 'error');
     useUserStore.getState().logout();
   });
 
@@ -181,6 +183,7 @@ function registerListeners() {
             sortOrder: data.sortOrder,
             audioBitrate: data.audioBitrate,
             password: data.password,
+            voiceChangerEnabled: data.voiceChangerEnabled,
           });
         } else {
           useRoomStore.getState().updateChannel(data.roomId, {
@@ -189,6 +192,7 @@ function registerListeners() {
             sortOrder: data.sortOrder,
             audioBitrate: data.audioBitrate,
             password: data.password,
+            voiceChangerEnabled: data.voiceChangerEnabled,
           });
         }
       } else {
@@ -199,6 +203,7 @@ function registerListeners() {
           sortOrder: data.sortOrder,
           audioBitrate: data.audioBitrate,
           password: data.password,
+          voiceChangerEnabled: data.voiceChangerEnabled,
         });
       }
     }
@@ -251,6 +256,8 @@ function registerListeners() {
     console.error(`[Error] ${data.event}: ${data.message}`);
     const isRoomJoin = data.event === EVENTS.CLIENT.ROOM_JOIN;
     const isPasswordError = data.message?.includes('密码');
+    const isAdminEvent = data.event?.startsWith('admin:');
+    if (isAdminEvent) return; // admin events have dedicated toast handlers
     if (!isRoomJoin || !isPasswordError) {
       useRoomStore.getState().setNotification(data.message);
     }
@@ -315,6 +322,7 @@ function registerListeners() {
         pwdCooldown: data.config['config:pwd_retry_cooldown'] ?? 5,
         randomDeviceId: !!data.config['config:random_device_id'],
         userChannelEnabled: !!data.config['config:user_channel_enabled'],
+        voiceChangerEnabled: !!data.config['config:voice_changer_enabled'],
         userChannelMaxPerDevice: data.config['config:user_channel_max_per_device'] ?? 1,
         userChannelMaxUsers: data.config['config:user_channel_max_users'] ?? 10,
         userChannelAllowedBitrates: data.config['config:user_channel_allowed_bitrates'] ?? '48',

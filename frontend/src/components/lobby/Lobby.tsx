@@ -11,12 +11,12 @@ import { ChannelCard } from './ChannelCard';
 import { NicknameModal } from './NicknameModal';
 import { AdminLogin } from '../admin/AdminLogin';
 import { Announcement } from '../common/Announcement';
+import { showToast } from '../common/Toast';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
 import { ChannelPasswordModal } from './ChannelPasswordModal';
 import { CreateUserChannelModal } from './CreateUserChannelModal';
 import { EditUserChannelModal } from './EditUserChannelModal';
-import { showToast } from '../common/Toast';
 
 export const Lobby: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
@@ -62,21 +62,13 @@ export const Lobby: React.FC = () => {
         userChannelMaxUsers: config.maxUsers ?? 10,
         userChannelAllowedBitrates: config.allowedBitrates ?? '48',
         userChannelMaxPerDevice: config.maxPerDevice ?? 1,
+        voiceChangerEnabled: config.voiceChangerEnabled !== false,
       });
     };
     getSocket()?.on('user:channel-config', handler);
     return () => { getSocket()?.off('user:channel-config', handler); };
   }, []);
 
-  useEffect(() => {
-    const handler = (data: any) => {
-      showToast(`频道 "${data.roomId}" 已删除`, 'success');
-    };
-    getSocket()?.on('user:channel-deleted', handler);
-    return () => { getSocket()?.off('user:channel-deleted', handler); };
-  }, []);
-
-  // Persistent password error handler (only for active modal)
   useEffect(() => {
     const handler = (data: any) => {
       if (data.event === EVENTS.CLIENT.ROOM_JOIN && pwdRoomRef.current) {
@@ -115,7 +107,15 @@ export const Lobby: React.FC = () => {
 
   const handleDeleteChannel = (roomId: string) => {
     if (window.confirm('确定要删除该频道吗？')) {
-      getSocket()?.emit('user:channel-delete', { roomId });
+      const socket = getSocket();
+      if (!socket) return;
+      socket.once('user:channel-deleted', () => {
+        showToast('频道已删除', 'success');
+      });
+      socket.once('user:channel-error', (data: any) => {
+        showToast(data.message || '删除失败', 'error');
+      });
+      socket.emit('user:channel-delete', { roomId });
     }
   };
 

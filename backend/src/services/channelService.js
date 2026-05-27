@@ -43,6 +43,7 @@ async function createChannel(data) {
     audioBitrate: data.audioBitrate ?? 48,
     password: data.password || '',
     passwordText: data.passwordText || '',
+    voiceChangerEnabled: data.voiceChangerEnabled !== false,
   });
   return channel;
 }
@@ -130,6 +131,7 @@ async function createUserChannel(data) {
     creatorNickname: data.creatorNickname,
     creatorDeviceId: data.creatorDeviceId,
     lastActivityAt: new Date(),
+    voiceChangerEnabled: data.voiceChangerEnabled !== false,
   });
   return ch;
 }
@@ -153,6 +155,7 @@ async function updateUserChannel(roomId, deviceId, updates) {
   if (updates.maxUsers !== undefined) setFields.maxUsers = updates.maxUsers;
   if (updates.audioBitrate !== undefined) setFields.audioBitrate = updates.audioBitrate;
   if (updates.password !== undefined) setFields.password = updates.password;
+  if (updates.voiceChangerEnabled !== undefined) setFields.voiceChangerEnabled = updates.voiceChangerEnabled;
   return Channel.findOneAndUpdate({ roomId }, { $set: setFields }, { new: true }).lean();
 }
 

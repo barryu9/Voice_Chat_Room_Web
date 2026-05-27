@@ -31,12 +31,12 @@ function handleAdminEvents(socket, io) {
     socket.emit(EVENTS.SERVER.ADMIN_AUTH_RESULT, { success, message: success ? 'Authenticated' : 'Wrong password' });
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId, sortOrder, audioBitrate, password }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId, sortOrder, audioBitrate, password, voiceChangerEnabled }) => {
     if (!isAdmin(socket.id)) return;
 
     const rid = (roomId && roomId.trim()) ? roomId.trim() : name.toLowerCase().replace(/\s+/g, '-');
     try {
-      const channel = await createChannel({ name, roomId: rid, maxUsers, sortOrder, audioBitrate, password });
+      const channel = await createChannel({ name, roomId: rid, maxUsers, sortOrder, audioBitrate, password, voiceChangerEnabled });
 
       const room = createRoom(rid, channel.name, channel.maxUsers, channel.audioBitrate, io);
       await room.init();
@@ -44,7 +44,7 @@ function handleAdminEvents(socket, io) {
       io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
         roomId: rid, name: channel.name, maxUsers: channel.maxUsers,
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
-        password: channel.password,
+        password: channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
       });
       socket.emit('admin:channel-created', { roomId: rid, name: channel.name });
       socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已创建`, type: 'success' });
@@ -53,11 +53,11 @@ function handleAdminEvents(socket, io) {
     }
   });
 
-  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, async ({ roomId, newRoomId, name, maxUsers, sortOrder, audioBitrate, password }) => {
+  socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, async ({ roomId, newRoomId, name, maxUsers, sortOrder, audioBitrate, password, voiceChangerEnabled }) => {
     if (!isAdmin(socket.id)) return;
 
     try {
-      const channel = await updateChannel(roomId, { name, maxUsers, newRoomId, sortOrder, audioBitrate, password });
+      const channel = await updateChannel(roomId, { name, maxUsers, newRoomId, sortOrder, audioBitrate, password, voiceChangerEnabled });
       if (!channel) return;
 
       const effectiveRoomId = newRoomId || roomId;
@@ -72,7 +72,7 @@ function handleAdminEvents(socket, io) {
         roomId, newRoomId: newRoomId || roomId,
         name: channel.name, maxUsers: channel.maxUsers,
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
-        password: channel.password,
+        password: channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
       });
       socket.emit('admin:channel-updated', { roomId, name: channel.name });
       socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: `频道 "${name}" 已更新`, type: 'success' });
@@ -91,7 +91,9 @@ function handleAdminEvents(socket, io) {
         const targetSocket = io.sockets.sockets.get(sid);
         if (targetSocket) {
           leaveCurrentRoom(targetSocket, io);
-          targetSocket.emit('room:closed', { roomId, message: '频道已被管理员删除' });
+          if (sid !== socket.id) {
+            targetSocket.emit('room:closed', { roomId, message: '频道已被管理员删除' });
+          }
         }
       }
     }
@@ -142,6 +144,7 @@ function handleAdminEvents(socket, io) {
       allowedBitrates: await getConfig('config:user_channel_allowed_bitrates'),
       maxPerDevice: await getConfig('config:user_channel_max_per_device'),
       enabled: await getConfig('config:user_channel_enabled'),
+      voiceChangerEnabled: await getConfig('config:voice_changer_enabled'),
     };
     socket.emit('user:channel-config', config);
   });

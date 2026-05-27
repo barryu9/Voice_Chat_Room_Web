@@ -1,10 +1,13 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
+import { useMediaStore } from '../stores/mediaStore';
+import { useVoiceChangerStore } from '../stores/voiceChangerStore';
 import {
   initAudioContext, setupLocalAudioGraph, setMicGain,
   setMicMute, setNoiseGateThreshold, getAudioLevel, cleanupLocalAudio,
-  updateNoiseGate, getProcessedStream,
+  updateNoiseGate, getProcessedStream, toggleVoiceChanger,
 } from '../services/audioService';
-import { useMediaStore } from '../stores/mediaStore';
+import { initVoiceChanger, updateVoiceChangerParams, destroyVoiceChanger } from '../services/voiceChangerService';
+import type { VoiceParams } from '../utils/voicePresets';
 
 export function useAudioGraph() {
   const [gain, setGain] = useState(() => {
@@ -68,6 +71,8 @@ export function useAudioGraph() {
 
   const cleanup = useCallback(() => {
     cleanupLocalAudio();
+    destroyVoiceChanger();
+    useVoiceChangerStore.getState().reset();
     cancelAnimationFrame(animRef.current);
   }, []);
 
@@ -77,9 +82,22 @@ export function useAudioGraph() {
     return getProcessedStream()?.getAudioTracks()[0] || null;
   }, []);
 
+  const startVoiceChanger = useCallback(async () => {
+    await initVoiceChanger();
+    toggleVoiceChanger(true);
+  }, []);
+
+  const stopVoiceChanger = useCallback(() => {
+    toggleVoiceChanger(false);
+  }, []);
+
+  const applyVoiceParams = useCallback((params: VoiceParams) => {
+    updateVoiceChangerParams(params);
+  }, []);
+
   return {
     gain, muted, threshold, audioLevel,
     setupLocal, updateGain, toggleMute, forceMute, updateThreshold, cleanup, switchStream,
-    initAudioContext,
+    initAudioContext, startVoiceChanger, stopVoiceChanger, applyVoiceParams,
   };
 }

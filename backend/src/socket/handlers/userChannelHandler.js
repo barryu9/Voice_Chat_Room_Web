@@ -46,6 +46,7 @@ function handleUserChannelEvents(socket, io) {
         maxUsers: Math.min(data.maxUsers || 10, maxUsers),
         audioBitrate: data.audioBitrate || bitrates[0] || 48,
         password: data.password || '',
+        voiceChangerEnabled: data.voiceChangerEnabled !== false,
         creatorUserId: conn.userId,
         creatorNickname: conn.nickname,
         creatorDeviceId: conn.deviceId,
@@ -149,8 +150,10 @@ function handleUserChannelEvents(socket, io) {
         const targetSocket = io.sockets.sockets.get(sid);
         if (targetSocket) {
           leaveCurrentRoom(targetSocket, io);
-          const msg = isAdmin(socket.id) ? '频道已被管理员删除' : '频道已被创建者删除';
-          targetSocket.emit('room:closed', { roomId: data.roomId, message: msg });
+          if (sid !== socket.id) {
+            const msg = isAdmin(socket.id) ? '频道已被管理员删除' : '频道已被创建者删除';
+            targetSocket.emit('room:closed', { roomId: data.roomId, message: msg });
+          }
         }
       }
     }

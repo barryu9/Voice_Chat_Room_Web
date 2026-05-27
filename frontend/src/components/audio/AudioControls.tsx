@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { VoiceChangerControls } from './VoiceChangerControls';
 
 interface AudioControlsProps {
   gain: number; muted: boolean; threshold: number; audioLevel: number;
@@ -17,6 +18,9 @@ interface AudioControlsProps {
   amIServerMuted: boolean;
   onToggleMuteAll: () => void;
   onMasterVolumeChange: (v: number) => void;
+  voiceChangerEnabled: boolean;
+  onVoiceChangerToggle: (enabled: boolean) => void;
+  onVoiceChangerParamsChange: () => void;
 }
 
 function levelPercent(db: number): number {
@@ -58,7 +62,9 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   onNoiseSuppressionToggle,
   inputs, outputs, selectedInput, selectedOutput,
   onInputChange, onOutputChange,
-  isAllMuted, masterVolume, amIServerMuted, onToggleMuteAll, onMasterVolumeChange,
+  isAllMuted, masterVolume, amIServerMuted,
+  onToggleMuteAll, onMasterVolumeChange,
+  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerParamsChange,
 }) => {
   const [micOpen, setMicOpen] = useState(false);
   const [speakerOpen, setSpeakerOpen] = useState(false);
@@ -153,7 +159,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         <select
           value={selectedOutput}
           onChange={(e) => onOutputChange(e.target.value)}
-          className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 mb-2"
+          className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-white focus:outline-none focus:border-primary-500/50 mb-2"
         >
           {outputs.length === 0 && <option value="">默认</option>}
           {outputs.map((d) => (
@@ -161,7 +167,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           ))}
         </select>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 w-10 shrink-0">音量</span>
+          <span className="text-xs text-gray-400 w-10 shrink-0">音量</span>
           <input type="range" min="0" max="1" step="0.05" value={masterVolume}
             onChange={(e) => onMasterVolumeChange(parseFloat(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
@@ -213,7 +219,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         <select
           value={selectedInput}
           onChange={(e) => onInputChange(e.target.value)}
-          className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 mb-2"
+          className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-white focus:outline-none focus:border-primary-500/50 mb-2"
         >
           {inputs.length === 0 && <option value="">无麦克风</option>}
           {inputs.map((d) => (
@@ -221,20 +227,20 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           ))}
         </select>
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-xs text-gray-500 w-10 shrink-0">增益</span>
+          <span className="text-xs text-gray-400 w-10 shrink-0">增益</span>
               <input type="range" min="0" max="3" step="0.1" value={gain}
             onChange={(e) => onGainChange(parseFloat(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{gain.toFixed(1)}x</span>
         </div>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs text-gray-500 w-10 shrink-0">阈值</span>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-xs text-gray-400 w-10 shrink-0">阈值</span>
               <input type="range" min="-60" max="-30" step="1" value={threshold}
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{threshold}dB</span>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-400">降噪</span>
           <button
             onClick={onNoiseSuppressionToggle}
@@ -244,9 +250,15 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           >
             <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
               noiseSuppressionEnabled ? 'translate-x-4' : 'translate-x-0.5'
-            }`} />
+              }`} />
           </button>
         </div>
+        {voiceChangerEnabled && (
+          <VoiceChangerControls
+            onToggle={onVoiceChangerToggle}
+            onParamsChange={onVoiceChangerParamsChange}
+          />
+        )}
       </Popover>
     </div>
   );

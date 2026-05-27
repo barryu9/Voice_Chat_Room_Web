@@ -80,6 +80,7 @@ export type Channel = {
   creatorUserId?: string;
   creatorNickname?: string;
   lastActivityAt?: string;
+  voiceChangerEnabled?: boolean;
 };
 
 export const AUDIO_QUALITY_TIERS: { label: string; value: number; desc: string }[] = [

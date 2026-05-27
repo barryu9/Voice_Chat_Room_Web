@@ -55,7 +55,7 @@ export const MicController: React.FC<MicControllerProps> = ({
 
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 w-8">增益</span>
+          <span className="text-xs text-gray-400 w-8">增益</span>
           <input
             type="range"
             min="0"
@@ -68,7 +68,7 @@ export const MicController: React.FC<MicControllerProps> = ({
           <span className="text-xs text-gray-400 w-8">{gain.toFixed(1)}x</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 w-8">阈值</span>
+          <span className="text-xs text-gray-400 w-8">阈值</span>
           <input
             type="range"
             min="-60"
@@ -89,7 +89,7 @@ export const MicController: React.FC<MicControllerProps> = ({
             className={`text-xs px-2 py-0.5 rounded transition-all ${
               noiseSuppressionEnabled
                 ? 'bg-primary-600/30 text-primary-300 border border-primary-500/30'
-                : 'bg-gray-800/60 text-gray-500 border border-gray-600/50'
+                : 'bg-gray-800/60 text-gray-400 border border-gray-600/50'
             }`}
             title="降噪开关"
           >

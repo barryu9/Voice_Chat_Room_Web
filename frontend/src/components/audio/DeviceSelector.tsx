@@ -22,7 +22,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
         <select
           value={selectedInput}
           onChange={(e) => onInputChange(e.target.value)}
-          className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 transition-all max-w-[130px] truncate"
+          className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-white focus:outline-none focus:border-primary-500/50 transition-all max-w-[130px] truncate"
         >
           {inputs.map((d) => (
             <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
@@ -39,7 +39,7 @@ export const DeviceSelector: React.FC<DeviceSelectorProps> = ({
           <select
             value={selectedOutput}
             onChange={(e) => onOutputChange(e.target.value)}
-            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:border-primary-500/50 transition-all max-w-[130px] truncate"
+            className="bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-white focus:outline-none focus:border-primary-500/50 transition-all max-w-[130px] truncate"
           >
             {outputs.map((d) => (
               <option key={d.deviceId} value={d.deviceId}>{d.label}</option>

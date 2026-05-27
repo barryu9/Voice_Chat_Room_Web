@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { Channel, UserInfo, Announcement } from '../utils/constants';
 
+let notificationTimer: ReturnType<typeof setTimeout> | null = null;
+
 interface RoomState {
   channels: Channel[];
   roomUsers: Map<string, UserInfo>;
@@ -92,7 +94,16 @@ export const useRoomStore = create<RoomState>((set) => ({
     }),
 
   setAnnouncements: (list) => set({ announcements: list }),
-  setNotification: (msg) => set({ notification: msg }),
+  setNotification: (msg) => {
+    if (notificationTimer) { clearTimeout(notificationTimer); notificationTimer = null; }
+    if (msg) {
+      notificationTimer = setTimeout(() => {
+        notificationTimer = null;
+        useRoomStore.setState({ notification: '' });
+      }, 10000);
+    }
+    set({ notification: msg });
+  },
   setSiteName: (name) => set({ siteName: name }),
   setVersion: (v) => set({ version: v }),
   setLoginFooter: (text) => set({ loginFooter: text }),

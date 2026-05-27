@@ -1,5 +1,7 @@
 import { useMediaStore } from '../stores/mediaStore';
+import { useVoiceChangerStore } from '../stores/voiceChangerStore';
 import { destroyNoiseSuppressor, isNoiseSuppressorEnabled, setNoiseSuppressorEnabled as setRNEnabled } from './rnnoiseService';
+import { isVoiceChangerReady, connectVoiceChanger, disconnectVoiceChanger, getVoiceChangerOutput } from './voiceChangerService';
 
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
@@ -46,15 +48,9 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   analyserNode.smoothingTimeConstant = 0.8;
 
   localAudioSource.connect(micGainNode);
-  micGainNode.connect(analyserNode);
 
   await tryConnectRNNoise(ctx);
 
-  if (!rnnoiseConnected) {
-    micGainNode.connect(gateGainNode);
-  } else if (!isNoiseSuppressorEnabled()) {
-    micGainNode.connect(gateGainNode);
-  }
   gateGainNode.connect(processedDestination);
 
   setMicGain(1.0);
@@ -66,6 +62,8 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   if (savedMuted === 'true') micGainNode.gain.value = 0;
   const savedThreshold = localStorage.getItem('vc_threshold');
   if (savedThreshold) setNoiseGateThreshold(parseInt(savedThreshold));
+
+  reconnectAudioGraph();
 }
 
 async function tryConnectRNNoise(ctx: AudioContext) {
@@ -93,24 +91,51 @@ export function getProcessedStream(): MediaStream | null {
   return processedDestination?.stream || null;
 }
 
-export function toggleNoiseSuppressor(enabled: boolean) {
-  if (!rnnoiseConnected || !micGainNode || !gateGainNode || !rnnoiseInput) return;
+export function reconnectAudioGraph() {
+  if (!micGainNode || !analyserNode || !gateGainNode) return;
 
-  if (enabled && isBypassMode) {
-    micGainNode.disconnect();
-    micGainNode.connect(analyserNode!);
-    micGainNode.connect(rnnoiseInput);
-    rnnoiseConnectOutput?.(gateGainNode);
-    isBypassMode = false;
-  } else if (!enabled && !isBypassMode) {
-    micGainNode.disconnect();
-    micGainNode.connect(analyserNode!);
-    micGainNode.connect(gateGainNode);
-    rnnoiseDisconnectOutput?.();
-    isBypassMode = true;
+  micGainNode.disconnect();
+  if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
+  disconnectVoiceChanger();
+
+  const vcEnabled = useVoiceChangerStore.getState().enabled && isVoiceChangerReady();
+  const rnEnabled = rnnoiseConnected && isNoiseSuppressorEnabled();
+
+  if (vcEnabled) {
+    connectVoiceChanger(micGainNode, analyserNode);
+    const vcOut = getVoiceChangerOutput();
+    if (!vcOut) return;
+    if (rnEnabled) {
+      vcOut.connect(rnnoiseInput!);
+      rnnoiseConnectOutput!(gateGainNode);
+      isBypassMode = false;
+    } else {
+      vcOut.connect(gateGainNode);
+      isBypassMode = true;
+    }
+  } else {
+    micGainNode.connect(analyserNode);
+    if (rnEnabled) {
+      micGainNode.connect(rnnoiseInput!);
+      rnnoiseConnectOutput!(gateGainNode);
+      isBypassMode = false;
+    } else {
+      micGainNode.connect(gateGainNode);
+      isBypassMode = true;
+    }
   }
+}
 
+export function toggleVoiceChanger(enabled: boolean) {
+  useVoiceChangerStore.getState().setEnabled(enabled);
+  reconnectAudioGraph();
+}
+
+export function toggleNoiseSuppressor(enabled: boolean) {
   setRNEnabled(enabled);
+  if (rnnoiseConnected && micGainNode) {
+    reconnectAudioGraph();
+  }
 }
 
 export function updateNoiseGate(level: number, threshold: number) {
@@ -279,6 +304,7 @@ export function cleanupLocalAudio() {
     rnnoiseDisconnectOutput = null;
     isBypassMode = true;
   }
+  disconnectVoiceChanger();
   localStream = null;
 }
 
