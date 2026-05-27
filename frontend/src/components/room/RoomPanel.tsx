@@ -8,6 +8,7 @@ import { getSocket } from '../../services/socketService';
 import { playSound } from '../../services/soundService';
 import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
+import { VOICE_PRESETS } from '../../utils/voicePresets';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
@@ -198,6 +199,11 @@ export const RoomPanel: React.FC = () => {
   const voiceChangerEnabled = useVoiceChangerStore((s) => s.enabled);
   const [vcTransiting, setVcTransiting] = useState(false);
 
+  const emitVcStatus = useCallback((enabled: boolean, presetId?: string) => {
+    const presetLabel = presetId ? (VOICE_PRESETS[presetId]?.label || '') : '';
+    getSocket()?.emit(EVENTS.CLIENT.VC_STATUS, { enabled, presetLabel });
+  }, []);
+
   const handleVoiceChangerToggle = useCallback((enabled: boolean) => {
     if (vcTransiting) return;
     setVcTransiting(true);
@@ -207,22 +213,29 @@ export const RoomPanel: React.FC = () => {
       if (useVoiceChangerStore.getState().enabled) {
         reconnectAudioGraph();
       }
+      const pid = useVoiceChangerStore.getState().presetId;
+      emitVcStatus(true, pid);
       setVcTransiting(false);
     } else {
       useVoiceChangerStore.getState().setEnabled(false);
       reconnectAudioGraph();
+      emitVcStatus(false);
       setVcTransiting(false);
     }
-  }, [vcTransiting]);
+  }, [vcTransiting, emitVcStatus]);
 
   const handleVoiceChangerPresetChange = useCallback((presetId: string) => {
     const rnOn = useMediaStore.getState().noiseSuppressionEnabled;
+    const doSwitch = () => {
+      switchPreset(presetId);
+      emitVcStatus(true, presetId);
+    };
     if (rnOn) {
       setVcTransiting(true);
       setNoiseTransiting(true);
       setNoiseSuppressionEnabled(false);
       toggleNoiseSuppressor(false);
-      switchPreset(presetId);
+      doSwitch();
       setNoiseSuppressionEnabled(true);
       toggleNoiseSuppressor(true);
       setTimeout(() => {
@@ -230,9 +243,9 @@ export const RoomPanel: React.FC = () => {
         setNoiseTransiting(false);
       }, 300);
     } else {
-      switchPreset(presetId);
+      doSwitch();
     }
-  }, []);
+  }, [emitVcStatus, setNoiseSuppressionEnabled]);
 
   useEffect(() => {
     if (!voiceChangerAllowed && voiceChangerEnabled) {

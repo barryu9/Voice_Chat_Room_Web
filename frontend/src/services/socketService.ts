@@ -99,6 +99,12 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.ROOM_USERS, (data) => {
     useUserStore.getState().setCurrentRoom(data.roomId);
     useRoomStore.getState().setRoomUsers(data.users || []);
+    useRoomStore.getState().clearVcStates();
+    if (data.vcStates) {
+      for (const [deviceId, state] of Object.entries(data.vcStates)) {
+        useRoomStore.getState().setVcState(deviceId, state as any);
+      }
+    }
   });
 
   socket.on(EVENTS.SERVER.USER_JOINED, (data) => {
@@ -110,8 +116,17 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.USER_LEFT, (data) => {
     useRoomStore.getState().removeUser(data.userId);
+    useRoomStore.getState().removeVcState(data.deviceId);
     if (data.userId !== useUserStore.getState().userId && data.reason !== 'disconnect') {
       playSound('otherLeft');
+    }
+  });
+
+  socket.on(EVENTS.SERVER.VC_STATUS, (data: { deviceId: string; enabled: boolean; presetLabel: string }) => {
+    if (data.enabled) {
+      useRoomStore.getState().setVcState(data.deviceId, { enabled: true, presetLabel: data.presetLabel });
+    } else {
+      useRoomStore.getState().removeVcState(data.deviceId);
     }
   });
 

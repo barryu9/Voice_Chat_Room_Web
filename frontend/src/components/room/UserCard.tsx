@@ -28,8 +28,10 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const toggleMuteUser = useMediaStore((s) => s.toggleMuteUser);
   const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
   const peerLatencies = useRoomStore((s) => s.peerLatencies);
+  const vcStates = useRoomStore((s) => s.vcStates);
   const [showMenu, setShowMenu] = useState(false);
 
+  const vcState = vcStates.get(user.deviceId);
   const speaker = activeSpeakers.get(user.deviceId);
   const myAudioLevel = useMediaStore((s) => s.myAudioLevel);
   const noiseGateThreshold = useMediaStore((s) => s.noiseGateThreshold);
@@ -126,6 +128,9 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
       <div className="text-center">
         {isMuted && (
           <p className="text-[10px] text-red-400 mb-0.5">已被你静音</p>
+        )}
+        {!isSelf && vcState?.enabled && (
+          <p className="text-[10px] text-green-400 mb-0.5">变声：{vcState.presetLabel}</p>
         )}
         <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[80px] sm:max-w-[100px]">
           {user.nickname}

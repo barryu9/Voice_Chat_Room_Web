@@ -31,6 +31,7 @@ export const EVENTS = {
     ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
     ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
     ADMIN_CHANNELS_REORDER:     'admin:channels-reorder',
+    VC_STATUS:              'voicechanger:status',
   },
   SERVER: {
     LOGIN_SUCCESS:       'user:login-success',
@@ -62,6 +63,7 @@ export const EVENTS = {
     ADMIN_BANLIST:       'admin:banlist',
     SETTINGS_UPDATED:    'admin:settings-updated',
     ANNOUNCEMENTS_UPDATED: 'announcements:updated',
+    VC_STATUS:             'voicechanger:status',
     KICKED_LIST:          'admin:kicklist',
   },
 } as const;

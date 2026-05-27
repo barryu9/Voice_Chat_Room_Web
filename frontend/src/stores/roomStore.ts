@@ -9,6 +9,7 @@ interface RoomState {
   userCount: number;
   activeSpeakers: Map<string, { level: number; isSpeaking: boolean }>;
   peerLatencies: Map<string, number>;
+  vcStates: Map<string, { enabled: boolean; presetLabel: string }>;
   announcements: Announcement[];
   notification: string;
   siteName: string;
@@ -24,6 +25,9 @@ interface RoomState {
   updateUserNickname: (userId: string, nickname: string) => void;
   setActiveSpeaker: (deviceId: string, level: number, isSpeaking: boolean) => void;
   setPeerLatency: (deviceId: string, latency: number) => void;
+  setVcState: (deviceId: string, state: { enabled: boolean; presetLabel: string }) => void;
+  removeVcState: (deviceId: string) => void;
+  clearVcStates: () => void;
   setAnnouncements: (list: Announcement[]) => void;
   setNotification: (msg: string) => void;
   setSiteName: (name: string) => void;
@@ -37,6 +41,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   userCount: 0,
   activeSpeakers: new Map(),
   peerLatencies: new Map(),
+  vcStates: new Map(),
   announcements: [],
   notification: '',
   siteName: '语音聊天室',
@@ -86,12 +91,28 @@ export const useRoomStore = create<RoomState>((set) => ({
       return { activeSpeakers: m };
     }),
 
-  setPeerLatency: (deviceId, latency) =>
+    setPeerLatency: (deviceId, latency) =>
     set((s) => {
       const m = new Map(s.peerLatencies);
       m.set(deviceId, latency);
       return { peerLatencies: m };
     }),
+
+  setVcState: (deviceId, state) =>
+    set((s) => {
+      const m = new Map(s.vcStates);
+      m.set(deviceId, state);
+      return { vcStates: m };
+    }),
+
+  removeVcState: (deviceId) =>
+    set((s) => {
+      const m = new Map(s.vcStates);
+      m.delete(deviceId);
+      return { vcStates: m };
+    }),
+
+  clearVcStates: () => set({ vcStates: new Map() }),
 
   setAnnouncements: (list) => set({ announcements: list }),
   setNotification: (msg) => {

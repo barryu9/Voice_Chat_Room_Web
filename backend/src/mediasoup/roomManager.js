@@ -16,6 +16,7 @@ class Room {
     this.consumers = new Map();
     this.transports = new Map();
     this.users = new Map();
+    this.vcStates = new Map();    // deviceId → { enabled, presetLabel }
     this.io = io;
   }
 
@@ -125,6 +126,26 @@ class Room {
       if (user.deviceId === deviceId) return sid;
     }
     return null;
+  }
+
+  setVcState(deviceId, state) {
+    if (state) {
+      this.vcStates.set(deviceId, state);
+    } else {
+      this.vcStates.delete(deviceId);
+    }
+  }
+
+  getVcStates() {
+    const states = {};
+    for (const [deviceId, state] of this.vcStates) {
+      states[deviceId] = state;
+    }
+    return states;
+  }
+
+  removeVcState(deviceId) {
+    this.vcStates.delete(deviceId);
   }
 
   broadcast(roomId, event, data) {

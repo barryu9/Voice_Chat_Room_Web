@@ -34,6 +34,7 @@ const EVENTS = {
     ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
     ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
     ADMIN_CHANNELS_REORDER:     'admin:channels-reorder',
+    VC_STATUS:              'voicechanger:status',
   },
 
   SERVER: {
@@ -68,6 +69,7 @@ const EVENTS = {
     ADMIN_BANLIST:       'admin:banlist',
     SETTINGS_UPDATED:    'admin:settings-updated',
     ANNOUNCEMENTS_UPDATED: 'announcements:updated',
+    VC_STATUS:             'voicechanger:status',
   },
 };
 

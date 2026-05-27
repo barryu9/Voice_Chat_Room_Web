@@ -140,7 +140,7 @@ function handleRoomEvents(socket, io) {
         voiceUsers.push(user);
       }
     }
-    socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId, users: voiceUsers, count: voiceUsers.length });
+    socket.emit(EVENTS.SERVER.ROOM_USERS, { roomId, users: voiceUsers, count: voiceUsers.length, vcStates: room.getVcStates() });
 
     const { getAnnouncement, getSiteName, getAnnouncements } = require('../../services/channelService');
     const announcement = await getAnnouncement();
@@ -162,6 +162,25 @@ function handleRoomEvents(socket, io) {
     }
 
     broadcastAllRoomOnlineCounts(io);
+  });
+
+  // Voice changer status relay
+  socket.on(EVENTS.CLIENT.VC_STATUS, (data) => {
+    const conn = getConnection(socket.id);
+    if (!conn || !conn.currentRoom) return;
+    const room = getRoom(conn.currentRoom);
+    if (!room) return;
+
+    if (data.enabled) {
+      room.setVcState(conn.deviceId, { enabled: true, presetLabel: data.presetLabel || '' });
+    } else {
+      room.removeVcState(conn.deviceId);
+    }
+    room.broadcast(conn.currentRoom, EVENTS.SERVER.VC_STATUS, {
+      deviceId: conn.deviceId,
+      enabled: !!data.enabled,
+      presetLabel: data.presetLabel || '',
+    });
   });
 
   socket.on(EVENTS.CLIENT.ROOM_LEAVE, () => {
@@ -207,6 +226,7 @@ function leaveCurrentRoom(socket, io) {
   }
 
   room.removeUser(socket.id);
+  room.removeVcState(conn.deviceId);
   socket.leave(roomId);
 
   if (hadProducers) {
