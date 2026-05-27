@@ -73,8 +73,8 @@ export const RemoteVolume: React.FC<RemoteVolumeProps> = ({ producerDeviceId }) 
       <input
         type="range"
         min="0"
-        max="3"
-        step="0.1"
+        max="1"
+        step="0.05"
         value={value}
         onChange={(e) => handleChange(parseFloat(e.target.value))}
         className={`w-16 h-1 cursor-pointer ${isVoiceConnected ? 'accent-primary-500' : 'accent-gray-600 opacity-50'}`}

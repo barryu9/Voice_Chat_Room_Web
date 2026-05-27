@@ -215,7 +215,7 @@ export function setRemoteVolume(producerId: string, volume: number) {
   const audio = remoteAudioElements.get(producerId);
   if (audio) {
     const masterVol = useMediaStore.getState().masterVolume;
-    audio.volume = Math.max(0, Math.min(volume * masterVol, 3));
+    audio.volume = Math.max(0, Math.min(volume * masterVol, 1));
   }
 }
 
