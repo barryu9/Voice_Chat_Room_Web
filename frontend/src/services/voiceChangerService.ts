@@ -66,6 +66,7 @@ export function initVoiceChanger(): void {
 
 export function switchPreset(presetId: string): void {
   if (!chainReady) return;
+  disconnectVoiceChanger();
   disposeChain();
   chainReady = false;
   useVoiceChangerStore.getState().setChainReady(false);
