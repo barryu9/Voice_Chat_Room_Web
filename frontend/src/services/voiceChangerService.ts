@@ -87,8 +87,10 @@ export function disconnectVoiceChanger(): void {
   if (externalSource && inputGain) {
     try { externalSource.disconnect((inputGain as any).input); } catch {}
   }
-  if (externalDest && outputGain) {
-    try { (outputGain as any).output.disconnect(externalDest); } catch {}
+  // Disconnect ALL outgoing connections from VC output (includes untracked connections
+  // to rnnoiseNode/gateGainNode that were made directly in reconnectAudioGraph)
+  if (outputGain) {
+    try { (outputGain as any).output.disconnect(); } catch {}
   }
   externalSource = null;
   externalDest = null;
