@@ -11,13 +11,7 @@ let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -45;
-interface RemoteAudioEntry {
-  audio: HTMLAudioElement;
-  source: MediaElementAudioSourceNode;
-  gainNode: GainNode;
-}
-
-const remoteAudioEntries: Map<string, RemoteAudioEntry> = new Map();
+const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
 let rnnoiseConnected = false;
 let rnnoiseInput: AudioNode | null = null;
@@ -193,26 +187,15 @@ export function getAudioLevel(): number {
 export async function setupRemoteAudio(consumer: any, producerId: string): Promise<void> {
   cleanupRemoteAudio(producerId);
 
-  const ctx = getAudioContext();
-  if (!ctx) return;
-
   const { track } = consumer;
   const stream = new MediaStream([track]);
   const audio = document.createElement('audio');
   audio.srcObject = stream;
   audio.autoplay = true;
   audio.setAttribute('playsinline', 'true');
+  audio.volume = 1.0;
   audio.style.display = 'none';
   document.body.appendChild(audio);
-
-  // Route through GainNode for proper amplification (audio.volume maxes at 1.0)
-  const source = ctx.createMediaElementSource(audio);
-  const gainNode = ctx.createGain();
-  gainNode.gain.value = 1.0;
-  source.connect(gainNode);
-  gainNode.connect(ctx.destination);
-
-  remoteAudioEntries.set(producerId, { audio, source, gainNode });
 
   audio.play().catch((e) => {
     console.warn('[Audio] autoplay blocked for', producerId);
@@ -224,49 +207,40 @@ export async function setupRemoteAudio(consumer: any, producerId: string): Promi
     document.addEventListener('click', resume, { once: true });
     document.addEventListener('touchend', resume, { once: true });
   });
+
+  remoteAudioElements.set(producerId, audio);
 }
 
 export function setRemoteVolume(producerId: string, volume: number) {
-  const entry = remoteAudioEntries.get(producerId);
-  if (entry) {
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) {
     const masterVol = useMediaStore.getState().masterVolume;
-    entry.gainNode.gain.value = Math.max(0, Math.min(volume * masterVol, 3));
+    audio.volume = Math.max(0, Math.min(volume * masterVol, 3));
   }
 }
 
 export function applyMasterVolume() {
   const masterVol = useMediaStore.getState().masterVolume;
-  for (const [producerId, entry] of remoteAudioEntries) {
+  for (const [producerId, audio] of remoteAudioElements) {
     const gain = useMediaStore.getState().remoteAudioGains.get(producerId) ?? 1.0;
-    entry.gainNode.gain.value = Math.max(0, Math.min(gain * masterVol, 3));
+    audio.volume = Math.max(0, Math.min(gain * masterVol, 3));
   }
 }
 
 export function cleanupRemoteAudio(producerId: string) {
-  const entry = remoteAudioEntries.get(producerId);
-  if (entry) {
-    try { entry.source.disconnect(); } catch {}
-    try { entry.gainNode.disconnect(); } catch {}
-    entry.audio.srcObject = null;
-    entry.audio.remove();
-    remoteAudioEntries.delete(producerId);
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) {
+    audio.srcObject = null;
+    audio.remove();
+    remoteAudioElements.delete(producerId);
   }
 }
 
 export async function setAllSinkIds(deviceId: string): Promise<void> {
-  try {
-    if (audioContext && 'setSinkId' in audioContext) {
-      await (audioContext as any).setSinkId(deviceId);
-      return;
-    }
-  } catch (e) {
-    console.warn('[Audio] AudioContext.setSinkId failed:', e);
-  }
-  // Fallback: try HTMLAudioElement.setSinkId on each audio element
   const promises: Promise<void>[] = [];
-  for (const [, entry] of remoteAudioEntries) {
-    if ('setSinkId' in (entry.audio as any)) {
-      promises.push((entry.audio as any).setSinkId(deviceId));
+  for (const [, audio] of remoteAudioElements) {
+    if ('setSinkId' in (audio as any)) {
+      promises.push((audio as any).setSinkId(deviceId));
     }
   }
   try {
@@ -277,37 +251,31 @@ export async function setAllSinkIds(deviceId: string): Promise<void> {
 }
 
 export function muteRemote(producerId: string) {
-  const entry = remoteAudioEntries.get(producerId);
-  if (entry) entry.gainNode.gain.value = 0;
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) audio.volume = 0;
 }
 
 export function unmuteRemote(producerId: string) {
-  const entry = remoteAudioEntries.get(producerId);
-  if (entry) {
-    const masterVol = useMediaStore.getState().masterVolume;
-    const gain = useMediaStore.getState().remoteAudioGains.get(producerId) ?? 1.0;
-    entry.gainNode.gain.value = Math.max(0, Math.min(gain * masterVol, 3));
-  }
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) audio.volume = 1.0;
 }
 
 export function muteAllRemotes() {
-  for (const [, entry] of remoteAudioEntries) {
-    entry.gainNode.gain.value = 0;
+  for (const [, audio] of remoteAudioElements) {
+    audio.volume = 0;
   }
 }
 
 export function unmuteAllRemotes() {
-  for (const [producerId, entry] of remoteAudioEntries) {
-    const masterVol = useMediaStore.getState().masterVolume;
-    const gain = useMediaStore.getState().remoteAudioGains.get(producerId) ?? 1.0;
-    entry.gainNode.gain.value = Math.max(0, Math.min(gain * masterVol, 3));
+  for (const [, audio] of remoteAudioElements) {
+    audio.volume = 1.0;
   }
 }
 
 export function applyMuteState(producerId: string, isGloballyMuted: boolean, isPerUserMuted: boolean) {
-  const entry = remoteAudioEntries.get(producerId);
-  if (entry) {
-    entry.gainNode.gain.value = (isGloballyMuted || isPerUserMuted) ? 0 : 1.0;
+  const audio = remoteAudioElements.get(producerId);
+  if (audio) {
+    audio.volume = (isGloballyMuted || isPerUserMuted) ? 0 : 1.0;
   }
 }
 
@@ -346,13 +314,11 @@ export function cleanupLocalAudio() {
 
 export function destroyAudioGraph() {
   cleanupLocalAudio();
-  for (const [, entry] of remoteAudioEntries) {
-    try { entry.source.disconnect(); } catch {}
-    try { entry.gainNode.disconnect(); } catch {}
-    entry.audio.srcObject = null;
-    entry.audio.remove();
+  for (const [, audio] of remoteAudioElements) {
+    audio.srcObject = null;
+    audio.remove();
   }
-  remoteAudioEntries.clear();
+  remoteAudioElements.clear();
   if (audioContext) {
     audioContext.close();
     audioContext = null;
