@@ -10,6 +10,8 @@ let filterNode: Tone.Filter | null = null;
 let reverb: Tone.Reverb | null = null;
 let outputGain: Tone.Gain | null = null;
 let chainReady = false;
+let connectedSource: AudioNode | null = null;
+let connectedDest: AudioNode | null = null;
 
 export function isVoiceChangerReady(): boolean {
   return chainReady;
@@ -49,14 +51,25 @@ export async function initVoiceChanger(): Promise<void> {
 
 export function connectVoiceChanger(sourceNode: AudioNode, destNode: AudioNode): void {
   if (!chainReady || !inputGain || !outputGain) return;
+  disconnectVoiceChanger();
   sourceNode.connect((inputGain as any).input);
   (outputGain as any).output.connect(destNode);
+  connectedSource = sourceNode;
+  connectedDest = destNode;
 }
 
 export function disconnectVoiceChanger(): void {
   if (!inputGain || !outputGain) return;
-  try { (inputGain as any).input.disconnect(); } catch {}
-  try { (outputGain as any).output.disconnect(); } catch {}
+  try { connectedSource?.disconnect((inputGain as any).input); } catch {}
+  try {
+    if (connectedDest) {
+      (outputGain as any).output.disconnect(connectedDest);
+    } else {
+      (outputGain as any).output.disconnect();
+    }
+  } catch {}
+  connectedSource = null;
+  connectedDest = null;
 }
 
 export function updateVoiceChangerParams(params: VoiceParams): void {

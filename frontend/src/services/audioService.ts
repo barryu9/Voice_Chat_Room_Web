@@ -34,8 +34,6 @@ export async function initAudioContext(): Promise<AudioContext> {
   if (audioContext.state === 'suspended') {
     await audioContext.resume();
   }
-  // Ensure tone.js internal state is ready (required by browser autoplay policy)
-  await Tone.start();
   return audioContext;
 }
 
