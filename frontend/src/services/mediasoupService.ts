@@ -106,6 +106,7 @@ export async function consumeProducer(
     });
 
     const onCreated = async (data: any) => {
+      if (data.producerId !== producerId) return;
       socket.off(EVENTS.SERVER.CONSUMER_CREATED, onCreated);
       const consumer = await transport.consume({
         id: data.consumerId,
@@ -113,7 +114,6 @@ export async function consumeProducer(
         kind: data.kind,
         rtpParameters: data.rtpParameters,
       });
-      useMediaStore.getState().addConsumer(data.consumerId, consumer);
       resolve(consumer);
     };
     socket.on(EVENTS.SERVER.CONSUMER_CREATED, onCreated);

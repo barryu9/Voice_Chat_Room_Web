@@ -111,12 +111,14 @@ export const RoomPanel: React.FC = () => {
       showToast('已加入语音', 'success');
     } catch (err: any) {
       console.error('[RoomPanel] Voice connect failed:', err);
+      stopProduce();
+      cleanup();
       showToast(err.message || '加入语音失败，请检查麦克风权限', 'error');
       setVoiceConnected(false);
     } finally {
       setConnecting(false);
     }
-  }, [connecting, initDevice, startProduce, startConsume, setVoiceConnected]);
+  }, [connecting, initDevice, startProduce, startConsume, stopProduce, cleanup, setVoiceConnected]);
 
   const handleVoiceDisconnect = useCallback(() => {
     stopProduce();

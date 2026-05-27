@@ -33,7 +33,7 @@ git pull && bash deploy.sh
 ## Key Design Decisions
 - **No registration**: deviceId via FingerprintJS (fallback to localStorage random ID)
 - **Voice-only room grid**: users appear ONLY after clicking "加入语音" (creating a producer)
-- **Speaker indicator**: only shows when audio level > noise gate threshold (`mediaStore.noiseGateThreshold`, default -60dB)
+- **Speaker indicator**: only shows when audio level > noise gate threshold (`mediaStore.noiseGateThreshold`, default -45dB)
 - **Remote audio playback**: native `<audio>` elements (NOT Web Audio API) — more reliable across browsers
 - **Voice disconnect**: emits `producer:close` via Socket.io to reliably trigger `USER_LEFT` broadcast
 - **DB**: MongoDB for persistent config (channels, bans, settings); Node.js Map for volatile WebRTC state
@@ -220,10 +220,17 @@ All app keys use `vc_` prefix to avoid collisions:
 | `vc_random_device_id` | string | Random device ID override |
 | `vc_master_volume` | string | Master output volume (float) |
 | `vc_voice_changer` | JSON | Voice changer params: `{ presetId, pitch, distortion, filterFreq, filterQ, reverbWet }` |
+| `vc_device_id` | string | Fingerprint fallback device ID |
+| `vc_selected_input` | string | Selected microphone device ID |
+| `vc_selected_output` | string | Selected speaker device ID |
+| `vc_sound_settings` | JSON | Sound effect toggles/volumes |
+| `vc_remote_volumes` | JSON | Per-device remote output volumes |
+| `vc_dismissed_announcements` | JSON | Locally dismissed announcement IDs |
+| `vc_admin_pass` | string | Remembered admin password |
 
 **Rules**:
-- Read in store initializer or service init, NOT in components
-- Write in store action or service setter, NEVER directly in components
+- Prefer reading in store initializer, hook initializer, or service init rather than scattered component reads
+- Prefer writing in store action, hook callback, or service setter rather than scattered component writes
 - Parse safely: wrap `JSON.parse` and `parseInt` in `try-catch` or provide defaults
 
 ---
@@ -232,7 +239,7 @@ All app keys use `vc_` prefix to avoid collisions:
 
 ### 2.1 Toast (`showToast(message, type)`)
 - **types**: `'success'` | `'error'` | `'warning'` | `'info'`
-- **When to use**: server ACK received, action completed, broadcast events
+- **When to use**: server ACK received or a user-initiated local action completed
 - **Message format**: `'{what}已{action}'` (e.g. '封禁时长已更新', '频道已创建')
 - Always Chinese, concise, present-tense
 
@@ -353,7 +360,7 @@ socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, payload);
 - `ROOM_INFO_UPDATED` — channel create/update/delete → update roomStore
 - `ANNOUNCEMENTS_UPDATED` — announcement list change → update roomStore
 - `ROOM_LIST` — full channel list → set roomStore.channels
-- Broadcast handlers must NOT call `showToast` — only update stores
+- Broadcast handlers must NOT call `showToast` — only update stores or room-level notification state
 
 ### 5.4 Event Naming
 - Client→Server: `admin:channel-create`, `user:channel-create`

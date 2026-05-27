@@ -15,8 +15,8 @@ function saveSettingAck(key: string, value: any, successMsg: string) {
     socket.off(EVENTS.SERVER.ERROR, onError);
   };
   const onAck = (data: any) => {
-    cleanup();
     if (data.key !== key) return;
+    cleanup();
     socket.emit('admin:config-getall');
     showToast(successMsg, 'success');
   };
@@ -326,6 +326,7 @@ export const AdminPanel: React.FC = () => {
   const [editAudioBitrate, setEditAudioBitrate] = useState(32);
   const [editPassword, setEditPassword] = useState('');
   const [editVoiceChangerEnabled, setEditVoiceChangerEnabled] = useState(true);
+  const [editError, setEditError] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -401,6 +402,7 @@ export const AdminPanel: React.FC = () => {
     if (!editRoomId || !editName.trim()) return;
     const pwd = editPassword.trim();
     const trimmed = editName.trim();
+    setEditError('');
     const updates: any = {
       roomId: editRoomId,
       newRoomId: editNewRoomId.trim() || undefined,
@@ -416,17 +418,18 @@ export const AdminPanel: React.FC = () => {
     if (!socket) return;
     const onSuccess = () => {
       socket.off(EVENTS.SERVER.ERROR, onError);
+      setEditRoomId('');
+      setEditError('');
       showToast(`频道 "${trimmed}" 已更新`, 'success');
     };
     const onError = (data: any) => {
-      socket.off('admin:channel-updated', onSuccess);
       if (data.event !== EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE) return;
-      showToast(data.message || '更新失败', 'error');
+      socket.off('admin:channel-updated', onSuccess);
+      setEditError(data.message || '更新失败');
     };
     socket.once('admin:channel-updated', onSuccess);
     socket.once(EVENTS.SERVER.ERROR, onError);
     socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_UPDATE, updates);
-    setEditRoomId('');
   };
 
   const handleDelete = (roomId: string) => {
@@ -662,8 +665,9 @@ export const AdminPanel: React.FC = () => {
                           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${editVoiceChangerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
                         </button>
                       </div>
+                      {editError && <p className="text-red-400 text-xs">{editError}</p>}
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => setEditRoomId('')} className="bg-gray-600 hover:bg-gray-500 text-white text-sm px-3 py-1.5 rounded-lg">取消</button>
+                        <button onClick={() => { setEditRoomId(''); setEditError(''); }} className="bg-gray-600 hover:bg-gray-500 text-white text-sm px-3 py-1.5 rounded-lg">取消</button>
                         <button onClick={handleUpdate} className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-3 py-1.5 rounded-lg">保存</button>
                       </div>
                     </div>
@@ -672,7 +676,7 @@ export const AdminPanel: React.FC = () => {
                       <span className="text-sm text-gray-400">上限: {ch.maxUsers}</span>
                       <span className="text-xs text-gray-500">{getAudioQualityLabel(ch.audioBitrate ?? 32)}</span>
                       <div className="flex-1" />
-                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(''); setEditVoiceChangerEnabled(ch.voiceChangerEnabled ?? true); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
+                      <button onClick={() => { setEditRoomId(ch.roomId); setEditNewRoomId(ch.roomId); setEditName(ch.name); setEditMax(ch.maxUsers); setEditAudioBitrate(ch.audioBitrate ?? 32); setEditPassword(''); setEditVoiceChangerEnabled(ch.voiceChangerEnabled ?? true); setEditError(''); }} className="text-sm text-primary-400 hover:text-primary-300">编辑</button>
                       {!ch.isDefault && (
                         <button onClick={() => handleDelete(ch.roomId)} className="text-sm text-red-400 hover:text-red-300">删除</button>
                       )}

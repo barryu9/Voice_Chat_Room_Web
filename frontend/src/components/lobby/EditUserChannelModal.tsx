@@ -25,14 +25,6 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
 
   useEffect(() => {
     inputRef.current?.focus();
-    const handleError = (data: any) => { setError(data.message || '操作失败'); setSaving(false); };
-    const handleSuccess = () => {
-      setSaving(false);
-      showToast('频道已更新', 'success');
-      onClose();
-    };
-    getSocket()?.once('user:channel-error', handleError);
-    getSocket()?.once('user:channel-updated', handleSuccess);
   }, []);
 
   const handleSave = async () => {
@@ -43,11 +35,34 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
     }
     setSaving(true);
     setError('');
+    const socket = getSocket();
+    if (!socket) {
+      setSaving(false);
+      setError('连接已断开');
+      return;
+    }
+    const cleanup = () => {
+      socket.off('user:channel-error', handleError);
+      socket.off('user:channel-updated', handleSuccess);
+    };
+    const handleError = (data: any) => {
+      cleanup();
+      setError(data.message || '操作失败');
+      setSaving(false);
+    };
+    const handleSuccess = () => {
+      cleanup();
+      setSaving(false);
+      showToast('频道已更新', 'success');
+      onClose();
+    };
     const updates: any = { roomId: channel.roomId, name: trimmed, maxUsers: Math.min(max, maxUsers), audioBitrate: bitrate, voiceChangerEnabled: vcEnabled };
     if (pwd !== origPwd.current) {
       updates.password = pwd;
     }
-    getSocket()?.emit('user:channel-update', updates);
+    socket.once('user:channel-error', handleError);
+    socket.once('user:channel-updated', handleSuccess);
+    socket.emit('user:channel-update', updates);
   };
 
   return (

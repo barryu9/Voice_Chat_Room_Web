@@ -119,6 +119,7 @@ function handleUserChannelEvents(socket, io) {
     if (room) {
       if (ch.name) room.name = ch.name;
       if (ch.maxUsers) room.maxUsers = ch.maxUsers;
+      if (ch.audioBitrate) room.audioBitrate = ch.audioBitrate;
     }
 
     const allCh = await getAllChannels();

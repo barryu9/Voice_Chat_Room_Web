@@ -81,7 +81,8 @@ export function useMediasoup() {
     const remoteProducers = useMediaStore.getState().remoteProducers;
     for (const [producerId, info] of remoteProducers) {
       if (info.deviceId === myDeviceId) continue;
-      if (useMediaStore.getState().isConsumed(producerId)) continue;
+      if (useMediaStore.getState().isConsumed(producerId) || useMediaStore.getState().isConsuming(producerId)) continue;
+      useMediaStore.getState().markConsuming(producerId);
       try {
         const consumer = await consumeProducer(transport, device, producerId);
         if (consumer) {
@@ -90,8 +91,11 @@ export function useMediasoup() {
           useMediaStore.getState().addConsumer(producerId, consumer);
           const ms = useMediaStore.getState();
           applyMuteState(producerId, ms.isAllMuted, ms.mutedUsers.has(info.deviceId));
+        } else {
+          useMediaStore.getState().unmarkConsuming(producerId);
         }
       } catch (e) {
+        useMediaStore.getState().unmarkConsuming(producerId);
         console.warn('[useMediasoup] consume failed for', producerId, e);
       }
     }
@@ -100,7 +104,8 @@ export function useMediasoup() {
 
     const onNewProducer = async (data: { producerId: string; userId: string; deviceId: string; kind: string }) => {
       if (data.deviceId === myDeviceId) return;
-      if (useMediaStore.getState().isConsumed(data.producerId)) return;
+      if (useMediaStore.getState().isConsumed(data.producerId) || useMediaStore.getState().isConsuming(data.producerId)) return;
+      useMediaStore.getState().markConsuming(data.producerId);
       try {
         const consumer = await consumeProducer(transport, device!, data.producerId);
         if (consumer) {
@@ -109,8 +114,11 @@ export function useMediasoup() {
           useMediaStore.getState().addConsumer(data.producerId, consumer);
           const ms = useMediaStore.getState();
           applyMuteState(data.producerId, ms.isAllMuted, ms.mutedUsers.has(data.deviceId));
+        } else {
+          useMediaStore.getState().unmarkConsuming(data.producerId);
         }
       } catch (e) {
+        useMediaStore.getState().unmarkConsuming(data.producerId);
         console.warn('[useMediasoup] consume failed for new producer', data.producerId, e);
       }
     };

@@ -14,6 +14,7 @@ interface MediaState {
   consumers: Map<string, any>;
   remoteProducers: Map<string, RemoteProducer>;
   consumedProducerIds: Set<string>;
+  consumingProducerIds: Set<string>;
   remoteAudioGains: Map<string, number>;
   isMicMuted: boolean;
   isVoiceConnected: boolean;
@@ -36,6 +37,9 @@ interface MediaState {
   removeRemoteProducer: (producerId: string) => void;
   getProducerIdByDeviceId: (deviceId: string) => string | undefined;
   markConsumed: (producerId: string) => void;
+  markConsuming: (producerId: string) => void;
+  unmarkConsuming: (producerId: string) => void;
+  isConsuming: (producerId: string) => boolean;
   isConsumed: (producerId: string) => boolean;
   setRemoteAudioGain: (producerId: string, gain: number) => void;
   setMicMuted: (m: boolean) => void;
@@ -61,6 +65,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   consumers: new Map(),
   remoteProducers: new Map(),
   consumedProducerIds: new Set(),
+  consumingProducerIds: new Set(),
   remoteAudioGains: new Map(),
   isMicMuted: false,
   isVoiceConnected: false,
@@ -95,8 +100,12 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   removeConsumer: (id) =>
     set((s) => {
       const m = new Map(s.consumers);
+      const consumed = new Set(s.consumedProducerIds);
+      const pending = new Set(s.consumingProducerIds);
       m.delete(id);
-      return { consumers: m };
+      consumed.delete(id);
+      pending.delete(id);
+      return { consumers: m, consumedProducerIds: consumed, consumingProducerIds: pending };
     }),
 
   addRemoteProducer: (p) =>
@@ -120,9 +129,24 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   markConsumed: (producerId) =>
     set((s) => {
       const ids = new Set(s.consumedProducerIds);
+      const pending = new Set(s.consumingProducerIds);
       ids.add(producerId);
-      return { consumedProducerIds: ids };
+      pending.delete(producerId);
+      return { consumedProducerIds: ids, consumingProducerIds: pending };
     }),
+  markConsuming: (producerId) =>
+    set((s) => {
+      const ids = new Set(s.consumingProducerIds);
+      ids.add(producerId);
+      return { consumingProducerIds: ids };
+    }),
+  unmarkConsuming: (producerId) =>
+    set((s) => {
+      const ids = new Set(s.consumingProducerIds);
+      ids.delete(producerId);
+      return { consumingProducerIds: ids };
+    }),
+  isConsuming: (producerId) => get().consumingProducerIds.has(producerId),
   isConsumed: (producerId) => get().consumedProducerIds.has(producerId),
 
   setRemoteAudioGain: (producerId, gain) =>
@@ -179,6 +203,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       producer: null,
       consumers: new Map(),
       consumedProducerIds: new Set(),
+      consumingProducerIds: new Set(),
       isMicMuted: false,
       isVoiceConnected: false,
     }),
@@ -191,6 +216,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       consumers: new Map(),
       remoteProducers: new Map(),
       consumedProducerIds: new Set(),
+      consumingProducerIds: new Set(),
       remoteAudioGains: new Map(),
       isMicMuted: false,
       isVoiceConnected: false,
