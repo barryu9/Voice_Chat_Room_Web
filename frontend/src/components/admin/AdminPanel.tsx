@@ -10,14 +10,19 @@ import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/c
 function saveSettingAck(key: string, value: any, successMsg: string) {
   const socket = getSocket();
   if (!socket) { showToast('连接已断开', 'error'); return; }
-  const onAck = (data: any) => {
+  const cleanup = () => {
+    socket.off(EVENTS.SERVER.SETTINGS_UPDATED, onAck);
     socket.off(EVENTS.SERVER.ERROR, onError);
+  };
+  const onAck = (data: any) => {
+    cleanup();
     if (data.key !== key) return;
     socket.emit('admin:config-getall');
     showToast(successMsg, 'success');
   };
   const onError = (data: any) => {
-    socket.off(EVENTS.SERVER.SETTINGS_UPDATED, onAck);
+    if (data.event !== EVENTS.CLIENT.ADMIN_SETTINGS_UPDATE) return;
+    cleanup();
     showToast(data.message || '保存失败', 'error');
   };
   socket.on(EVENTS.SERVER.SETTINGS_UPDATED, onAck);

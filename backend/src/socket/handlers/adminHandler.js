@@ -127,6 +127,9 @@ function handleAdminEvents(socket, io) {
     if (key === 'version' || key === 'loginFooter') {
       io.emit('site:info-updated', { key, value });
     }
+    if (key === 'config:voice_changer_enabled') {
+      io.emit('config:voice-changer-updated', { enabled: !!value });
+    }
   });
 
   socket.on('admin:config-getall', async () => {

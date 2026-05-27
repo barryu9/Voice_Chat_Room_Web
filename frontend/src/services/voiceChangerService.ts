@@ -17,7 +17,7 @@ export function isVoiceChangerReady(): boolean {
 }
 
 export function getVoiceChangerOutput(): AudioNode | null {
-  return outputGain as unknown as AudioNode | null;
+  return (outputGain as any)?.output ?? null;
 }
 
 export async function initVoiceChanger(): Promise<void> {
@@ -28,7 +28,7 @@ export async function initVoiceChanger(): Promise<void> {
 
   try {
     if (!toneReady) {
-      const ctx = new Tone.Context({ context: ac });
+      const ctx = new Tone.Context(ac);
       Tone.setContext(ctx);
       toneReady = true;
     }
@@ -56,12 +56,16 @@ export async function initVoiceChanger(): Promise<void> {
 
 export function connectVoiceChanger(sourceNode: AudioNode, destNode: AudioNode): void {
   if (!chainReady || !inputGain || !outputGain) return;
-  sourceNode.connect(inputGain as any);
-  (outputGain as any).connect(destNode);
+  // Connect native → Tone via the native input GainNode of inputGain
+  sourceNode.connect((inputGain as any).input);
+  // Connect Tone → native via the native output GainNode of outputGain
+  (outputGain as any).output.connect(destNode);
 }
 
 export function disconnectVoiceChanger(): void {
   if (!inputGain || !outputGain) return;
+  try { (inputGain as any).input.disconnect(); } catch {}
+  try { (outputGain as any).output.disconnect(); } catch {}
   try { inputGain.disconnect(); } catch {}
   try { outputGain.disconnect(); } catch {}
 }

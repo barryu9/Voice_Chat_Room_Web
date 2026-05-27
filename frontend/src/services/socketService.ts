@@ -331,4 +331,11 @@ function registerListeners() {
       });
     }
   });
+
+  socket.on('config:voice-changer-updated', (data: { enabled: boolean }) => {
+    useAdminStore.getState().setConfig({
+      ...useAdminStore.getState().config,
+      voiceChangerEnabled: data.enabled,
+    });
+  });
 }
