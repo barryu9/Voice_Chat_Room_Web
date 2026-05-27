@@ -129,7 +129,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         {isMuted && (
           <p className="text-[10px] text-red-400 mb-0.5">已被你静音</p>
         )}
-        {!isSelf && vcState?.enabled && (
+        {vcState?.enabled && (
           <p className="text-[10px] text-green-400 mb-0.5">变声：{vcState.presetLabel}</p>
         )}
         <p className="text-xs sm:text-sm font-medium text-white truncate max-w-[80px] sm:max-w-[100px]">
