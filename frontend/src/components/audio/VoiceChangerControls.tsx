@@ -37,7 +37,8 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
           <select
             value={presetId}
             onChange={handlePresetChange}
-            className="flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-white focus:outline-none focus:border-primary-500/50"
+            disabled={transiting}
+            className={`flex-1 bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-white focus:outline-none focus:border-primary-500/50 ${transiting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {Object.entries(VOICE_PRESETS).map(([id, p]) => (
               <option key={id} value={id}>{p.label}</option>

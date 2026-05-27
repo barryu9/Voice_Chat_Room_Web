@@ -216,7 +216,22 @@ export const RoomPanel: React.FC = () => {
   }, [vcTransiting]);
 
   const handleVoiceChangerPresetChange = useCallback((presetId: string) => {
-    switchPreset(presetId);
+    const rnOn = useMediaStore.getState().noiseSuppressionEnabled;
+    if (rnOn) {
+      setVcTransiting(true);
+      setNoiseTransiting(true);
+      setNoiseSuppressionEnabled(false);
+      toggleNoiseSuppressor(false);
+      switchPreset(presetId);
+      setNoiseSuppressionEnabled(true);
+      toggleNoiseSuppressor(true);
+      setTimeout(() => {
+        setVcTransiting(false);
+        setNoiseTransiting(false);
+      }, 300);
+    } else {
+      switchPreset(presetId);
+    }
   }, []);
 
   useEffect(() => {
