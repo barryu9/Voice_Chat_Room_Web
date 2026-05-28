@@ -76,7 +76,13 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200">
+      <div className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors text-sm leading-none"
+        >
+          ✕
+        </button>
         <h3 className="text-base font-semibold text-white mb-2">变声预览</h3>
 
         <div className="space-y-2">
@@ -134,10 +140,6 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
           )}
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
-
-          <button onClick={onClose} className="w-full bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 rounded-xl">
-            关闭
-          </button>
         </div>
       </div>
     </div>
