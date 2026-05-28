@@ -41,101 +41,9 @@ body {
   --scrollbar-thumb:   #4b5563;
   --scrollbar-thumb-h: #6b7280;
   --backdrop:          rgba(0, 0, 0, 0.6);
-  --panel-blur:        backdrop-blur-xl;
-  --card-blur:         backdrop-blur-md;
-}
-
-/* ---- 日间版 ---- */
-[data-theme="light"] {
-  --color-primary-50:  238 242 255;
-  --color-primary-100: 224 231 255;
-  --color-primary-200: 199 210 254;
-  --color-primary-300: 165 180 252;
-  --color-primary-400: 129 140 248;
-  --color-primary-500: 99  102 241;
-  --color-primary-600: 79  70  229;
-  --color-primary-700: 67  56  202;
-  --color-primary-800: 55  48  163;
-  --color-primary-900: 49  46  129;
-  --color-primary-950: 30  27  75;
-
-  --bg-body:           #f3f4f6;
-  --bg-panel:          rgba(255, 255, 255, 0.85);
-  --bg-card:           rgba(255, 255, 255, 0.75);
-  --bg-input:          rgba(243, 244, 246, 0.9);
-  --border:            rgba(209, 213, 219, 0.8);
-  --border-light:      rgba(229, 231, 235, 0.6);
-  --text:              #111827;
-  --text-secondary:    #6b7280;
-  --text-muted:        #9ca3af;
-  --placeholder:       #9ca3af;
-  --scrollbar-thumb:   #d1d5db;
-  --scrollbar-thumb-h: #9ca3af;
-  --backdrop:          rgba(255, 255, 255, 0.4);
-  --panel-blur:        none;
-  --card-blur:         none;
-}
-
-/* ---- 夜间版 ---- */
-[data-theme="dark"] {
-  --color-primary-50:  238 242 255;
-  --color-primary-100: 224 231 255;
-  --color-primary-200: 199 210 254;
-  --color-primary-300: 165 180 252;
-  --color-primary-400: 129 140 248;
-  --color-primary-500: 99  102 241;
-  --color-primary-600: 79  70  229;
-  --color-primary-700: 67  56  202;
-  --color-primary-800: 55  48  163;
-  --color-primary-900: 49  46  129;
-  --color-primary-950: 30  27  75;
-
-  --bg-body:           #000000;
-  --bg-panel:          rgba(17, 17, 17, 0.8);
-  --bg-card:           rgba(34, 34, 34, 0.6);
-  --bg-input:          rgba(34, 34, 34, 0.8);
-  --border:            rgba(55, 55, 55, 0.7);
-  --border-light:      rgba(75, 75, 75, 0.4);
-  --text:              #f3f4f6;
-  --text-secondary:    #9ca3af;
-  --text-muted:        #6b7280;
-  --placeholder:       #4b5563;
-  --scrollbar-thumb:   #3f3f46;
-  --scrollbar-thumb-h: #52525b;
-  --backdrop:          rgba(0, 0, 0, 0.7);
-  --panel-blur:        backdrop-blur-xl;
-  --card-blur:         backdrop-blur-md;
-}
-
-/* ---- 渐变绿 ---- */
-[data-theme="green"] {
-  --color-primary-50:  236 253 245;
-  --color-primary-100: 209 250 229;
-  --color-primary-200: 167 243 208;
-  --color-primary-300: 110 231 183;
-  --color-primary-400: 52  211 153;
-  --color-primary-500: 16  185 129;
-  --color-primary-600: 5   150 105;
-  --color-primary-700: 4   120 87;
-  --color-primary-800: 6   95  70;
-  --color-primary-900: 6   78  59;
-  --color-primary-950: 2   44  34;
-
-  --bg-body:           #030712;
-  --bg-panel:          rgba(17, 24, 39, 0.6);
-  --bg-card:           rgba(31, 41, 55, 0.4);
-  --bg-input:          rgba(31, 41, 55, 0.6);
-  --border:            rgba(55, 65, 81, 0.5);
-  --border-light:      rgba(75, 85, 99, 0.3);
-  --text:              #ffffff;
-  --text-secondary:    #9ca3af;
-  --text-muted:        #6b7280;
-  --placeholder:       #4b5563;
   --scrollbar-thumb:   #4b5563;
   --scrollbar-thumb-h: #6b7280;
   --backdrop:          rgba(0, 0, 0, 0.6);
-  --panel-blur:        backdrop-blur-xl;
-  --card-blur:         backdrop-blur-md;
 }
 
 /* ---- 渐变橙 ---- */
@@ -165,8 +73,6 @@ body {
   --scrollbar-thumb:   #4b5563;
   --scrollbar-thumb-h: #6b7280;
   --backdrop:          rgba(0, 0, 0, 0.6);
-  --panel-blur:        backdrop-blur-xl;
-  --card-blur:         backdrop-blur-md;
 }
 
 /* ---- 涂鸦风 ---- */
@@ -196,8 +102,6 @@ body {
   --scrollbar-thumb:   #000000;
   --scrollbar-thumb-h: #374151;
   --backdrop:          rgba(255, 255, 255, 0.8);
-  --panel-blur:        none;
-  --card-blur:         none;
 }
 
 
@@ -224,18 +128,25 @@ body {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 1rem;
+    backdrop-filter: blur(24px);
+  }
+  [data-theme="light"] .glass-panel,
+  [data-theme="graffiti"] .glass-panel {
+    backdrop-filter: none;
   }
   [data-theme="graffiti"] .glass-panel {
     border-width: 2px;
-  }
-  .glass-panel[class*="backdrop-blur"] {
-    /* preserve existing blur classes; no-ops are fine */
   }
 
   .glass-card {
     background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: 0.75rem;
+    backdrop-filter: blur(12px);
+  }
+  [data-theme="light"] .glass-card,
+  [data-theme="graffiti"] .glass-card {
+    backdrop-filter: none;
   }
   [data-theme="graffiti"] .glass-card {
     border-width: 2px;
@@ -291,16 +202,7 @@ body {
   border: 2px solid #000000 !important;
 }
 
-/* disable backdrop blur for themes with solid cards */
-[data-theme="light"] .backdrop-blur,
-[data-theme="light"] .backdrop-blur-sm,
-[data-theme="light"] .backdrop-blur-md,
-[data-theme="light"] .backdrop-blur-lg,
-[data-theme="light"] .backdrop-blur-xl,
-[data-theme="graffiti"] .backdrop-blur,
-[data-theme="graffiti"] .backdrop-blur-sm,
-[data-theme="graffiti"] .backdrop-blur-md,
-[data-theme="graffiti"] .backdrop-blur-lg,
-[data-theme="graffiti"] .backdrop-blur-xl {
-  backdrop-filter: none !important;
+/* graffiti border for popovers */
+[data-theme="graffiti"] .audio-popover {
+  border: 2px solid #000000 !important;
 }
