@@ -1,5 +1,7 @@
 # 语音聊天室 (Voice Chat Room)
 
+[English](./README_EN.md)
+
 一个**无注册**的实时多人语音聊天室，支持频道系统、变声器、降噪和音量控制。
 
 > 本项目**完全通过** [Opencode](https://opencode.ai) + **DeepSeek V4 Pro**，以 Vibe Coding 方式开发。
