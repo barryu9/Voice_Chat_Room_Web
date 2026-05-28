@@ -17,10 +17,10 @@ export const LatencyIndicator: React.FC<LatencyIndicatorProps> = ({ latency }) =
 
   return (
     <span className="inline-flex items-center gap-0.5 shrink-0" title={`延迟: ${latency}ms`}>
-      <svg className="w-2 h-2" viewBox="0 0 8 8">
+      <svg className="w-2.5 h-2.5" viewBox="0 0 8 8">
         <circle cx="4" cy="4" r="4" fill={color} />
       </svg>
-      <span className="text-[10px]" style={{ color }}>{latency}ms</span>
+      <span className="text-xs" style={{ color }}>{latency}ms</span>
     </span>
   );
 };

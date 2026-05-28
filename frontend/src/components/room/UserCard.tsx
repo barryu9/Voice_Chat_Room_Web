@@ -111,11 +111,6 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
     >
       {/* Avatar */}
       <div className="relative">
-        {peerLatency != null && (
-          <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-            <LatencyIndicator latency={peerLatency} />
-          </div>
-        )}
         <div
           className={`avatar-circle rounded-full flex items-center justify-center text-white font-bold text-lg select-none ${isSpeaking ? 'avatar-speaking' : ''}`}
           style={{
@@ -144,6 +139,11 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
           {user.nickname}
           {isSelf && <span className="text-gray-500 text-xs ml-1">(我)</span>}
         </p>
+        {peerLatency != null && (
+          <div className="mt-0.5 flex justify-center">
+            <LatencyIndicator latency={peerLatency} />
+          </div>
+        )}
         {isServerMuted && (
           <p className="text-[10px] text-yellow-400 mt-0.5">
             已被禁言
