@@ -47,6 +47,16 @@ cd frontend && npm run dev
 - 前端：`https://localhost:5173`（局域网自动检测 IP）
 - 开发环境 MongoDB 自动使用 `mongodb-memory-server`，无需额外安装
 
+### ⚠️ 浏览器安全策略
+
+除 `localhost` 和 `127.0.0.1` 外，现代浏览器获取麦克风权限**必须**使用 HTTPS/WSS 传输。解决方案：
+
+1. **正式部署** — 绑定域名，申请 SSL/TLS 证书（Let's Encrypt 等）。
+2. **局域网调试** — 伪造本地证书并跳过浏览器警告（Vite 开发服务器默认使用自签名证书）。
+3. **Chrome 内核浏览器** — 访问 `chrome://flags/#unsafely-treat-insecure-origin-as-secure`，将局域网或公网地址加入白名单。
+
+> 仅以 IP 地址为入口，即使申请了 SSL/TLS 证书，浏览器仍会弹出安全警告，需要用户自行跳过。
+
 ### 管理员界面
 
 在网址后加上 `?admin` 后缀（如 `https://localhost:5173/?admin`），会出现 **⚙ 管理** 按钮。点击后输入管理员密码即可进入管理面板：

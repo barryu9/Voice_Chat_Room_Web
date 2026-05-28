@@ -47,6 +47,16 @@ cd frontend && npm run dev
 - Frontend: `https://localhost:5173` (LAN IP auto-detected)
 - Dev MongoDB auto-starts via `mongodb-memory-server` — no manual setup needed
 
+### ⚠️ Browser Security Policy
+
+Except for `localhost` and `127.0.0.1`, modern browsers require **HTTPS/WSS** to access the microphone. Solutions:
+
+1. **Production** — Bind a domain and obtain an SSL/TLS certificate (e.g., Let's Encrypt).
+2. **LAN debugging** — Use a self-signed certificate and skip the browser warning (Vite dev server uses a self-signed cert by default).
+3. **Chrome-based browsers** — Navigate to `chrome://flags/#unsafely-treat-insecure-origin-as-secure` and whitelist your LAN or public IP.
+
+> Even with a valid SSL/TLS certificate, IP-only addresses will still trigger a browser security warning — users must manually bypass it.
+
 ### Admin Panel
 
 Append `?admin` to the URL (e.g., `https://localhost:5173/?admin`) to reveal the **⚙ Admin** button. Click it, enter the admin password, and access:
