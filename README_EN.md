@@ -87,6 +87,10 @@ cp deploy.conf.example deploy.conf
 git pull && bash deploy.sh
 ```
 
+> ⚠️ **Before going live**: On first deploy, the script automatically copies blocked-word example files. Review and edit these with your actual word list (leave empty to disable filtering):
+> - Frontend: `frontend/src/utils/blockedWords.ts`
+> - Backend: `backend/src/utils/blockedWords.js`
+
 ### Docker Architecture
 
 ```

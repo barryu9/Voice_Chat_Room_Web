@@ -87,6 +87,10 @@ cp deploy.conf.example deploy.conf
 git pull && bash deploy.sh
 ```
 
+> ⚠️ **上线前注意**：首次部署时，部署脚本会自动将违禁词示例文件复制为正式文件。请检查并编辑以下文件，填入实际违禁词（留空则不过滤）：
+> - 前端：`frontend/src/utils/blockedWords.ts`
+> - 后端：`backend/src/utils/blockedWords.js`
+
 ### Docker 架构
 
 ```
