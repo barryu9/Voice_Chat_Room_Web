@@ -5,10 +5,11 @@ import { VOICE_PRESETS } from '../../utils/voicePresets';
 interface Props {
   onToggle: (enabled: boolean) => void;
   onPresetChange: (presetId: string) => void;
+  onPreview: () => void;
   transiting: boolean;
 }
 
-export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange, transiting }) => {
+export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange, onPreview, transiting }) => {
   const enabled = useVoiceChangerStore((s) => s.enabled);
   const presetId = useVoiceChangerStore((s) => s.presetId);
 
@@ -30,6 +31,15 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
           <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
+
+      {!enabled && !transiting && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPreview(); }}
+          className="w-full text-xs text-gray-400 hover:text-primary-400 transition-colors py-1"
+        >
+          预览变声效果...
+        </button>
+      )}
 
       {enabled && (
         <div className="flex items-center gap-2">

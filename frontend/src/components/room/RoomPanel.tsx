@@ -19,6 +19,7 @@ import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
 import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
+import { VoicePreviewModal } from '../audio/VoicePreviewModal';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 
@@ -50,6 +51,7 @@ export const RoomPanel: React.FC = () => {
   const [connecting, setConnecting] = useState(false);
   const [duration, setDuration] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showVoicePreview, setShowVoicePreview] = useState(false);
   const durationRef = useRef<number>(0);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
   const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === myUserId;
@@ -393,6 +395,7 @@ export const RoomPanel: React.FC = () => {
             voiceChangerEnabled={voiceChangerAllowed}
             onVoiceChangerToggle={handleVoiceChangerToggle}
             onVoiceChangerPresetChange={handleVoiceChangerPresetChange}
+            onVoiceChangerPreview={() => setShowVoicePreview(true)}
             vcTransiting={vcTransiting}
           />
 
@@ -442,6 +445,10 @@ export const RoomPanel: React.FC = () => {
           <UserGrid />
         </div>
       </div>
+
+      {showVoicePreview && (
+        <VoicePreviewModal onClose={() => setShowVoicePreview(false)} />
+      )}
 
       {showEditModal && currentChannel && (
         <EditUserChannelModal

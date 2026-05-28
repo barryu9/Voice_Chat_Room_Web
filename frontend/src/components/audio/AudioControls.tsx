@@ -22,6 +22,7 @@ interface AudioControlsProps {
   voiceChangerEnabled: boolean;
   onVoiceChangerToggle: (enabled: boolean) => void;
   onVoiceChangerPresetChange: (presetId: string) => void;
+  onVoiceChangerPreview: () => void;
   vcTransiting: boolean;
 }
 
@@ -66,7 +67,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
   onToggleMuteAll, onMasterVolumeChange,
-  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, vcTransiting,
+  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, onVoiceChangerPreview, vcTransiting,
 }) => {
   const [micOpen, setMicOpen] = useState(false);
   const [speakerOpen, setSpeakerOpen] = useState(false);
@@ -259,6 +260,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           <VoiceChangerControls
             onToggle={onVoiceChangerToggle}
             onPresetChange={onVoiceChangerPresetChange}
+            onPreview={onVoiceChangerPreview}
             transiting={vcTransiting}
           />
         )}
