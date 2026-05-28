@@ -8,6 +8,7 @@ let recordedChunks: Blob[] = [];
 let recordedBuffer: AudioBuffer | null = null;
 let isRecording = false;
 let isPlaying = false;
+let onStopReady: (() => void) | null = null;
 
 let previewInput: Tone.Gain | null = null;
 let previewOutput: Tone.Gain | null = null;
@@ -37,23 +38,27 @@ export async function startRecording(): Promise<void> {
   };
 
   mediaRecorder.onstop = async () => {
-    if (recordedChunks.length === 0) return;
+    if (recordedChunks.length === 0) { onStopReady?.(); return; }
     try {
       const ctx = getAudioContext() || await initAudioContext();
       const blob = new Blob(recordedChunks, { type: 'audio/webm' });
       const arrayBuffer = await blob.arrayBuffer();
       recordedBuffer = await ctx.decodeAudioData(arrayBuffer);
     } catch {}
+    onStopReady?.();
   };
 
   mediaRecorder.start();
   isRecording = true;
 }
 
-export function stopRecording(): void {
+export function stopRecording(onReady?: () => void): void {
+  onStopReady = onReady || null;
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
     mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+  } else {
+    onStopReady?.();
   }
   recordingStream = null;
   isRecording = false;

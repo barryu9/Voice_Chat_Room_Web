@@ -268,10 +268,9 @@ export const RoomPanel: React.FC = () => {
         setTestCountdown(sec);
         if (sec <= 0) {
           clearInterval(testTimerRef.current);
-          stopRecording();
           setTestCountdown(0);
           setTestPlaying(true);
-          setTimeout(() => {
+          stopRecording(() => {
             const buf = getRecordedBuffer();
             if (buf) {
               const vcEnabled = useVoiceChangerStore.getState().enabled;
@@ -283,7 +282,7 @@ export const RoomPanel: React.FC = () => {
               setTestPlaying(false);
             }
             destroyPreview();
-          }, 100);
+          });
         }
       }, 1000);
     } catch {
