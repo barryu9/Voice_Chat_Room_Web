@@ -76,16 +76,16 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <h3 className="text-lg font-semibold text-white mb-4">变声预览</h3>
+      <div className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <h3 className="text-base font-semibold text-white mb-2">变声预览</h3>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           <label>
             <span className="text-xs text-gray-400">选择预设</span>
             <select
               value={presetId}
               onChange={(e) => { setPresetId(e.target.value); setHasRecorded(false); }}
-              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50"
+              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 mt-1 text-xs text-white focus:outline-none focus:border-primary-500/50"
             >
               {presetEntries.map(([id, p]) => (
                 <option key={id} value={id}>{p.label}</option>
@@ -93,12 +93,12 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
             </select>
           </label>
 
-          <div className="flex items-center justify-center gap-3 py-3">
+          <div className="flex items-center justify-center gap-2 py-1">
             {!hasRecorded ? (
               <button
                 onClick={handleRecord}
                 disabled={recording}
-                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm px-6 py-2.5 rounded-xl"
+                className="bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white text-sm px-5 py-2 rounded-xl"
               >
                 {recording ? `录音中... ${countdown}s` : '开始录音 (5秒)'}
               </button>
@@ -106,21 +106,21 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
               <div className="flex gap-2">
                 <button
                   onClick={handleReRecord}
-                  className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 py-2.5 rounded-xl"
+                  className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-xl"
                 >
                   重新录音
                 </button>
                 {playing ? (
                   <button
                     onClick={handleStop}
-                    className="bg-yellow-500 hover:bg-yellow-400 text-white text-sm px-4 py-2.5 rounded-xl"
+                    className="bg-yellow-500 hover:bg-yellow-400 text-white text-sm px-3 py-2 rounded-xl"
                   >
                     停止
                   </button>
                 ) : (
                   <button
                     onClick={handlePlay}
-                    className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2.5 rounded-xl"
+                    className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-3 py-2 rounded-xl"
                   >
                     播放预览
                   </button>
@@ -135,11 +135,9 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
 
-          <div className="flex gap-2 pt-2">
-            <button onClick={onClose} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl">
-              关闭
-            </button>
-          </div>
+          <button onClick={onClose} className="w-full bg-gray-700 hover:bg-gray-600 text-white text-sm py-2 rounded-xl">
+            关闭
+          </button>
         </div>
       </div>
     </div>
