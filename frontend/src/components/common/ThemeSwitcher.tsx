@@ -8,7 +8,7 @@ export const ThemeSwitcher: React.FC = () => {
     <select
       value={theme}
       onChange={(e) => setTheme(e.target.value as typeof theme)}
-      className="bg-transparent border border-gray-600/50 rounded-lg px-2 h-7 text-xs text-gray-400 focus:outline-none focus:border-primary-500/50 cursor-pointer"
+      className="bg-primary-600/20 border border-primary-500/30 rounded-lg px-2 h-7 text-xs text-primary-300 focus:outline-none focus:border-primary-500/50 cursor-pointer"
     >
       {THEMES.map((t) => (
         <option key={t.id} value={t.id}>{t.label}</option>
