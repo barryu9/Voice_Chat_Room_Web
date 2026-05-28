@@ -32,15 +32,6 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
         </button>
       </div>
 
-      {!transiting && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onPreview(); }}
-          className="w-full text-xs text-gray-400 hover:text-primary-400 transition-colors py-1"
-        >
-          预览变声效果
-        </button>
-      )}
-
       {enabled && (
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 w-8">预设</span>
@@ -55,6 +46,15 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
             ))}
           </select>
         </div>
+      )}
+
+      {!transiting && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPreview(); }}
+          className="w-full text-xs text-gray-400 hover:text-primary-400 transition-colors py-1"
+        >
+          预览变声效果
+        </button>
       )}
     </div>
   );
