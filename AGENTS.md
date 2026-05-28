@@ -14,12 +14,12 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 - Backend: `http://localhost:3001` (health: `/health`)
-- Frontend: `https://localhost:5173` or `https://192.168.31.14:5173` (LAN)
+- Frontend: `https://localhost:5173` or `https://<LAN-IP>:5173` (LAN)
 
 ## Production URLs
-- Frontend: `https://chat.pokepal.fun`
-- Backend API/WS: `https://talk.pokepal.fun`
-- Server IP: `38.95.75.238`
+- Frontend: `https://<your-frontend-domain>`
+- Backend API/WS: `https://<your-backend-domain>`
+- Server IP: `<your-server-ip>`
 - RTP ports: UDP 40000-49999
 
 ## Deploy
