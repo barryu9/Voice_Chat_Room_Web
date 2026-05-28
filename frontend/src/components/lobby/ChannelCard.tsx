@@ -106,7 +106,7 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
       <button
         onClick={(e) => { e.stopPropagation(); handleClick(); }}
         disabled={disabled}
-        className="absolute bottom-3 right-3 w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-500 hover:to-violet-500 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white transition-all active:scale-95"
+        className="absolute bottom-3 right-3 w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white transition-all active:scale-95"
         title="加入"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
