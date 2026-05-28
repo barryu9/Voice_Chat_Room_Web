@@ -29,7 +29,7 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, min, max }) => 
   }, []);
 
   return (
-    <div className="flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden h-8">
+    <div className="stepper-input flex items-center rounded-lg border border-gray-600/50 bg-gray-800/60 overflow-hidden h-8">
       <button
         onMouseDown={() => startRepeat(-1)}
         onMouseUp={stopRepeat}

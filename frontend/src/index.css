@@ -258,6 +258,11 @@ body {
   color: var(--text) !important;
 }
 
+[data-theme] .stepper-input input[type="text"] {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
 [data-theme] select::placeholder,
 [data-theme] input::placeholder,
 [data-theme] textarea::placeholder {
