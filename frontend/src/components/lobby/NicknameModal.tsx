@@ -6,6 +6,7 @@ import { EVENTS } from '../../utils/constants';
 import { setCookie } from '../../utils/cookies';
 import { containsBlockedWord } from '../../utils/blockedWords';
 import { TechBackground } from '../common/TechBackground';
+import { ThemeSwitcher } from '../common/ThemeSwitcher';
 
 interface NicknameModalProps {
   onClose: () => void;
@@ -152,6 +153,10 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
                         : '进入聊天室'}
               </button>
           </form>
+        </div>
+
+        <div className="flex justify-center mt-3">
+          <ThemeSwitcher />
         </div>
 
         {(loginFooter || version) && (

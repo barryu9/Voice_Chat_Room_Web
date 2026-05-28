@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSoundStore, SoundKey, SOUND_LABELS } from '../../stores/soundStore';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 const SOUND_KEYS = Object.keys(SOUND_LABELS) as SoundKey[];
 
@@ -73,6 +74,10 @@ export const SoundSettings: React.FC = () => {
                 />
               </label>
             ))}
+          </div>
+          <div className="border-t border-gray-700/50 mt-2 pt-2 flex items-center justify-between">
+            <span className="text-xs text-gray-400">外观</span>
+            <ThemeSwitcher />
           </div>
         </div>
       )}
