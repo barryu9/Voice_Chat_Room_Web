@@ -32,12 +32,12 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
         </button>
       </div>
 
-      {!enabled && !transiting && (
+      {!transiting && (
         <button
           onClick={(e) => { e.stopPropagation(); onPreview(); }}
           className="w-full text-xs text-gray-400 hover:text-primary-400 transition-colors py-1"
         >
-          预览变声效果...
+          预览变声效果
         </button>
       )}
 
