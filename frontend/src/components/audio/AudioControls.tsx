@@ -226,7 +226,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           {testCountdown > 0 ? (
             <span className="text-green-400 ml-0.5">（录音 {testCountdown}s）</span>
           ) : testPlaying ? (
-            <span className="text-green-400 ml-0.5">（正在播放）</span>
+            <span className="text-yellow-400 ml-0.5">（正在播放）</span>
           ) : (
             <button
               type="button"

@@ -270,18 +270,20 @@ export const RoomPanel: React.FC = () => {
           clearInterval(testTimerRef.current);
           stopRecording();
           setTestCountdown(0);
+          setTestPlaying(true);
           setTimeout(() => {
             const buf = getRecordedBuffer();
             if (buf) {
               const vcEnabled = useVoiceChangerStore.getState().enabled;
               const presetId = useVoiceChangerStore.getState().presetId;
               const micGain = parseFloat(localStorage.getItem('vc_gain') || '1');
-              setTestPlaying(true);
               playTest(buf, micGain, vcEnabled, presetId);
               setTimeout(() => setTestPlaying(false), buf.duration * 1000 + 300);
+            } else {
+              setTestPlaying(false);
             }
             destroyPreview();
-          }, 200);
+          }, 100);
         }
       }, 1000);
     } catch {
