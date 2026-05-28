@@ -13,7 +13,7 @@ import { AdminLogin } from '../admin/AdminLogin';
 import { Announcement } from '../common/Announcement';
 import { showToast } from '../common/Toast';
 import { TechBackground } from '../common/TechBackground';
-import { SoundSettings } from '../common/SoundSettings';
+import { SettingsPanel } from '../common/SettingsPanel';
 import { ChannelPasswordModal } from './ChannelPasswordModal';
 import { CreateUserChannelModal } from './CreateUserChannelModal';
 import { EditUserChannelModal } from './EditUserChannelModal';
@@ -188,7 +188,7 @@ export const Lobby: React.FC = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <SoundSettings />
+            <SettingsPanel />
             <button
               onClick={handleLogout}
               title="退出登录"

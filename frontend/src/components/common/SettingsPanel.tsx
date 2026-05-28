@@ -4,7 +4,7 @@ import { ThemeSwitcher } from './ThemeSwitcher';
 
 const SOUND_KEYS = Object.keys(SOUND_LABELS) as SoundKey[];
 
-export const SoundSettings: React.FC = () => {
+export const SettingsPanel: React.FC = () => {
   const [open, setOpen] = useState(false);
   const enabled = useSoundStore((s) => s.enabled);
   const toggle = useSoundStore((s) => s.toggle);
@@ -38,7 +38,7 @@ export const SoundSettings: React.FC = () => {
             ? 'bg-primary-600/30 text-primary-300'
             : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'
         }`}
-        title="提示音设置"
+        title="提示音与外观设置"
       >
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />

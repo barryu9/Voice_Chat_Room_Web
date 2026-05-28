@@ -18,7 +18,7 @@ import { AudioControls } from '../audio/AudioControls';
 import { showToast } from '../common/Toast';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
-import { SoundSettings } from '../common/SoundSettings';
+import { SettingsPanel } from '../common/SettingsPanel';
 import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { VoicePreviewModal } from '../audio/VoicePreviewModal';
 import { LatencyIndicator } from './LatencyIndicator';
@@ -381,7 +381,7 @@ export const RoomPanel: React.FC = () => {
                 </svg>
               </button>
             )}
-            <SoundSettings />
+            <SettingsPanel />
             <button
               onClick={handleLeaveRoom}
               title="离开频道"
