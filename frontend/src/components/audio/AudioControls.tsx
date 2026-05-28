@@ -132,7 +132,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           onClick={onToggleMuteAll}
           className={`p-3 sm:p-2.5 rounded-xl transition-all active:scale-95 ${
             isAllMuted
-              ? 'bg-yellow-600/30 text-yellow-400 border border-yellow-500/30'
+              ? 'audio-muted-speaker border'
               : 'bg-gray-800/60 text-gray-300 border border-gray-600/50 hover:border-primary-500/40'
           }`}
           title={isAllMuted ? '取消全部静音' : '全部静音'}
@@ -188,7 +188,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           onClick={(e) => { e.stopPropagation(); onToggleMute(); }}
           className={`relative p-3 sm:p-2.5 rounded-xl transition-all active:scale-95 overflow-hidden ${
             muted || amIServerMuted
-              ? 'bg-red-600/30 text-red-400 border border-red-500/30'
+              ? 'audio-muted-mic border'
               : 'bg-gray-800/60 text-gray-300 border border-gray-600/50 hover:border-primary-500/40'
           }`}
           title={amIServerMuted ? '已被管理员禁言' : muted ? '取消静音' : '静音'}

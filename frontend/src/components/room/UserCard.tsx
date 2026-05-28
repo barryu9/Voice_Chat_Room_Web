@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import type { UserInfo } from '../../utils/constants';
-import { getAvatarColor, getInitial } from '../../utils/helpers';
+import { getAvatarColor, getInitial, getLightAvatarColor } from '../../utils/helpers';
 import { SpeakingIndicator } from './SpeakingIndicator';
 import { RemoteVolume } from '../audio/RemoteVolume';
 import { useUserStore } from '../../stores/userStore';
@@ -78,7 +78,8 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
     setShowMenu(false);
   };
 
-  const color = getAvatarColor(user.userId);
+  const avatarDarkColor = getAvatarColor(user.userId);
+  const avatarLightColor = getLightAvatarColor(user.userId);
   const initial = getInitial(user.nickname);
 
   const handleKick = () => {
@@ -111,13 +112,15 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
       {/* Avatar */}
       <div className="relative">
         <div
-          className="rounded-full flex items-center justify-center text-white font-bold text-lg select-none"
+          className={`avatar-circle rounded-full flex items-center justify-center text-white font-bold text-lg select-none ${isSpeaking ? 'avatar-speaking' : ''}`}
           style={{
             width: 48,
             height: 48,
-            backgroundColor: color,
-            boxShadow: isSpeaking ? `0 0 20px ${color}80` : 'none',
-          }}
+            '--avatar-dark': avatarDarkColor,
+            '--avatar-light': avatarLightColor,
+            '--avatar-glow-dark': `${avatarDarkColor}80`,
+            '--avatar-glow-light': `${avatarLightColor}99`,
+          } as React.CSSProperties}
         >
           {initial}
         </div>

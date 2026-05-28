@@ -86,6 +86,21 @@ login → room:join (no USER_JOINED yet)
 | Text muted | `text-gray-500` |
 | Placeholder | `placeholder-gray-600` |
 
+### 1.1.1 Theme Design Philosophy
+- The appearance system is split into **dark themes** and **light themes**.
+- Dark themes currently include `渐变紫`, `渐变黄`, and `渐变绿`. They share the same dark glassmorphism foundation: dark body background, translucent glass panels/cards, white primary text, and light-gray secondary/muted text. The selected theme only changes the accent palette, button gradients, site-name gradient, background glow color, checkbox accent, and related decorative highlights.
+- The light theme is `日间版`. It keeps the same glassmorphism structure, but uses a warm white/yellow background with yellow light glows. Primary text must be black or near-black, and secondary/muted text must be dark gray; do not use overly pale gray text in the light theme.
+- Inputs, selects, checkboxes, secondary buttons, and small utility controls must remain readable in both theme modes. In the light theme, form controls should be white background with dark text and visible borders. SVG icons should become dark unless they are inside a semantic colored button.
+- Primary theme buttons follow the active accent color. In the light theme, yellow gradients should stay bright and warm, with a subtle border so buttons do not disappear into the bright background.
+- Semantic action colors override the current theme:
+  - Joining a **voice session inside a room** stays green.
+  - Disconnecting voice, leaving a room, and logging out stay red, preferably as a softer red/rose gradient rather than a harsh flat red.
+  - Joining a **channel card** follows the current theme accent, not the semantic green voice color.
+- Status states should be theme-aware: muted microphone uses red tones, muted speaker uses warm amber tones, warnings/notification bars are yellow-family but must be softer and darker-text in the light theme.
+- User avatars must carry both dark and light color palettes and switch immediately with `data-theme`; dark themes use saturated colors, while the light theme uses brighter/pastel tones. Speaking glow should also switch with the avatar palette.
+- Prefer CSS variables and theme-aware utility classes in `frontend/src/index.css` for cross-cutting theme behavior. Avoid scattering one-off light-theme overrides throughout components unless the behavior is truly component-specific.
+- When adding new UI, first decide whether its color is **theme accent**, **semantic action/status**, or **neutral surface/text**. Theme accent follows the selected skin; semantic colors keep their meaning across all skins; neutral surfaces/text follow dark/light mode readability rules.
+
 ### 1.2 Typography
 | Element | Class |
 |---------|-------|

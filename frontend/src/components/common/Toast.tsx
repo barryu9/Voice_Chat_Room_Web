@@ -33,7 +33,7 @@ export const ToastContainer: React.FC = () => {
   const colors: Record<string, string> = {
     info: 'bg-blue-600',
     success: 'bg-green-600',
-    warning: 'bg-yellow-600',
+    warning: 'toast-warning',
     error: 'bg-red-600',
   };
 
