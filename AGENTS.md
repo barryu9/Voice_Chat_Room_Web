@@ -26,7 +26,7 @@ cd frontend && npm run dev
 ```bash
 git pull && bash deploy.sh
 ```
-- Backend: `node:20-slim` (NOT alpine — mediasoup incompatible with musl)
+- Backend: `node:22-slim` (NOT alpine — mediasoup incompatible with musl)
 - Backend binds `127.0.0.1:3001`, nginx binds `127.0.0.1:8080`
 - User's own reverse proxy in front of both
 
