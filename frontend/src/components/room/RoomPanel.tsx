@@ -19,6 +19,7 @@ import { showToast } from '../common/Toast';
 import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SoundSettings } from '../common/SoundSettings';
+import { ThemeSwitcher } from '../common/ThemeSwitcher';
 import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { VoicePreviewModal } from '../audio/VoicePreviewModal';
 import { LatencyIndicator } from './LatencyIndicator';
@@ -382,6 +383,7 @@ export const RoomPanel: React.FC = () => {
               </button>
             )}
             <SoundSettings />
+            <ThemeSwitcher />
             <button
               onClick={handleLeaveRoom}
               title="离开频道"

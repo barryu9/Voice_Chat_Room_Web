@@ -13,6 +13,7 @@ import { Lobby } from './components/lobby/Lobby';
 import { RoomPanel } from './components/room/RoomPanel';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { ToastContainer } from './components/common/Toast';
+import { useTheme } from './hooks/useTheme';
 
 const App: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
@@ -30,6 +31,7 @@ const App: React.FC = () => {
 
   useSocket();
   useLatency();
+  useTheme();
 
   useEffect(() => {
     preloadAllSounds();

@@ -2,36 +2,305 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+*, ::before, ::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
+/* ================================================================
+   Theme CSS Variables
+   ================================================================ */
+
+/* ---- 渐变紫 (default) ---- */
+:root,
+[data-theme="purple"] {
+  --color-primary-50:  238 242 255;  /* indigo-50 */
+  --color-primary-100: 224 231 255;
+  --color-primary-200: 199 210 254;
+  --color-primary-300: 165 180 252;
+  --color-primary-400: 129 140 248;
+  --color-primary-500: 99  102 241;
+  --color-primary-600: 79  70  229;
+  --color-primary-700: 67  56  202;
+  --color-primary-800: 55  48  163;
+  --color-primary-900: 49  46  129;
+  --color-primary-950: 30  27  75;
+
+  --bg-body:           #030712;
+  --bg-panel:          rgba(17, 24, 39, 0.6);
+  --bg-card:           rgba(31, 41, 55, 0.4);
+  --bg-input:          rgba(31, 41, 55, 0.6);
+  --border:            rgba(55, 65, 81, 0.5);
+  --border-light:      rgba(75, 85, 99, 0.3);
+  --text:              #ffffff;
+  --text-secondary:    #9ca3af;
+  --text-muted:        #6b7280;
+  --placeholder:       #4b5563;
+  --scrollbar-thumb:   #4b5563;
+  --scrollbar-thumb-h: #6b7280;
+  --backdrop:          rgba(0, 0, 0, 0.6);
+  --panel-blur:        backdrop-blur-xl;
+  --card-blur:         backdrop-blur-md;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* ---- 日间版 ---- */
+[data-theme="light"] {
+  --color-primary-50:  238 242 255;
+  --color-primary-100: 224 231 255;
+  --color-primary-200: 199 210 254;
+  --color-primary-300: 165 180 252;
+  --color-primary-400: 129 140 248;
+  --color-primary-500: 99  102 241;
+  --color-primary-600: 79  70  229;
+  --color-primary-700: 67  56  202;
+  --color-primary-800: 55  48  163;
+  --color-primary-900: 49  46  129;
+  --color-primary-950: 30  27  75;
+
+  --bg-body:           #f3f4f6;
+  --bg-panel:          rgba(255, 255, 255, 0.85);
+  --bg-card:           rgba(255, 255, 255, 0.75);
+  --bg-input:          rgba(243, 244, 246, 0.9);
+  --border:            rgba(209, 213, 219, 0.8);
+  --border-light:      rgba(229, 231, 235, 0.6);
+  --text:              #111827;
+  --text-secondary:    #6b7280;
+  --text-muted:        #9ca3af;
+  --placeholder:       #9ca3af;
+  --scrollbar-thumb:   #d1d5db;
+  --scrollbar-thumb-h: #9ca3af;
+  --backdrop:          rgba(255, 255, 255, 0.4);
+  --panel-blur:        none;
+  --card-blur:         none;
 }
+
+/* ---- 夜间版 ---- */
+[data-theme="dark"] {
+  --color-primary-50:  238 242 255;
+  --color-primary-100: 224 231 255;
+  --color-primary-200: 199 210 254;
+  --color-primary-300: 165 180 252;
+  --color-primary-400: 129 140 248;
+  --color-primary-500: 99  102 241;
+  --color-primary-600: 79  70  229;
+  --color-primary-700: 67  56  202;
+  --color-primary-800: 55  48  163;
+  --color-primary-900: 49  46  129;
+  --color-primary-950: 30  27  75;
+
+  --bg-body:           #000000;
+  --bg-panel:          rgba(17, 17, 17, 0.8);
+  --bg-card:           rgba(34, 34, 34, 0.6);
+  --bg-input:          rgba(34, 34, 34, 0.8);
+  --border:            rgba(55, 55, 55, 0.7);
+  --border-light:      rgba(75, 75, 75, 0.4);
+  --text:              #f3f4f6;
+  --text-secondary:    #9ca3af;
+  --text-muted:        #6b7280;
+  --placeholder:       #4b5563;
+  --scrollbar-thumb:   #3f3f46;
+  --scrollbar-thumb-h: #52525b;
+  --backdrop:          rgba(0, 0, 0, 0.7);
+  --panel-blur:        backdrop-blur-xl;
+  --card-blur:         backdrop-blur-md;
+}
+
+/* ---- 渐变绿 ---- */
+[data-theme="green"] {
+  --color-primary-50:  236 253 245;
+  --color-primary-100: 209 250 229;
+  --color-primary-200: 167 243 208;
+  --color-primary-300: 110 231 183;
+  --color-primary-400: 52  211 153;
+  --color-primary-500: 16  185 129;
+  --color-primary-600: 5   150 105;
+  --color-primary-700: 4   120 87;
+  --color-primary-800: 6   95  70;
+  --color-primary-900: 6   78  59;
+  --color-primary-950: 2   44  34;
+
+  --bg-body:           #030712;
+  --bg-panel:          rgba(17, 24, 39, 0.6);
+  --bg-card:           rgba(31, 41, 55, 0.4);
+  --bg-input:          rgba(31, 41, 55, 0.6);
+  --border:            rgba(55, 65, 81, 0.5);
+  --border-light:      rgba(75, 85, 99, 0.3);
+  --text:              #ffffff;
+  --text-secondary:    #9ca3af;
+  --text-muted:        #6b7280;
+  --placeholder:       #4b5563;
+  --scrollbar-thumb:   #4b5563;
+  --scrollbar-thumb-h: #6b7280;
+  --backdrop:          rgba(0, 0, 0, 0.6);
+  --panel-blur:        backdrop-blur-xl;
+  --card-blur:         backdrop-blur-md;
+}
+
+/* ---- 渐变橙 ---- */
+[data-theme="orange"] {
+  --color-primary-50:  255 251 235;
+  --color-primary-100: 254 243 199;
+  --color-primary-200: 253 230 138;
+  --color-primary-300: 252 211 77;
+  --color-primary-400: 251 191 36;
+  --color-primary-500: 245 158 11;
+  --color-primary-600: 217 119 6;
+  --color-primary-700: 180 83  9;
+  --color-primary-800: 146 64  14;
+  --color-primary-900: 120 53  15;
+  --color-primary-950: 69  26  3;
+
+  --bg-body:           #030712;
+  --bg-panel:          rgba(17, 24, 39, 0.6);
+  --bg-card:           rgba(31, 41, 55, 0.4);
+  --bg-input:          rgba(31, 41, 55, 0.6);
+  --border:            rgba(55, 65, 81, 0.5);
+  --border-light:      rgba(75, 85, 99, 0.3);
+  --text:              #ffffff;
+  --text-secondary:    #9ca3af;
+  --text-muted:        #6b7280;
+  --placeholder:       #4b5563;
+  --scrollbar-thumb:   #4b5563;
+  --scrollbar-thumb-h: #6b7280;
+  --backdrop:          rgba(0, 0, 0, 0.6);
+  --panel-blur:        backdrop-blur-xl;
+  --card-blur:         backdrop-blur-md;
+}
+
+/* ---- 涂鸦风 ---- */
+[data-theme="graffiti"] {
+  --color-primary-50:  254 252 232;
+  --color-primary-100: 254 249 195;
+  --color-primary-200: 254 240 138;
+  --color-primary-300: 253 224 71;
+  --color-primary-400: 250 204 21;
+  --color-primary-500: 234 179 8;
+  --color-primary-600: 202 138 4;
+  --color-primary-700: 161 98  7;
+  --color-primary-800: 133 77  14;
+  --color-primary-900: 113 63  18;
+  --color-primary-950: 66  32  6;
+
+  --bg-body:           #ffffff;
+  --bg-panel:          #ffffff;
+  --bg-card:           #ffffff;
+  --bg-input:          #ffffff;
+  --border:            #000000;
+  --border-light:      #1f1f1f;
+  --text:              #000000;
+  --text-secondary:    #374151;
+  --text-muted:        #6b7280;
+  --placeholder:       #9ca3af;
+  --scrollbar-thumb:   #000000;
+  --scrollbar-thumb-h: #374151;
+  --backdrop:          rgba(255, 255, 255, 0.8);
+  --panel-blur:        none;
+  --card-blur:         none;
+}
+
+
+/* ================================================================
+   Global style overrides — using theme CSS variables
+   ================================================================ */
+
+body {
+  background-color: var(--bg-body);
+  color: var(--text);
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  background: var(--scrollbar-thumb-h);
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-gray-900/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
   }
+  [data-theme="graffiti"] .glass-panel {
+    border-width: 2px;
+  }
+  .glass-panel[class*="backdrop-blur"] {
+    /* preserve existing blur classes; no-ops are fine */
+  }
+
   .glass-card {
-    @apply bg-gray-800/40 backdrop-blur-md border border-gray-700/30 rounded-xl;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 0.75rem;
   }
+  [data-theme="graffiti"] .glass-card {
+    border-width: 2px;
+    border-color: var(--border);
+  }
+}
+
+/* backdrop-blur conditional via var (not possible in pure CSS, so use the classes) */
+
+/* Inputs / selects — generic overrides */
+[data-theme] select,
+[data-theme] input[type="text"],
+[data-theme] input[type="password"],
+[data-theme] input[type="number"],
+[data-theme] input[type="search"],
+[data-theme] textarea {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+[data-theme] select::placeholder,
+[data-theme] input::placeholder,
+[data-theme] textarea::placeholder {
+  color: var(--placeholder) !important;
+}
+
+/* text overrides for light / graffiti backgrounds */
+[data-theme="light"] .text-white,
+[data-theme="graffiti"] .text-white { color: var(--text) !important; }
+[data-theme="light"] .text-gray-400,
+[data-theme="graffiti"] .text-gray-400 { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-gray-500,
+[data-theme="graffiti"] .text-gray-500 { color: var(--text-muted) !important; }
+
+/* modal backdrop */
+[data-theme] .bg-black\/60 {
+  background-color: var(--backdrop) !important;
+}
+
+/* graffiti input ring */
+[data-theme="graffiti"] select:focus,
+[data-theme="graffiti"] input:focus,
+[data-theme="graffiti"] textarea:focus {
+  outline: 2px solid #a855f7 !important;
+  outline-offset: 0px !important;
+}
+
+/* body-class background override */
+.bg-gray-950 { background-color: var(--bg-body) !important; }
+
+/* graffiti border for popovers */
+[data-theme="graffiti"] .audio-popover {
+  border: 2px solid #000000 !important;
+}
+
+/* disable backdrop blur for themes with solid cards */
+[data-theme="light"] .backdrop-blur,
+[data-theme="light"] .backdrop-blur-sm,
+[data-theme="light"] .backdrop-blur-md,
+[data-theme="light"] .backdrop-blur-lg,
+[data-theme="light"] .backdrop-blur-xl,
+[data-theme="graffiti"] .backdrop-blur,
+[data-theme="graffiti"] .backdrop-blur-sm,
+[data-theme="graffiti"] .backdrop-blur-md,
+[data-theme="graffiti"] .backdrop-blur-lg,
+[data-theme="graffiti"] .backdrop-blur-xl {
+  backdrop-filter: none !important;
 }
