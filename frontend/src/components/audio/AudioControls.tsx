@@ -219,7 +219,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
       </div>
 
       <Popover anchorRef={micBtnRef} open={micOpen} onEnter={enterMic} onLeave={leaveMic} className="min-w-[240px]">
-        <p className="text-xs text-gray-400 mb-2">
+        <div className="text-xs text-gray-400 mb-2">
           麦克风
           <button
             onClick={(e) => { e.stopPropagation(); onMicTest(); }}
@@ -227,7 +227,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           >
             （测试）
           </button>
-        </p>
+        </div>
         <select
           value={selectedInput}
           onChange={(e) => onInputChange(e.target.value)}
