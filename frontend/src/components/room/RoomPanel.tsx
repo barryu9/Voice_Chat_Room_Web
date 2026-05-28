@@ -349,7 +349,7 @@ export const RoomPanel: React.FC = () => {
       <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-1.5 flex-wrap">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-1.5 flex-wrap mb-1">
               {currentChannel?.hasPassword && (
                 <svg className="w-5 h-5 text-yellow-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -362,7 +362,7 @@ export const RoomPanel: React.FC = () => {
               )}
               <span>{currentChannel?.name || currentRoom}</span>
               {selfLatency != null && (
-                <span className="ml-2 inline-flex items-center align-middle"><LatencyIndicator latency={selfLatency} /></span>
+                <span className="hidden sm:inline-flex sm:ml-2 items-center align-middle"><LatencyIndicator latency={selfLatency} /></span>
               )}
             </h1>
             <p className="text-gray-500 text-sm">
@@ -503,8 +503,11 @@ export const RoomPanel: React.FC = () => {
                 setShowShareModal(true);
               });
             }}
-            className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+            className="text-sm text-gray-500 hover:text-gray-300 transition-colors inline-flex items-center gap-1"
           >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
             复制频道分享链接
           </button>
         </div>
