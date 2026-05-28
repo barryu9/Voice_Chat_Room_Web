@@ -111,6 +111,11 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
     >
       {/* Avatar */}
       <div className="relative">
+        {peerLatency != null && (
+          <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+            <LatencyIndicator latency={peerLatency} />
+          </div>
+        )}
         <div
           className={`avatar-circle rounded-full flex items-center justify-center text-white font-bold text-lg select-none ${isSpeaking ? 'avatar-speaking' : ''}`}
           style={{
@@ -157,11 +162,6 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
                 }}
               />
             ))}
-          </div>
-        )}
-        {peerLatency != null && (
-          <div className="mt-1 flex justify-center">
-            <LatencyIndicator latency={peerLatency} />
           </div>
         )}
       </div>
