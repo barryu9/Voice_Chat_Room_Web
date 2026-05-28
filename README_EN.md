@@ -22,6 +22,16 @@ A **registration-free** real-time multi-user voice chat room with channels, voic
 - **Announcements** — Site-wide and room-level announcements
 - **Responsive Design** — Desktop and mobile support
 
+## Screenshots
+
+| Login | Channel List |
+|-------|--------------|
+| ![Login](screenshots/登录界面.png) | ![Channel List](screenshots/频道列表界面.png) |
+
+| In Channel | Mobile |
+|------------|--------|
+| ![In Channel](screenshots/频道内界面.png) | ![Mobile](screenshots/移动端界面.png) |
+
 ## Tech Stack
 
 | Layer | Technology |
