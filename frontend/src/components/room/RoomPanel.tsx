@@ -8,6 +8,7 @@ import { getSocket } from '../../services/socketService';
 import { playSound } from '../../services/soundService';
 import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
+import { startRecording, stopRecording, getRecordedBuffer, playTest, destroyPreview } from '../../services/previewService';
 import { VOICE_PRESETS } from '../../utils/voicePresets';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
@@ -52,6 +53,13 @@ export const RoomPanel: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
+  const [testCountdown, setTestCountdown] = useState(0);
+  const [testPlaying, setTestPlaying] = useState(false);
+  const testTimerRef = useRef<ReturnType<typeof setInterval>>();
+
+  useEffect(() => {
+    return () => clearInterval(testTimerRef.current);
+  }, []);
   const durationRef = useRef<number>(0);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
   const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === myUserId;
@@ -249,6 +257,38 @@ export const RoomPanel: React.FC = () => {
     }
   }, [emitVcStatus, setNoiseSuppressionEnabled]);
 
+  const handleMicTest = useCallback(async () => {
+    if (testCountdown > 0 || testPlaying) return;
+    try {
+      await startRecording();
+      let sec = 5;
+      setTestCountdown(sec);
+      testTimerRef.current = setInterval(() => {
+        sec--;
+        setTestCountdown(sec);
+        if (sec <= 0) {
+          clearInterval(testTimerRef.current);
+          stopRecording();
+          setTestCountdown(0);
+          setTimeout(() => {
+            const buf = getRecordedBuffer();
+            if (buf) {
+              const vcEnabled = useVoiceChangerStore.getState().enabled;
+              const presetId = useVoiceChangerStore.getState().presetId;
+              const micGain = parseFloat(localStorage.getItem('vc_gain') || '1');
+              setTestPlaying(true);
+              playTest(buf, micGain, vcEnabled, presetId);
+              setTimeout(() => setTestPlaying(false), buf.duration * 1000 + 300);
+            }
+            destroyPreview();
+          }, 200);
+        }
+      }, 1000);
+    } catch {
+      showToast('无法访问麦克风，请检查权限', 'error');
+    }
+  }, [testCountdown, testPlaying]);
+
   useEffect(() => {
     if (!voiceChangerAllowed && voiceChangerEnabled) {
       handleVoiceChangerToggle(false);
@@ -396,6 +436,7 @@ export const RoomPanel: React.FC = () => {
             onVoiceChangerToggle={handleVoiceChangerToggle}
             onVoiceChangerPresetChange={handleVoiceChangerPresetChange}
             onVoiceChangerPreview={() => setShowVoicePreview(true)}
+            onMicTest={handleMicTest}
             vcTransiting={vcTransiting}
           />
 

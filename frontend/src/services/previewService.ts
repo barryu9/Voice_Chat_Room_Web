@@ -63,6 +63,91 @@ export function getRecordedBuffer(): AudioBuffer | null {
   return recordedBuffer;
 }
 
+function buildVcChain(presetId: string): { input: Tone.Gain; output: Tone.Gain } | null {
+  const preset = VOICE_PRESETS[presetId];
+  if (!preset) return null;
+
+  const input = new Tone.Gain(1);
+  const output = new Tone.Gain(1);
+  const nodes = preset.factory();
+
+  let prev: Tone.ToneAudioNode = input;
+  for (const node of nodes) {
+    prev.connect(node);
+    prev = node;
+  }
+  prev.connect(output);
+
+  return { input, output };
+}
+
+let testSource: AudioBufferSourceNode | null = null;
+let testIsPlaying = false;
+
+export function getTestIsPlaying(): boolean {
+  return testIsPlaying;
+}
+
+export function playTest(buffer: AudioBuffer, gain: number, vcEnabled: boolean, vcPresetId: string): void {
+  const ctx = getAudioContext();
+  if (!ctx || !buffer || testIsPlaying) return;
+
+  stopTestPreview();
+
+  testSource = ctx.createBufferSource();
+  testSource.buffer = buffer;
+
+  let lastNode: AudioNode = testSource;
+
+  // Apply mic gain
+  const gainNode = ctx.createGain();
+  gainNode.gain.value = Math.max(0.1, gain);
+  lastNode.connect(gainNode);
+  lastNode = gainNode;
+
+  // Apply voice changer if enabled
+  let vcOut: Tone.Gain | null = null;
+  if (vcEnabled) {
+    const chain = buildVcChain(vcPresetId);
+    if (chain) {
+      lastNode.connect((chain.input as any).input);
+      (chain.output as any).output.connect(ctx.destination);
+      vcOut = chain.output;
+    }
+  }
+
+  if (!vcOut) {
+    lastNode.connect(ctx.destination);
+  }
+
+  testIsPlaying = true;
+  testSource.start(0);
+
+  const onEnd = () => {
+    testSource?.disconnect();
+    testSource = null;
+    gainNode.disconnect();
+    testIsPlaying = false;
+  };
+  testSource.onended = onEnd;
+}
+
+export function stopTestPreview(): void {
+  if (testSource) {
+    try { testSource.stop(); } catch {}
+    try { testSource.disconnect(); } catch {}
+    testSource = null;
+  }
+  testIsPlaying = false;
+}
+
+export function destroyPreview(): void {
+  stopRecording();
+  stopPreview();
+  stopTestPreview();
+  recordedBuffer = null;
+}
+
 export function playPreview(presetId: string): void {
   const ctx = getAudioContext();
   if (!ctx || !recordedBuffer || isPlaying) return;
@@ -123,10 +208,4 @@ function cleanupPreview(): void {
   try { previewOutput?.dispose(); } catch {}
   previewInput = null;
   previewOutput = null;
-}
-
-export function destroyPreview(): void {
-  stopRecording();
-  stopPreview();
-  recordedBuffer = null;
 }
