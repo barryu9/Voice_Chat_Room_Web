@@ -25,6 +25,7 @@ interface AudioControlsProps {
   onVoiceChangerPreview: () => void;
   onMicTest: () => void;
   testCountdown: number;
+  testPlaying: boolean;
   vcTransiting: boolean;
 }
 
@@ -69,7 +70,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
   onToggleMuteAll, onMasterVolumeChange,
-  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, onVoiceChangerPreview, onMicTest, testCountdown, vcTransiting,
+  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, onVoiceChangerPreview, onMicTest, testCountdown, testPlaying, vcTransiting,
 }) => {
   const [micOpen, setMicOpen] = useState(false);
   const [speakerOpen, setSpeakerOpen] = useState(false);
@@ -224,6 +225,8 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           麦克风
           {testCountdown > 0 ? (
             <span className="text-green-400 ml-0.5">（录音 {testCountdown}s）</span>
+          ) : testPlaying ? (
+            <span className="text-green-400 ml-0.5">（正在播放）</span>
           ) : (
             <button
               type="button"

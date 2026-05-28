@@ -438,6 +438,7 @@ export const RoomPanel: React.FC = () => {
             onVoiceChangerPreview={() => setShowVoicePreview(true)}
             onMicTest={handleMicTest}
             testCountdown={testCountdown}
+            testPlaying={testPlaying}
             vcTransiting={vcTransiting}
           />
 
