@@ -24,6 +24,7 @@ interface AudioControlsProps {
   onVoiceChangerPresetChange: (presetId: string) => void;
   onVoiceChangerPreview: () => void;
   onMicTest: () => void;
+  testCountdown: number;
   vcTransiting: boolean;
 }
 
@@ -68,7 +69,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
   onToggleMuteAll, onMasterVolumeChange,
-  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, onVoiceChangerPreview, onMicTest, vcTransiting,
+  voiceChangerEnabled, onVoiceChangerToggle, onVoiceChangerPresetChange, onVoiceChangerPreview, onMicTest, testCountdown, vcTransiting,
 }) => {
   const [micOpen, setMicOpen] = useState(false);
   const [speakerOpen, setSpeakerOpen] = useState(false);
@@ -221,12 +222,17 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
       <Popover anchorRef={micBtnRef} open={micOpen} onEnter={enterMic} onLeave={leaveMic} className="min-w-[240px]">
         <div className="text-xs text-gray-400 mb-2">
           麦克风
-          <button
-            onClick={(e) => { e.stopPropagation(); onMicTest(); }}
-            className="text-gray-500 hover:text-primary-400 transition-colors ml-0.5"
-          >
-            （测试）
-          </button>
+          {testCountdown > 0 ? (
+            <span className="text-green-400 ml-0.5">（录音 {testCountdown}s）</span>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMicTest(); }}
+              className="text-gray-500 hover:text-primary-400 transition-colors ml-0.5"
+            >
+              （测试）
+            </button>
+          )}
         </div>
         <select
           value={selectedInput}

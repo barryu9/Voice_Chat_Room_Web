@@ -437,6 +437,7 @@ export const RoomPanel: React.FC = () => {
             onVoiceChangerPresetChange={handleVoiceChangerPresetChange}
             onVoiceChangerPreview={() => setShowVoicePreview(true)}
             onMicTest={handleMicTest}
+            testCountdown={testCountdown}
             vcTransiting={vcTransiting}
           />
 
