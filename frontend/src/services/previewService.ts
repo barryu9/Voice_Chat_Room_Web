@@ -37,10 +37,13 @@ export async function startRecording(): Promise<void> {
   };
 
   mediaRecorder.onstop = async () => {
-    const ctx = getAudioContext() || await initAudioContext();
-    const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-    const arrayBuffer = await blob.arrayBuffer();
-    recordedBuffer = await ctx.decodeAudioData(arrayBuffer);
+    if (recordedChunks.length === 0) return;
+    try {
+      const ctx = getAudioContext() || await initAudioContext();
+      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      const arrayBuffer = await blob.arrayBuffer();
+      recordedBuffer = await ctx.decodeAudioData(arrayBuffer);
+    } catch {}
   };
 
   mediaRecorder.start();
