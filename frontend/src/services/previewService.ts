@@ -1,5 +1,5 @@
 import * as Tone from 'tone';
-import { getAudioContext } from './audioService';
+import { getAudioContext, initAudioContext } from './audioService';
 import { VOICE_PRESETS } from '../utils/voicePresets';
 
 let recordingStream: MediaStream | null = null;
@@ -23,9 +23,6 @@ export function getIsPlaying(): boolean {
 }
 
 export async function startRecording(): Promise<void> {
-  const ctx = getAudioContext();
-  if (!ctx) throw new Error('No audio context');
-
   recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   recordedChunks = [];
 
@@ -40,6 +37,7 @@ export async function startRecording(): Promise<void> {
   };
 
   mediaRecorder.onstop = async () => {
+    const ctx = getAudioContext() || await initAudioContext();
     const blob = new Blob(recordedChunks, { type: 'audio/webm' });
     const arrayBuffer = await blob.arrayBuffer();
     recordedBuffer = await ctx.decodeAudioData(arrayBuffer);
