@@ -140,7 +140,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
                   connectionState === 'failed' ||
                   isLoginError
                 }
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-white font-medium py-3 rounded-xl transition-all active:scale-[0.98]"
+                className="w-full bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium py-3 rounded-xl transition-all active:scale-[0.98]"
               >
                 {loading
                   ? '连接中...'
