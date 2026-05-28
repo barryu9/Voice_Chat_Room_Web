@@ -49,7 +49,7 @@ cd frontend && npm run dev
 
 ### Admin Panel
 
-Click the **⚙ Admin** button in the top-right corner and enter the admin password to access:
+Append `?admin` to the URL (e.g., `https://localhost:5173/?admin`) to reveal the **⚙ Admin** button. Click it, enter the admin password, and access:
 
 - Channel management (create / edit / delete / reorder)
 - User management (kick / mute / ban / force-unmute)
