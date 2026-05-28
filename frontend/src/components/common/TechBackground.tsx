@@ -18,9 +18,9 @@ const GLOW_COLORS: Record<ThemeId, { top: string; bottom: string; orb: string }>
     orb: 'bg-primary-500/20',
   },
   light: {
-    top: 'from-yellow-300/45',
-    bottom: 'from-amber-200/35',
-    orb: 'bg-yellow-300/25',
+    top: 'from-yellow-200/30',
+    bottom: 'from-amber-100/25',
+    orb: 'bg-yellow-200/15',
   },
 };
 
