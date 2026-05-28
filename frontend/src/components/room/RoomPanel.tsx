@@ -277,11 +277,14 @@ export const RoomPanel: React.FC = () => {
               const presetId = useVoiceChangerStore.getState().presetId;
               const micGain = parseFloat(localStorage.getItem('vc_gain') || '1');
               playTest(buf, micGain, vcEnabled, presetId);
-              setTimeout(() => setTestPlaying(false), buf.duration * 1000 + 300);
+              setTimeout(() => {
+                setTestPlaying(false);
+                destroyPreview();
+              }, buf.duration * 1000 + 300);
             } else {
               setTestPlaying(false);
+              destroyPreview();
             }
-            destroyPreview();
           });
         }
       }, 1000);
