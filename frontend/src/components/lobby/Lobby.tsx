@@ -31,6 +31,8 @@ export const Lobby: React.FC = () => {
   const setNotification = useRoomStore((s) => s.setNotification);
   const announcements = useRoomStore((s) => s.announcements);
   const siteName = useRoomStore((s) => s.siteName);
+  const pendingChannelId = useRoomStore((s) => s.pendingChannelId);
+  const setPendingChannelId = useRoomStore((s) => s.setPendingChannelId);
   const showAdmin = useAdminStore((s) => s.isAdmin);
   const adminConfig = useAdminStore((s) => s.config);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
@@ -79,6 +81,23 @@ export const Lobby: React.FC = () => {
     return () => { getSocket()?.off(EVENTS.SERVER.ERROR, handler); };
   }, []);
 
+  useEffect(() => {
+    if (!pendingChannelId || channels.length === 0) return;
+    const target = channels.find((c) => c.roomId === pendingChannelId);
+    if (!target) {
+      showToast('频道不存在', 'error');
+      setPendingChannelId('');
+      return;
+    }
+    if (target.hasPassword && !showAdmin) {
+      setPwdRoomId(pendingChannelId);
+      setPwdError('');
+    } else {
+      getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: pendingChannelId });
+    }
+    setPendingChannelId('');
+  }, [pendingChannelId, channels, showAdmin]);
+
   const handleJoin = (roomId: string) => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId });
   };
@@ -99,6 +118,7 @@ export const Lobby: React.FC = () => {
   const handlePwdClose = () => {
     setPwdRoomId('');
     setPwdError('');
+    setPendingChannelId('');
   };
 
   const handleEditChannel = (roomId: string) => {

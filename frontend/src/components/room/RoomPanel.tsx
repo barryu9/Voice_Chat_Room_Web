@@ -53,6 +53,7 @@ export const RoomPanel: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [testCountdown, setTestCountdown] = useState(0);
   const [testPlaying, setTestPlaying] = useState(false);
   const testTimerRef = useRef<ReturnType<typeof setInterval>>();
@@ -491,7 +492,45 @@ export const RoomPanel: React.FC = () => {
         <div className="glass-panel p-5">
           <UserGrid />
         </div>
+
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/?channel=${currentRoom}`;
+              navigator.clipboard.writeText(url).then(() => {
+                showToast('复制频道分享链接成功', 'success');
+              }).catch(() => {
+                setShowShareModal(true);
+              });
+            }}
+            className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            复制频道分享链接
+          </button>
+        </div>
       </div>
+
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
+            <button
+              onClick={() => setShowShareModal(false)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors text-sm leading-none"
+            >
+              ✕
+            </button>
+            <h3 className="text-base font-semibold text-white mb-3">分享频道链接</h3>
+            <input
+              type="text"
+              readOnly
+              value={`${window.location.origin}/?channel=${currentRoom}`}
+              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none"
+              autoFocus
+              onFocus={(e) => e.target.select()}
+            />
+          </div>
+        </div>
+      )}
 
       {showVoicePreview && (
         <VoicePreviewModal onClose={() => setShowVoicePreview(false)} />

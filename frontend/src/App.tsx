@@ -12,7 +12,7 @@ import { preloadAllSounds, playSound, unlockAudio } from './services/soundServic
 import { Lobby } from './components/lobby/Lobby';
 import { RoomPanel } from './components/room/RoomPanel';
 import { AdminPanel } from './components/admin/AdminPanel';
-import { ToastContainer } from './components/common/Toast';
+import { ToastContainer, showToast } from './components/common/Toast';
 import { useTheme } from './hooks/useTheme';
 
 const App: React.FC = () => {
@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const autoLoginTried = useRef(false);
   const failHandled = useRef(false);
   const wasConnected = useRef(false);
+  const autoJoinTried = useRef(false);
 
   useSocket();
   useLatency();
@@ -132,6 +133,30 @@ const App: React.FC = () => {
     }, 10000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (appLoading || !isLoggedIn || currentRoom || channels.length === 0) return;
+    if (autoJoinTried.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const targetChannelId = params.get('channel');
+    if (!targetChannelId) return;
+
+    autoJoinTried.current = true;
+
+    const targetChannel = channels.find((c) => c.roomId === targetChannelId);
+    if (!targetChannel) {
+      showToast('频道不存在', 'error');
+      return;
+    }
+
+    if (targetChannel.hasPassword) {
+      useRoomStore.getState().setPendingChannelId(targetChannelId);
+      return;
+    }
+
+    getSocket()?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: targetChannelId });
+  }, [appLoading, isLoggedIn, currentRoom, channels]);
 
   if (appLoading) {
     return (
