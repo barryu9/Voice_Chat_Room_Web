@@ -48,8 +48,14 @@ body {
   --notice-border: rgba(234, 179, 8, 0.32);
   --notice-text: #fde68a;
   --notice-strong: #facc15;
+  --toast-info-bg: #2563eb;
+  --toast-info-text: #ffffff;
+  --toast-success-bg: #059669;
+  --toast-success-text: #ffffff;
   --toast-warning-bg: #ca8a04;
   --toast-warning-text: #ffffff;
+  --toast-error-bg: #dc2626;
+  --toast-error-text: #ffffff;
   --mic-muted-bg: rgba(220, 38, 38, 0.3);
   --mic-muted-border: rgba(239, 68, 68, 0.3);
   --mic-muted-text: #f87171;
@@ -92,8 +98,14 @@ body {
   --notice-border: rgba(234, 179, 8, 0.32);
   --notice-text: #fde68a;
   --notice-strong: #facc15;
+  --toast-info-bg: #2563eb;
+  --toast-info-text: #ffffff;
+  --toast-success-bg: #059669;
+  --toast-success-text: #ffffff;
   --toast-warning-bg: #ca8a04;
   --toast-warning-text: #ffffff;
+  --toast-error-bg: #dc2626;
+  --toast-error-text: #ffffff;
   --mic-muted-bg: rgba(220, 38, 38, 0.3);
   --mic-muted-border: rgba(239, 68, 68, 0.3);
   --mic-muted-text: #f87171;
@@ -136,8 +148,14 @@ body {
   --notice-border: rgba(234, 179, 8, 0.32);
   --notice-text: #fde68a;
   --notice-strong: #facc15;
+  --toast-info-bg: #2563eb;
+  --toast-info-text: #ffffff;
+  --toast-success-bg: #059669;
+  --toast-success-text: #ffffff;
   --toast-warning-bg: #ca8a04;
   --toast-warning-text: #ffffff;
+  --toast-error-bg: #dc2626;
+  --toast-error-text: #ffffff;
   --mic-muted-bg: rgba(220, 38, 38, 0.3);
   --mic-muted-border: rgba(239, 68, 68, 0.3);
   --mic-muted-text: #f87171;
@@ -180,8 +198,14 @@ body {
   --notice-border: rgba(217, 119, 6, 0.28);
   --notice-text: #78350f;
   --notice-strong: #92400e;
+  --toast-info-bg: #dbeafe;
+  --toast-info-text: #1e40af;
+  --toast-success-bg: #d1fae5;
+  --toast-success-text: #065f46;
   --toast-warning-bg: #fef3c7;
   --toast-warning-text: #78350f;
+  --toast-error-bg: #fee2e2;
+  --toast-error-text: #991b1b;
   --mic-muted-bg: rgba(254, 226, 226, 0.95);
   --mic-muted-border: rgba(239, 68, 68, 0.35);
   --mic-muted-text: #991b1b;
@@ -290,9 +314,24 @@ body {
   color: var(--speaker-muted-text) !important;
 }
 
+[data-theme] .toast-info {
+  background-color: var(--toast-info-bg) !important;
+  color: var(--toast-info-text) !important;
+}
+
+[data-theme] .toast-success {
+  background-color: var(--toast-success-bg) !important;
+  color: var(--toast-success-text) !important;
+}
+
 [data-theme] .toast-warning {
   background-color: var(--toast-warning-bg) !important;
   color: var(--toast-warning-text) !important;
+}
+
+[data-theme] .toast-error {
+  background-color: var(--toast-error-bg) !important;
+  color: var(--toast-error-text) !important;
 }
 
 [data-theme] .avatar-circle {

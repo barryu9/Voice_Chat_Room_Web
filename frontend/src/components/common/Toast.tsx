@@ -31,10 +31,10 @@ export const ToastContainer: React.FC = () => {
   if (toasts.length === 0) return null;
 
   const colors: Record<string, string> = {
-    info: 'bg-blue-600',
-    success: 'bg-green-600',
+    info: 'toast-info',
+    success: 'toast-success',
     warning: 'toast-warning',
-    error: 'bg-red-600',
+    error: 'toast-error',
   };
 
   return (
@@ -42,7 +42,7 @@ export const ToastContainer: React.FC = () => {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`${colors[t.type]} text-white px-4 py-2.5 rounded-xl shadow-lg text-sm animate-in slide-in-from-right-2 fade-in`}
+          className={`${colors[t.type]} px-4 py-2.5 rounded-xl shadow-lg text-sm animate-in slide-in-from-right-2 fade-in`}
         >
           {t.message}
         </div>
