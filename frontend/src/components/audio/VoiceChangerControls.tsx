@@ -22,7 +22,15 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
   return (
     <div className="space-y-2 pt-3 border-t border-gray-700/50">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-400">变声器</span>
+        <span className="text-xs text-gray-400">
+          变声器
+          <button
+            onClick={(e) => { e.stopPropagation(); if (!transiting) onPreview(); }}
+            className="text-gray-500 hover:text-primary-400 transition-colors ml-0.5"
+          >
+            （预览变声效果）
+          </button>
+        </span>
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); if (!transiting) onToggle(!enabled); }}
@@ -46,15 +54,6 @@ export const VoiceChangerControls: React.FC<Props> = ({ onToggle, onPresetChange
             ))}
           </select>
         </div>
-      )}
-
-      {!transiting && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onPreview(); }}
-          className="w-full text-xs text-gray-400 hover:text-primary-400 transition-colors py-1"
-        >
-          预览变声效果
-        </button>
       )}
     </div>
   );
