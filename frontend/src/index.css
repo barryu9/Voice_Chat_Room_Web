@@ -16,7 +16,7 @@ body {
 /* ---- 渐变紫 (default) ---- */
 :root,
 [data-theme="purple"] {
-  --color-primary-50:  238 242 255;  /* indigo-50 */
+  --color-primary-50:  238 242 255;
   --color-primary-100: 224 231 255;
   --color-primary-200: 199 210 254;
   --color-primary-300: 165 180 252;
@@ -41,24 +41,21 @@ body {
   --scrollbar-thumb:   #4b5563;
   --scrollbar-thumb-h: #6b7280;
   --backdrop:          rgba(0, 0, 0, 0.6);
-  --scrollbar-thumb:   #4b5563;
-  --scrollbar-thumb-h: #6b7280;
-  --backdrop:          rgba(0, 0, 0, 0.6);
 }
 
-/* ---- 渐变橙 ---- */
-[data-theme="orange"] {
-  --color-primary-50:  255 251 235;
-  --color-primary-100: 254 243 199;
-  --color-primary-200: 253 230 138;
-  --color-primary-300: 252 211 77;
-  --color-primary-400: 251 191 36;
-  --color-primary-500: 245 158 11;
-  --color-primary-600: 217 119 6;
-  --color-primary-700: 180 83  9;
-  --color-primary-800: 146 64  14;
-  --color-primary-900: 120 53  15;
-  --color-primary-950: 69  26  3;
+/* ---- 渐变绿 ---- */
+[data-theme="green"] {
+  --color-primary-50:  236 253 245;
+  --color-primary-100: 209 250 229;
+  --color-primary-200: 167 243 208;
+  --color-primary-300: 110 231 183;
+  --color-primary-400: 52  211 153;
+  --color-primary-500: 16  185 129;
+  --color-primary-600: 5   150 105;
+  --color-primary-700: 4   120 87;
+  --color-primary-800: 6   95  70;
+  --color-primary-900: 6   78  59;
+  --color-primary-950: 2   44  34;
 
   --bg-body:           #030712;
   --bg-panel:          rgba(17, 24, 39, 0.6);
@@ -75,8 +72,8 @@ body {
   --backdrop:          rgba(0, 0, 0, 0.6);
 }
 
-/* ---- 涂鸦风 ---- */
-[data-theme="graffiti"] {
+/* ---- 渐变黄 ---- */
+[data-theme="yellow"] {
   --color-primary-50:  254 252 232;
   --color-primary-100: 254 249 195;
   --color-primary-200: 254 240 138;
@@ -89,24 +86,53 @@ body {
   --color-primary-900: 113 63  18;
   --color-primary-950: 66  32  6;
 
-  --bg-body:           #ffffff;
-  --bg-panel:          #ffffff;
-  --bg-card:           #ffffff;
-  --bg-input:          #ffffff;
-  --border:            #000000;
-  --border-light:      #1f1f1f;
-  --text:              #000000;
-  --text-secondary:    #374151;
+  --bg-body:           #030712;
+  --bg-panel:          rgba(17, 24, 39, 0.6);
+  --bg-card:           rgba(31, 41, 55, 0.4);
+  --bg-input:          rgba(31, 41, 55, 0.6);
+  --border:            rgba(55, 65, 81, 0.5);
+  --border-light:      rgba(75, 85, 99, 0.3);
+  --text:              #ffffff;
+  --text-secondary:    #9ca3af;
   --text-muted:        #6b7280;
+  --placeholder:       #4b5563;
+  --scrollbar-thumb:   #4b5563;
+  --scrollbar-thumb-h: #6b7280;
+  --backdrop:          rgba(0, 0, 0, 0.6);
+}
+
+/* ---- 日间版 (light) ---- */
+[data-theme="light"] {
+  --color-primary-50:  254 252 232;
+  --color-primary-100: 254 249 195;
+  --color-primary-200: 254 240 138;
+  --color-primary-300: 253 224 71;
+  --color-primary-400: 250 204 21;
+  --color-primary-500: 234 179 8;
+  --color-primary-600: 202 138 4;
+  --color-primary-700: 161 98  7;
+  --color-primary-800: 133 77  14;
+  --color-primary-900: 113 63  18;
+  --color-primary-950: 66  32  6;
+
+  --bg-body:           #f3f4f6;
+  --bg-panel:          rgba(255, 255, 255, 0.78);
+  --bg-card:           rgba(255, 255, 255, 0.65);
+  --bg-input:          rgba(243, 244, 246, 0.9);
+  --border:            rgba(209, 213, 219, 0.8);
+  --border-light:      rgba(229, 231, 235, 0.6);
+  --text:              #111827;
+  --text-secondary:    #6b7280;
+  --text-muted:        #9ca3af;
   --placeholder:       #9ca3af;
-  --scrollbar-thumb:   #000000;
-  --scrollbar-thumb-h: #374151;
-  --backdrop:          rgba(255, 255, 255, 0.8);
+  --scrollbar-thumb:   #d1d5db;
+  --scrollbar-thumb-h: #9ca3af;
+  --backdrop:          rgba(255, 255, 255, 0.5);
 }
 
 
 /* ================================================================
-   Global style overrides — using theme CSS variables
+   Global style overrides
    ================================================================ */
 
 body {
@@ -130,13 +156,6 @@ body {
     border-radius: 1rem;
     backdrop-filter: blur(24px);
   }
-  [data-theme="light"] .glass-panel,
-  [data-theme="graffiti"] .glass-panel {
-    backdrop-filter: none;
-  }
-  [data-theme="graffiti"] .glass-panel {
-    border-width: 2px;
-  }
 
   .glass-card {
     background: var(--bg-card);
@@ -144,19 +163,9 @@ body {
     border-radius: 0.75rem;
     backdrop-filter: blur(12px);
   }
-  [data-theme="light"] .glass-card,
-  [data-theme="graffiti"] .glass-card {
-    backdrop-filter: none;
-  }
-  [data-theme="graffiti"] .glass-card {
-    border-width: 2px;
-    border-color: var(--border);
-  }
 }
 
-/* backdrop-blur conditional via var (not possible in pure CSS, so use the classes) */
-
-/* Inputs / selects — generic overrides */
+/* Inputs / selects */
 [data-theme] select,
 [data-theme] input[type="text"],
 [data-theme] input[type="password"],
@@ -173,36 +182,15 @@ body {
   color: var(--placeholder) !important;
 }
 
-/* text overrides for light / graffiti backgrounds */
-[data-theme="light"] .text-white,
-[data-theme="graffiti"] .text-white { color: var(--text) !important; }
-[data-theme="light"] .text-gray-400,
-[data-theme="graffiti"] .text-gray-400 { color: var(--text-secondary) !important; }
-[data-theme="light"] .text-gray-500,
-[data-theme="graffiti"] .text-gray-500 { color: var(--text-muted) !important; }
+/* text overrides for light */
+[data-theme="light"] .text-white { color: var(--text) !important; }
+[data-theme="light"] .text-gray-400 { color: var(--text-secondary) !important; }
+[data-theme="light"] .text-gray-500 { color: var(--text-muted) !important; }
 
 /* modal backdrop */
 [data-theme] .bg-black\/60 {
   background-color: var(--backdrop) !important;
 }
 
-/* graffiti input ring */
-[data-theme="graffiti"] select:focus,
-[data-theme="graffiti"] input:focus,
-[data-theme="graffiti"] textarea:focus {
-  outline: 2px solid #a855f7 !important;
-  outline-offset: 0px !important;
-}
-
 /* body-class background override */
 .bg-gray-950 { background-color: var(--bg-body) !important; }
-
-/* graffiti border for popovers */
-[data-theme="graffiti"] .audio-popover {
-  border: 2px solid #000000 !important;
-}
-
-/* graffiti border for popovers */
-[data-theme="graffiti"] .audio-popover {
-  border: 2px solid #000000 !important;
-}

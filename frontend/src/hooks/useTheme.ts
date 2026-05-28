@@ -1,17 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type ThemeId = 'purple' | 'light' | 'dark' | 'green' | 'orange' | 'graffiti';
+export type ThemeId = 'purple' | 'light' | 'green' | 'yellow';
 
 const STORAGE_KEY = 'vc_theme';
 const DEFAULT: ThemeId = 'purple';
 
 export const THEMES: { id: ThemeId; label: string }[] = [
-  { id: 'purple',   label: '渐变紫' },
-  { id: 'light',    label: '日间版' },
-  { id: 'dark',     label: '夜间版' },
-  { id: 'green',    label: '渐变绿' },
-  { id: 'orange',   label: '渐变橙' },
-  { id: 'graffiti', label: '涂鸦风' },
+  { id: 'purple', label: '渐变紫' },
+  { id: 'green',  label: '渐变绿' },
+  { id: 'yellow', label: '渐变黄' },
+  { id: 'light',  label: '日间版' },
 ];
 
 function loadTheme(): ThemeId {
