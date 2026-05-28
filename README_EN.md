@@ -5,6 +5,7 @@
 A **registration-free** real-time multi-user voice chat room with channels, voice changer, noise suppression, and volume controls.
 
 > This project was developed **entirely through** [Opencode](https://opencode.ai) + **DeepSeek V4 Pro**, using vibe coding.
+> See [AGENTS.md](./AGENTS.md) for detailed development conventions.
 
 ## Features
 
@@ -45,6 +46,15 @@ cd frontend && npm run dev
 - Backend: `http://localhost:3001` (health check: `/health`)
 - Frontend: `https://localhost:5173` (LAN IP auto-detected)
 - Dev MongoDB auto-starts via `mongodb-memory-server` — no manual setup needed
+
+### Admin Panel
+
+Click the **⚙ Admin** button in the top-right corner and enter the admin password to access:
+
+- Channel management (create / edit / delete / reorder)
+- User management (kick / mute / ban / force-unmute)
+- Announcement publishing
+- Global settings (site name, voice changer toggle, channel limits, etc.)
 
 ## Production Deployment
 

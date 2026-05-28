@@ -5,6 +5,7 @@
 一个**无注册**的实时多人语音聊天室，支持频道系统、变声器、降噪和音量控制。
 
 > 本项目**完全通过** [Opencode](https://opencode.ai) + **DeepSeek V4 Pro**，以 Vibe Coding 方式开发。
+> 详细开发规范见 [AGENTS.md](./AGENTS.md)。
 
 ## 功能
 
@@ -45,6 +46,15 @@ cd frontend && npm run dev
 - 后端：`http://localhost:3001`（健康检查：`/health`）
 - 前端：`https://localhost:5173`（局域网自动检测 IP）
 - 开发环境 MongoDB 自动使用 `mongodb-memory-server`，无需额外安装
+
+### 管理员界面
+
+点击页面右上角的 **⚙ 管理** 按钮，输入管理员密码即可进入管理面板：
+
+- 频道管理（创建 / 编辑 / 删除 / 排序）
+- 用户管理（踢人 / 禁言 / 封禁 / 强制关麦）
+- 公告发布
+- 全局设置（站点名、变声器开关、频道限制等）
 
 ## 生产部署
 
