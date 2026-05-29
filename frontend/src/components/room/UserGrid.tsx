@@ -26,7 +26,7 @@ export const UserGrid: React.FC = () => {
         ))}
         {users.length === 0 && (
           <div className="col-span-full text-center py-8 text-gray-600 text-sm">
-            房间暂无其他用户
+            频道暂无其他用户
           </div>
         )}
       </div>

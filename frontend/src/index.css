@@ -1980,3 +1980,107 @@ body {
 .bg-gray-950 {
   background-color: var(--bg-body) !important;
 }
+
+[data-theme] {
+  --switch-on-bg: linear-gradient(to right, rgb(var(--color-primary-400)), rgb(var(--color-primary-600)));
+  --switch-off-bg: rgba(75, 85, 99, 0.72);
+  --switch-border: rgba(148, 163, 184, 0.28);
+  --switch-knob-on: #ffffff;
+  --switch-knob-off: #d1d5db;
+  --switch-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 8px 18px rgba(0, 0, 0, 0.18);
+  --switch-knob-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme-mode="light"] {
+  --switch-on-bg: linear-gradient(145deg, rgb(var(--color-primary-100)), rgb(var(--color-primary-300)));
+  --switch-off-bg: #e2e8f0;
+  --switch-border: rgba(51, 65, 85, 0.28);
+  --switch-knob-on: #ffffff;
+  --switch-knob-off: #64748b;
+  --switch-shadow: inset 0 0 0 1px rgba(51, 65, 85, 0.08), 0 6px 14px rgba(15, 23, 42, 0.08);
+  --switch-knob-shadow: 0 1px 5px rgba(15, 23, 42, 0.2);
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full {
+  border: 1px solid var(--switch-border) !important;
+  box-shadow: var(--switch-shadow) !important;
+  background-image: none !important;
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full.bg-primary-500 {
+  background: var(--switch-on-bg) !important;
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full.bg-gray-600 {
+  background: var(--switch-off-bg) !important;
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full > div.absolute.w-4.h-4.rounded-full {
+  top: 50% !important;
+  background: var(--switch-knob-off) !important;
+  box-shadow: var(--switch-knob-shadow) !important;
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full > div.absolute.w-4.h-4.rounded-full.translate-x-0\.5 {
+  transform: translate(0.125rem, -50%) !important;
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full > div.absolute.w-4.h-4.rounded-full.translate-x-4 {
+  transform: translate(1rem, -50%) !important;
+}
+
+[data-theme] button.relative.w-9.h-5.rounded-full.bg-primary-500 > div.absolute.w-4.h-4.rounded-full {
+  background: var(--switch-knob-on) !important;
+}
+
+[data-theme] input[type="checkbox"] {
+  box-shadow: inset 0 0 0 1px var(--switch-border);
+}
+
+[data-theme] input[type="checkbox"]:not(:checked) {
+  background-color: var(--switch-off-bg) !important;
+  border-color: var(--switch-border) !important;
+}
+
+[data-theme="midnight"] {
+  --switch-on-bg: rgba(0, 0, 0, 0.96);
+  --switch-off-bg: rgba(0, 0, 0, 0.92);
+  --switch-border: rgb(var(--color-primary-400) / 0.54);
+  --switch-knob-on: rgb(var(--color-primary-300));
+  --switch-knob-off: rgb(var(--color-primary-800));
+  --switch-shadow: 0 0 0 1px rgb(var(--color-primary-500) / 0.24), 0 0 14px rgb(var(--color-primary-500) / 0.2);
+  --switch-knob-shadow: 0 0 12px rgb(var(--color-primary-400) / 0.38);
+}
+
+[data-theme="neon"] {
+  --switch-on-bg: linear-gradient(135deg, rgb(var(--color-primary-300)), rgb(var(--color-primary-600)));
+  --switch-off-bg: rgba(5, 3, 18, 0.9);
+  --switch-border: rgb(var(--color-primary-400) / 0.5);
+  --switch-knob-on: #ffffff;
+  --switch-knob-off: rgb(var(--color-primary-900));
+  --switch-shadow: 0 0 0 1px rgb(var(--color-primary-500) / 0.2), 0 0 16px rgb(var(--color-primary-500) / 0.24);
+  --switch-knob-shadow: 0 0 12px rgb(var(--color-primary-400) / 0.5);
+}
+
+[data-theme="pure"],
+[data-theme="comic"] {
+  --switch-on-bg: rgb(var(--color-primary-300));
+  --switch-off-bg: #d1d5db;
+  --switch-border: #111827;
+  --switch-knob-on: #111827;
+  --switch-knob-off: #ffffff;
+  --switch-shadow: 3px 3px 0 #111827;
+  --switch-knob-shadow: 1px 1px 0 #111827;
+}
+
+[data-theme="paper"] {
+  --switch-off-bg: #e7dfcf;
+  --switch-border: rgba(86, 75, 58, 0.34);
+  --switch-knob-off: #8a7d68;
+}
+
+[data-theme="seaSalt"] {
+  --switch-off-bg: #dbe4ea;
+  --switch-border: rgba(51, 65, 85, 0.22);
+  --switch-knob-off: #64748b;
+}
