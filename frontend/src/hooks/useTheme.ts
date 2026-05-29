@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type AppearanceId = 'night' | 'sunlight' | 'pure' | 'midnight';
+export type AppearanceId = 'night' | 'sunlight' | 'pure' | 'midnight' | 'neon' | 'paper' | 'seaSalt' | 'comic';
 export type ThemeMode = 'dark' | 'light';
 export type ThemeColorId = 'red' | 'yellow' | 'blue' | 'green' | 'cyan' | 'purple' | 'pink' | 'orange' | 'custom';
 
@@ -25,8 +25,12 @@ const DEFAULT_CUSTOM_LIGHT = '#facc15';
 export const APPEARANCES: { id: AppearanceId; label: string; mode: ThemeMode }[] = [
   { id: 'night', label: '暗夜', mode: 'dark' },
   { id: 'sunlight', label: '日光', mode: 'light' },
-  { id: 'pure', label: '纯粹', mode: 'light' },
-  { id: 'midnight', label: '深夜', mode: 'dark' },
+  { id: 'pure', label: '涂鸦', mode: 'light' },
+  { id: 'midnight', label: '极黑', mode: 'dark' },
+  { id: 'neon', label: '霓虹', mode: 'dark' },
+  { id: 'paper', label: '纸张', mode: 'light' },
+  { id: 'seaSalt', label: '海盐', mode: 'light' },
+  { id: 'comic', label: '漫画', mode: 'light' },
 ];
 
 export const THEME_COLORS: { id: ThemeColorId; label: string; dark: string; light: string }[] = [

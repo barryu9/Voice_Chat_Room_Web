@@ -3,7 +3,7 @@ import { useTheme } from '../../hooks/useTheme';
 
 export const TechBackground: React.FC = () => {
   const { appearance } = useTheme();
-  const flat = appearance === 'pure' || appearance === 'midnight';
+  const flat = appearance === 'pure' || appearance === 'midnight' || appearance === 'paper' || appearance === 'comic';
 
   return (
     <div className="absolute inset-0 -z-10 pointer-events-none bg-[var(--bg-body)]">
