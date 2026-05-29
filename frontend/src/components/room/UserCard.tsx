@@ -16,6 +16,8 @@ interface UserCardProps {
   user: UserInfo;
 }
 
+const SPEAKING_HOLD_MS = 200;
+
 export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const activeSpeakers = useRoomStore((s) => s.activeSpeakers);
   const isAdmin = useAdminStore((s) => s.isAdmin);
@@ -41,7 +43,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
     ? myAudioLevel > noiseGateThreshold
     : !!speaker?.isSpeaking;
   if (rawSpeaking) {
-    speakingHoldUntil.current = Date.now() + 1000;
+    speakingHoldUntil.current = Date.now() + SPEAKING_HOLD_MS;
   }
   const isSpeaking = rawSpeaking || Date.now() < speakingHoldUntil.current;
   const speakingLevel = isSelf ? myAudioLevel : (speaker?.level ?? -100);
@@ -49,7 +51,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const serverMutedUsers = useMediaStore((s) => s.serverMutedUsers);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
+    const timer = setInterval(() => setNow(Date.now()), SPEAKING_HOLD_MS);
     return () => clearInterval(timer);
   }, []);
   const peerLatency = peerLatencies.get(user.deviceId);

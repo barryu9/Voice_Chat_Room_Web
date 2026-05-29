@@ -9,6 +9,7 @@ import { EVENTS } from '../utils/constants';
 import { clearChannelUrlParam } from '../utils/helpers';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
+const SPEAKING_HOLD_MS = 200;
 
 let socket: Socket | null = null;
 const speakerExpiryTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
@@ -139,7 +140,7 @@ function registerListeners() {
     const isSpeaking = data.isSpeaking;
     useRoomStore.getState().setActiveSpeaker(data.deviceId, data.level, isSpeaking);
     if (isSpeaking) {
-      clearSpeakingAfter(data.deviceId, 1000);
+      clearSpeakingAfter(data.deviceId, SPEAKING_HOLD_MS);
     } else {
       const timer = speakerExpiryTimers.get(data.deviceId);
       if (timer) { clearTimeout(timer); speakerExpiryTimers.delete(data.deviceId); }
