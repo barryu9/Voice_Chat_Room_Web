@@ -23,6 +23,7 @@ interface MediaState {
   mutedUsers: Set<string>;
   isAllMuted: boolean;
   noiseSuppressionEnabled: boolean;
+  echoCancellationEnabled: boolean;
   masterVolume: number;
   serverMutedUsers: Map<string, number>;
   amIServerMuted: boolean;
@@ -49,6 +50,7 @@ interface MediaState {
   toggleMuteUser: (deviceId: string) => void;
   toggleMuteAll: () => void;
   setNoiseSuppressionEnabled: (v: boolean) => void;
+  setEchoCancellationEnabled: (v: boolean) => void;
   setMasterVolume: (v: number) => void;
   setServerMutedUser: (userId: string, expiresAt: number) => void;
   removeServerMutedUser: (userId: string) => void;
@@ -78,6 +80,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   isAllMuted: false,
   noiseSuppressionEnabled: (() => {
     const saved = localStorage.getItem('vc_denoise_enabled');
+    return saved !== null ? saved === 'true' : true;
+  })(),
+  echoCancellationEnabled: (() => {
+    const saved = localStorage.getItem('vc_echo_cancellation_enabled');
     return saved !== null ? saved === 'true' : true;
   })(),
   masterVolume: (() => {
@@ -161,6 +167,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   setMyAudioLevel: (v) => set({ myAudioLevel: v }),
 
   setNoiseSuppressionEnabled: (v) => set({ noiseSuppressionEnabled: v }),
+  setEchoCancellationEnabled: (v) => {
+    localStorage.setItem('vc_echo_cancellation_enabled', String(v));
+    set({ echoCancellationEnabled: v });
+  },
 
   setMasterVolume: (v) => {
     localStorage.setItem('vc_master_volume', String(v));
@@ -227,5 +237,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       myAudioLevel: -100,
       mutedUsers: new Set(),
       isAllMuted: false,
+      echoCancellationEnabled: (() => {
+        const saved = localStorage.getItem('vc_echo_cancellation_enabled');
+        return saved !== null ? saved === 'true' : true;
+      })(),
     }),
 }));

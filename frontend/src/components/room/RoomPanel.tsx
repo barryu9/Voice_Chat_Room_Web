@@ -43,6 +43,8 @@ export const RoomPanel: React.FC = () => {
   const amIServerMutedByAdmin = useMediaStore((s) => s.amIServerMutedByAdmin);
   const noiseSuppressionEnabled = useMediaStore((s) => s.noiseSuppressionEnabled);
   const setNoiseSuppressionEnabled = useMediaStore((s) => s.setNoiseSuppressionEnabled);
+  const echoCancellationEnabled = useMediaStore((s) => s.echoCancellationEnabled);
+  const setEchoCancellationEnabled = useMediaStore((s) => s.setEchoCancellationEnabled);
   const masterVolume = useMediaStore((s) => s.masterVolume);
   const setMasterVolume = useMediaStore((s) => s.setMasterVolume);
 
@@ -197,6 +199,7 @@ export const RoomPanel: React.FC = () => {
   }, [isAllMuted, toggleMuteAll]);
 
   const [noiseTransiting, setNoiseTransiting] = useState(false);
+  const [echoTransiting, setEchoTransiting] = useState(false);
   const handleNoiseSuppressionToggle = useCallback(() => {
     if (noiseTransiting) return;
     const next = !noiseSuppressionEnabled;
@@ -205,6 +208,38 @@ export const RoomPanel: React.FC = () => {
     toggleNoiseSuppressor(next);
     setTimeout(() => setNoiseTransiting(false), 300);
   }, [noiseTransiting, noiseSuppressionEnabled, setNoiseSuppressionEnabled]);
+
+  const handleEchoCancellationToggle = useCallback(async () => {
+    if (echoTransiting) return;
+    const next = !echoCancellationEnabled;
+    setEchoTransiting(true);
+    setEchoCancellationEnabled(next);
+
+    try {
+      if (isVoiceConnected) {
+        const stream = await getStream(selectedInput || undefined, { echoCancellation: next });
+        const processedTrack = await switchStream(stream);
+        if (processedTrack) {
+          await replaceTrack(processedTrack);
+        }
+      }
+    } catch (e) {
+      console.warn('[RoomPanel] echo cancellation toggle failed:', e);
+      setEchoCancellationEnabled(echoCancellationEnabled);
+      showToast('回声消除切换失败', 'error');
+    } finally {
+      setEchoTransiting(false);
+    }
+  }, [
+    echoTransiting,
+    echoCancellationEnabled,
+    setEchoCancellationEnabled,
+    isVoiceConnected,
+    getStream,
+    selectedInput,
+    switchStream,
+    replaceTrack,
+  ]);
 
   const voiceChangerGlobalEnabled = useAdminStore((s) => s.config.voiceChangerEnabled);
   const voiceChangerChannelEnabled = currentChannel?.voiceChangerEnabled !== false;
@@ -417,6 +452,7 @@ export const RoomPanel: React.FC = () => {
             threshold={threshold}
             audioLevel={audioLevel}
             noiseSuppressionEnabled={noiseSuppressionEnabled}
+            echoCancellationEnabled={echoCancellationEnabled}
             onToggleMute={handleMicToggle}
             onGainChange={(v) => {
               updateGain(v);
@@ -427,7 +463,9 @@ export const RoomPanel: React.FC = () => {
               useMediaStore.getState().setNoiseGateThreshold(v);
             }}
             onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
+            onEchoCancellationToggle={handleEchoCancellationToggle}
             noiseTransiting={noiseTransiting}
+            echoTransiting={echoTransiting}
             inputs={audioInputs}
             outputs={audioOutputs}
             selectedInput={selectedInput}

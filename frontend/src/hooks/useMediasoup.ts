@@ -18,6 +18,7 @@ import {
   getProcessedStream,
 } from '../services/audioService';
 import { EVENTS } from '../utils/constants';
+import { getUserAudioStream } from './useDevices';
 
 export function useMediasoup() {
   const deviceRef = useRef<mediasoup.Device | null>(null);
@@ -40,14 +41,8 @@ export function useMediasoup() {
     const currentRoom = useUserStore.getState().currentRoom;
     if (!currentRoom) return false;
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-      video: false,
-    });
+    const selectedInput = localStorage.getItem('vc_selected_input') || undefined;
+    const stream = await getUserAudioStream(selectedInput);
     const track = stream.getAudioTracks()[0];
     micTrackRef.current = track;
 

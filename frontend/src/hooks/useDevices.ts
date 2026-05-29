@@ -1,9 +1,45 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useMediaStore } from '../stores/mediaStore';
 
 interface DeviceInfo {
   deviceId: string;
   label: string;
   kind: string;
+}
+
+interface StreamOptions {
+  echoCancellation?: boolean;
+}
+
+export function getAudioInputConstraints(deviceId?: string, options: StreamOptions = {}): MediaTrackConstraints {
+  const echoCancellation = options.echoCancellation ?? useMediaStore.getState().echoCancellationEnabled;
+  return {
+    deviceId: deviceId ? { exact: deviceId } : undefined,
+    echoCancellation,
+    noiseSuppression: false,
+    autoGainControl: false,
+  };
+}
+
+export async function getUserAudioStream(deviceId?: string, options: StreamOptions = {}): Promise<MediaStream> {
+  const requestedEchoCancellation = options.echoCancellation ?? useMediaStore.getState().echoCancellationEnabled;
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: getAudioInputConstraints(deviceId, options),
+      video: false,
+    });
+  } catch (error) {
+    const name = (error as { name?: string }).name;
+    const constraint = (error as { constraint?: string }).constraint;
+    if (requestedEchoCancellation && name === 'OverconstrainedError' && (!constraint || constraint === 'echoCancellation')) {
+      console.warn('[Devices] echoCancellation constraint unsupported, retrying without it:', error);
+      return navigator.mediaDevices.getUserMedia({
+        audio: getAudioInputConstraints(deviceId, { ...options, echoCancellation: false }),
+        video: false,
+      });
+    }
+    throw error;
+  }
 }
 
 export function useDevices() {
@@ -63,25 +99,17 @@ export function useDevices() {
     }
   }, [setSelectedInput, setSelectedOutput]);
 
-  const getStream = useCallback(async (deviceId?: string): Promise<MediaStream> => {
+  const getStream = useCallback(async (deviceId?: string, options?: StreamOptions): Promise<MediaStream> => {
     if (currentStreamRef.current) {
       currentStreamRef.current.getTracks().forEach((t) => t.stop());
     }
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        deviceId: deviceId ? { exact: deviceId } : undefined,
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-      video: false,
-    });
+    const stream = await getUserAudioStream(deviceId, options);
     currentStreamRef.current = stream;
     return stream;
   }, []);
 
-  const getTrack = useCallback(async (deviceId?: string): Promise<MediaStreamTrack> => {
-    const stream = await getStream(deviceId);
+  const getTrack = useCallback(async (deviceId?: string, options?: StreamOptions): Promise<MediaStreamTrack> => {
+    const stream = await getStream(deviceId, options);
     return stream.getAudioTracks()[0];
   }, [getStream]);
 

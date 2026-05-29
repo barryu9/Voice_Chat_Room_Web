@@ -5,11 +5,14 @@ import { VoiceChangerControls } from './VoiceChangerControls';
 interface AudioControlsProps {
   gain: number; muted: boolean; threshold: number; audioLevel: number;
   noiseSuppressionEnabled: boolean;
+  echoCancellationEnabled: boolean;
   onToggleMute: () => void;
   onGainChange: (v: number) => void;
   onThresholdChange: (v: number) => void;
   onNoiseSuppressionToggle: () => void;
+  onEchoCancellationToggle: () => void;
   noiseTransiting: boolean;
+  echoTransiting: boolean;
   inputs: { deviceId: string; label: string }[];
   outputs: { deviceId: string; label: string }[];
   selectedInput: string; selectedOutput: string;
@@ -63,9 +66,9 @@ const Popover: React.FC<{
 
 export const AudioControls: React.FC<AudioControlsProps> = ({
   gain, muted, threshold, audioLevel,
-  noiseSuppressionEnabled,
+  noiseSuppressionEnabled, echoCancellationEnabled,
   onToggleMute, onGainChange, onThresholdChange,
-  onNoiseSuppressionToggle, noiseTransiting,
+  onNoiseSuppressionToggle, onEchoCancellationToggle, noiseTransiting, echoTransiting,
   inputs, outputs, selectedInput, selectedOutput,
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
@@ -260,6 +263,19 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
             onChange={(e) => onThresholdChange(parseInt(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{threshold}dB</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-400">回声消除</span>
+          <button
+            onClick={echoTransiting ? undefined : onEchoCancellationToggle}
+            className={`relative w-9 h-5 rounded-full transition-colors ${
+              echoCancellationEnabled ? 'bg-primary-500' : 'bg-gray-600'
+            } ${echoTransiting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              echoCancellationEnabled ? 'translate-x-4' : 'translate-x-0.5'
+            }`} />
+          </button>
         </div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-gray-400">降噪</span>
