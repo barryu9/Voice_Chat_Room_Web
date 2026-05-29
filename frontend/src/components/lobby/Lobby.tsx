@@ -181,8 +181,8 @@ export const Lobby: React.FC = () => {
         {connectionState !== 'connected' && (
           <div className={`mb-4 px-4 py-2 rounded-lg text-xs text-center ${
             connectionState === 'reconnecting' ? 'theme-notice' :
-            connectionState === 'disconnected' ? 'bg-orange-500/10 border border-orange-500/30 text-orange-300' :
-            'bg-red-500/10 border border-red-500/30 text-red-300'
+            connectionState === 'disconnected' ? 'theme-alert-warning' :
+            'theme-alert-error'
           }`}>
             {connectionState === 'reconnecting' && `正在重连服务器... (${reconnectAttempt}/5)`}
             {connectionState === 'disconnected' && '连接已断开，正在尝试重连...'}

@@ -42,7 +42,7 @@ export const ToastContainer: React.FC = () => {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`${colors[t.type]} px-4 py-2.5 rounded-xl shadow-lg text-sm animate-in slide-in-from-right-2 fade-in`}
+          className={`${colors[t.type]} theme-toast px-4 py-2.5 rounded-xl shadow-lg text-sm animate-in slide-in-from-right-2 fade-in`}
         >
           {t.message}
         </div>
