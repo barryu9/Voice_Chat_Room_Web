@@ -23,6 +23,7 @@ import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { VoicePreviewModal } from '../audio/VoicePreviewModal';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
+import { clearChannelUrlParam } from '../../utils/helpers';
 
 export const RoomPanel: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
@@ -149,6 +150,7 @@ export const RoomPanel: React.FC = () => {
     getSocket()?.emit(EVENTS.CLIENT.ROOM_LEAVE);
     useMediaStore.getState().reset();
     setCurrentRoom(null);
+    clearChannelUrlParam();
   }, [isVoiceConnected, stopProduce, cleanup, setCurrentRoom]);
 
   const handleDeviceChange = useCallback(async (deviceId: string) => {

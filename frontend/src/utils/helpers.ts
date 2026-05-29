@@ -31,3 +31,9 @@ export function formatTime(seconds: number): string {
   const s = seconds % 60;
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
+
+export function clearChannelUrlParam() {
+  const u = new URL(window.location.href);
+  u.searchParams.delete('channel');
+  window.history.replaceState(null, '', u);
+}

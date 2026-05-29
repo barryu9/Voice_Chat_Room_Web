@@ -6,6 +6,7 @@ import { useMediaStore } from '../stores/mediaStore';
 import { playSound } from './soundService';
 import { showToast } from '../components/common/Toast';
 import { EVENTS } from '../utils/constants';
+import { clearChannelUrlParam } from '../utils/helpers';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 
@@ -152,6 +153,7 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.KICKED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
+    clearChannelUrlParam();
     const actor = data.byAdmin ? '管理员' : '频道创建者';
     useRoomStore.getState().setNotification(`${actor}已将你踢出频道`);
     playSound('disconnected');
@@ -160,6 +162,7 @@ function registerListeners() {
   socket.on('room:closed', (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
+    clearChannelUrlParam();
     useRoomStore.getState().setNotification(data.message || '频道已关闭');
     playSound('disconnected');
   });
@@ -167,6 +170,7 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.BANNED, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
+    clearChannelUrlParam();
     showToast(`你已被封禁: ${data.reason}`, 'error');
     playSound('disconnected');
   });
@@ -174,6 +178,7 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.FORCE_LOGOUT, (data) => {
     useUserStore.getState().setCurrentRoom(null);
     useMediaStore.getState().reset();
+    clearChannelUrlParam();
     showToast(data.message || '你已被强制下线', 'error');
     useUserStore.getState().logout();
   });

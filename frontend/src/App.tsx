@@ -14,6 +14,7 @@ import { RoomPanel } from './components/room/RoomPanel';
 import { AdminPanel } from './components/admin/AdminPanel';
 import { ToastContainer, showToast } from './components/common/Toast';
 import { useTheme } from './hooks/useTheme';
+import { clearChannelUrlParam } from './utils/helpers';
 
 const App: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
@@ -69,6 +70,7 @@ const App: React.FC = () => {
         getSocket()?.emit(EVENTS.CLIENT.ROOM_LEAVE);
       }
       useMediaStore.getState().reset();
+      clearChannelUrlParam();
       playSound('connectionLost');
       logout();
     }
