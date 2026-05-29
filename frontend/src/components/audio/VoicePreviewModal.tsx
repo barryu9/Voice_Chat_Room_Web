@@ -76,22 +76,22 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
+      <div className="glass-panel p-5 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors text-sm leading-none"
         >
           ✕
         </button>
-        <h3 className="text-base font-semibold text-white mb-2">变声预览</h3>
+        <h3 className="text-base font-semibold text-white mb-4">变声预览</h3>
 
-        <div className="space-y-2">
-          <label>
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
             <span className="text-xs text-gray-400">选择预设</span>
             <select
               value={presetId}
               onChange={(e) => { setPresetId(e.target.value); setHasRecorded(false); }}
-              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-7 mt-1 text-xs text-white focus:outline-none focus:border-primary-500/50"
+              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 text-xs text-white focus:outline-none focus:border-primary-500/50"
             >
               {presetEntries.map(([id, p]) => (
                 <option key={id} value={id}>{p.label}</option>
@@ -99,7 +99,7 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
             </select>
           </label>
 
-          <div className="flex items-center justify-center gap-2 py-1">
+          <div className="flex items-center justify-center gap-2 pt-1">
             {!hasRecorded ? (
               <button
                 onClick={handleRecord}
@@ -136,7 +136,7 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
           </div>
 
           {playing && (
-            <p className="text-xs text-green-400 text-center">正在播放变声效果...</p>
+            <p className="text-xs text-green-400 text-center -mt-1">正在播放变声效果...</p>
           )}
 
           {error && <p className="text-red-400 text-xs">{error}</p>}

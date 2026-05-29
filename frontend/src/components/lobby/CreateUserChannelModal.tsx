@@ -59,31 +59,29 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <h3 className="text-lg font-semibold text-white mb-4">创建频道</h3>
-        <div className="space-y-3">
-          <label>
+        <h3 className="text-lg font-semibold text-white mb-5">创建频道</h3>
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
             <span className="text-xs text-gray-400">频道名 (≤{maxNameLen}字)</span>
-            <input ref={inputRef} value={name} onChange={(e) => { setName(e.target.value); setError(''); }} maxLength={maxNameLen} placeholder="输入频道名" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
+            <input ref={inputRef} value={name} onChange={(e) => { setName(e.target.value); setError(''); }} maxLength={maxNameLen} placeholder="输入频道名" className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>
-          <div className="flex gap-2">
-            <label className="flex-1">
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block space-y-1.5">
               <span className="text-xs text-gray-400">人数上限</span>
-              <div className="mt-1">
-                <StepperInput value={max} onChange={setMax} min={2} max={maxUsers} />
-              </div>
+              <StepperInput value={max} onChange={setMax} min={2} max={maxUsers} />
             </label>
-            <label className="flex-1">
+            <label className="block space-y-1.5">
               <span className="text-xs text-gray-400">音质</span>
-              <select value={bitrate} onChange={(e) => setBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 mt-1 text-sm text-white focus:outline-none focus:border-primary-500/50">
+              <select value={bitrate} onChange={(e) => setBitrate(parseInt(e.target.value))} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-2 h-8 text-sm text-white focus:outline-none focus:border-primary-500/50">
                 {AUDIO_QUALITY_TIERS.filter(t => allowedBitrates.includes(t.value)).map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
             </label>
           </div>
-          <label>
+          <label className="block space-y-1.5">
             <span className="text-xs text-gray-400">密码（可选）</span>
-            <input type="text" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="4-16位（可选）" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 mt-1 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
+            <input type="text" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="4-16位（可选）" maxLength={16} className="w-full bg-gray-800/60 border border-gray-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary-500/50 h-8" />
           </label>
           <div className="flex items-center justify-between">
             <span className={`text-xs ${voiceChangerGlobalEnabled ? 'text-gray-400' : 'text-gray-600'}`}>允许变声器</span>

@@ -6,7 +6,7 @@ import { EVENTS } from '../../utils/constants';
 import { setCookie } from '../../utils/cookies';
 import { containsBlockedWord } from '../../utils/blockedWords';
 import { TechBackground } from '../common/TechBackground';
-import { ThemeSwitcher } from '../common/ThemeSwitcher';
+import { PreferencesModal } from '../common/SettingsPanel';
 
 interface NicknameModalProps {
   onClose: () => void;
@@ -24,6 +24,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
   const [nickname, setNickname] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPreferences, setShowPreferences] = useState(false);
   const deviceId = useUserStore((s) => s.deviceId);
   const setLogin = useUserStore((s) => s.setLogin);
   const siteName = useRoomStore((s) => s.siteName);
@@ -155,8 +156,14 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
           </form>
         </div>
 
-        <div className="flex justify-center mt-3">
-          <ThemeSwitcher />
+        <div className="mt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowPreferences(true)}
+            className="text-xs text-primary-400 transition-colors hover:text-primary-300"
+          >
+            偏好设置
+          </button>
         </div>
 
         {(loginFooter || version) && (
@@ -167,6 +174,8 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
           </div>
         )}
       </div>
+
+      {showPreferences && <PreferencesModal onClose={() => setShowPreferences(false)} />}
     </div>
   );
 };

@@ -38,7 +38,7 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, min, max }) => 
         onTouchEnd={stopRepeat}
         className="w-7 h-7 shrink-0 flex items-center justify-center text-gray-400 text-sm select-none"
       >-</button>
-      <span className="w-px h-4 bg-gray-600/50 shrink-0" />
+      <span className="stepper-divider h-4 shrink-0 bg-gray-600/50" />
       <input
         type="text"
         inputMode="numeric"
@@ -53,7 +53,7 @@ export const StepperInput: React.FC<Props> = ({ value, onChange, min, max }) => 
         }}
         className="flex-1 min-w-0 h-7 text-center bg-transparent text-sm text-white outline-none"
       />
-      <span className="w-px h-4 bg-gray-600/50 shrink-0" />
+      <span className="stepper-divider h-4 shrink-0 bg-gray-600/50" />
       <button
         onMouseDown={() => startRepeat(1)}
         onMouseUp={stopRepeat}

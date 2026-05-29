@@ -295,21 +295,21 @@ export const Lobby: React.FC = () => {
       {editingNickname && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-            <h3 className="text-lg font-semibold text-white mb-4">修改昵称</h3>
+            <h3 className="text-lg font-semibold text-white mb-5">修改昵称</h3>
             <input
               value={newNickname}
               onChange={(e) => { setNewNickname(e.target.value); setEditError(''); }}
               maxLength={16}
               placeholder="输入新昵称"
-              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 mb-2"
+              className="w-full bg-gray-800/60 border border-gray-600/50 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-primary-500/50 mb-4"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveNickname();
                 if (e.key === 'Escape') setEditingNickname(false);
               }}
             />
-            {editError && <p className="text-red-400 text-xs mb-3">{editError}</p>}
-            <div className="flex gap-2">
+            {editError && <p className="text-red-400 text-xs mb-4 -mt-2">{editError}</p>}
+            <div className="flex gap-2 pt-1">
               <button onClick={() => setEditingNickname(false)} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl transition-all">取消</button>
               <button onClick={handleSaveNickname} className="flex-1 bg-primary-600 hover:bg-primary-500 text-white text-sm py-2.5 rounded-xl transition-all">保存</button>
             </div>

@@ -17,7 +17,14 @@ export function unlockAudio() {
 
 export function playSound(key: SoundKey) {
   if (!useSoundStore.getState().isEnabled(key)) return;
+  playSoundFile(key);
+}
 
+export function previewSound(key: SoundKey) {
+  playSoundFile(key);
+}
+
+function playSoundFile(key: SoundKey) {
   const src = SOUND_FILES[key];
   if (!src) return;
 

@@ -112,7 +112,7 @@ function getBaseColor(state: ThemeState): string {
   return mode === 'dark' ? (option?.dark ?? DEFAULT_CUSTOM_DARK) : (option?.light ?? DEFAULT_CUSTOM_LIGHT);
 }
 
-function applyPrimaryScale(root: HTMLElement, baseHex: string) {
+function applyPrimaryScale(root: HTMLElement, baseHex: string, mode: ThemeMode) {
   const base = hexToRgb(baseHex);
   const white: [number, number, number] = [255, 255, 255];
   const black: [number, number, number] = [0, 0, 0];
@@ -134,15 +134,22 @@ function applyPrimaryScale(root: HTMLElement, baseHex: string) {
     root.style.setProperty(`--color-primary-${key}`, rgbValue(rgb));
   });
 
-  root.style.setProperty('--button-gradient-from', cssRgb(scale[400]));
-  root.style.setProperty('--button-gradient-to', cssRgb(scale[600]));
-  root.style.setProperty('--button-gradient-hover-from', cssRgb(scale[300]));
-  root.style.setProperty('--button-gradient-hover-to', cssRgb(scale[500]));
+  if (mode === 'light') {
+    root.style.setProperty('--button-gradient-from', cssRgb(scale[100]));
+    root.style.setProperty('--button-gradient-to', cssRgb(scale[300]));
+    root.style.setProperty('--button-gradient-hover-from', cssRgb(scale[50]));
+    root.style.setProperty('--button-gradient-hover-to', cssRgb(scale[200]));
+  } else {
+    root.style.setProperty('--button-gradient-from', cssRgb(scale[400]));
+    root.style.setProperty('--button-gradient-to', cssRgb(scale[600]));
+    root.style.setProperty('--button-gradient-hover-from', cssRgb(scale[300]));
+    root.style.setProperty('--button-gradient-hover-to', cssRgb(scale[500]));
+  }
   root.style.setProperty('--accent-text', cssRgb(scale[700]));
   root.style.setProperty('--button-border', `rgba(${scale[700][0]}, ${scale[700][1]}, ${scale[700][2]}, 0.24)`);
   root.style.setProperty('--button-shadow', `rgba(${scale[500][0]}, ${scale[500][1]}, ${scale[500][2]}, 0.24)`);
-  root.style.setProperty('--admin-header-from', `rgba(${scale[300][0]}, ${scale[300][1]}, ${scale[300][2]}, 0.9)`);
-  root.style.setProperty('--admin-header-to', `rgba(${scale[500][0]}, ${scale[500][1]}, ${scale[500][2]}, 0.82)`);
+  root.style.setProperty('--admin-header-from', mode === 'light' ? `rgba(${scale[50][0]}, ${scale[50][1]}, ${scale[50][2]}, 0.96)` : `rgba(${scale[300][0]}, ${scale[300][1]}, ${scale[300][2]}, 0.9)`);
+  root.style.setProperty('--admin-header-to', mode === 'light' ? `rgba(${scale[200][0]}, ${scale[200][1]}, ${scale[200][2]}, 0.9)` : `rgba(${scale[500][0]}, ${scale[500][1]}, ${scale[500][2]}, 0.82)`);
   root.style.setProperty('--admin-title', cssRgb(scale[950]));
 }
 
@@ -154,7 +161,7 @@ function applyTheme(state: ThemeState) {
   root.dataset.appearance = state.appearance;
   root.dataset.themeMode = mode;
   root.dataset.themeColor = state.color;
-  applyPrimaryScale(root, getBaseColor(state));
+  applyPrimaryScale(root, getBaseColor(state), mode);
 }
 
 function persistTheme(state: ThemeState) {
