@@ -88,8 +88,8 @@ login → room:join (no USER_JOINED yet)
 
 ### 1.1.1 Theme Design Philosophy
 - The appearance system is split into **dark themes** and **light themes**.
-- Dark themes currently include `渐变紫`, `渐变黄`, and `渐变绿`. They share the same dark glassmorphism foundation: dark body background, translucent glass panels/cards, white primary text, and light-gray secondary/muted text. The selected theme only changes the accent palette, button gradients, site-name gradient, background glow color, checkbox accent, and related decorative highlights.
-- The light theme is `日间版`. It keeps the same glassmorphism structure, but uses a warm white/yellow background with yellow light glows. Primary text must be black or near-black, and secondary/muted text must be dark gray; do not use overly pale gray text in the light theme.
+- Dark themes currently include `暗夜紫`, `暗夜黄`, and `暗夜绿`. They share the same dark glassmorphism foundation: dark body background, translucent glass panels/cards, white primary text, and light-gray secondary/muted text. The selected theme only changes the accent palette, button gradients, site-name gradient, background glow color, checkbox accent, and related decorative highlights.
+- Light themes currently include `日光黄`, `日光绿`, and `日光蓝`. They keep the same glassmorphism structure, but use warm white or very pale tinted backgrounds with soft accent glows. Primary text must be black or near-black, and secondary/muted text must be dark gray; do not use overly pale gray text in light themes.
 - Inputs, selects, checkboxes, secondary buttons, and small utility controls must remain readable in both theme modes. In the light theme, form controls should be white background with dark text and visible borders. SVG icons should become dark unless they are inside a semantic colored button.
 - Primary theme buttons follow the active accent color. In the light theme, yellow gradients should stay bright and warm, with a subtle border so buttons do not disappear into the bright background.
 - Semantic action colors override the current theme:

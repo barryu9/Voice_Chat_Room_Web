@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type ThemeId = 'purple' | 'light' | 'green' | 'yellow';
+export type ThemeId = 'purple' | 'yellow' | 'green' | 'light' | 'light-green' | 'light-blue';
 export type ThemeMode = 'dark' | 'light';
 
 const STORAGE_KEY = 'vc_theme';
@@ -8,16 +8,22 @@ const THEME_EVENT = 'vc_theme_change';
 const DEFAULT: ThemeId = 'purple';
 
 export const THEMES: { id: ThemeId; label: string; mode: ThemeMode }[] = [
-  { id: 'purple', label: '渐变紫', mode: 'dark' },
-  { id: 'yellow', label: '渐变黄', mode: 'dark' },
-  { id: 'green', label: '渐变绿', mode: 'dark' },
-  { id: 'light', label: '日间版', mode: 'light' },
+  { id: 'purple', label: '暗夜紫', mode: 'dark' },
+  { id: 'yellow', label: '暗夜黄', mode: 'dark' },
+  { id: 'green', label: '暗夜绿', mode: 'dark' },
+  { id: 'light', label: '日光黄', mode: 'light' },
+  { id: 'light-green', label: '日光绿', mode: 'light' },
+  { id: 'light-blue', label: '日光蓝', mode: 'light' },
 ];
+
+function isThemeId(value: string): value is ThemeId {
+  return THEMES.some((t) => t.id === value);
+}
 
 function loadTheme(): ThemeId {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && THEMES.some((t) => t.id === saved)) return saved as ThemeId;
+    if (saved && isThemeId(saved)) return saved;
   } catch {}
   return DEFAULT;
 }
@@ -38,13 +44,13 @@ export function useTheme() {
   useEffect(() => {
     const onThemeChange = (event: Event) => {
       const next = (event as CustomEvent<ThemeId>).detail;
-      if (THEMES.some((t) => t.id === next)) {
+      if (isThemeId(next)) {
         setThemeState(next);
       }
     };
     const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEY && event.newValue && THEMES.some((t) => t.id === event.newValue)) {
-        setThemeState(event.newValue as ThemeId);
+      if (event.key === STORAGE_KEY && event.newValue && isThemeId(event.newValue)) {
+        setThemeState(event.newValue);
       }
     };
 

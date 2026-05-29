@@ -22,6 +22,16 @@ const GLOW_COLORS: Record<ThemeId, { top: string; bottom: string; orb: string }>
     bottom: 'from-amber-100/25',
     orb: 'bg-yellow-200/15',
   },
+  'light-green': {
+    top: 'from-emerald-200/30',
+    bottom: 'from-green-100/25',
+    orb: 'bg-emerald-200/15',
+  },
+  'light-blue': {
+    top: 'from-sky-200/30',
+    bottom: 'from-blue-100/25',
+    orb: 'bg-sky-200/15',
+  },
 };
 
 export const TechBackground: React.FC = () => {
