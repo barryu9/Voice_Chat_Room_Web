@@ -1,6 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export type ThemeId = 'purple' | 'yellow' | 'green' | 'light' | 'light-green' | 'light-blue';
+export type ThemeId =
+  | 'purple'
+  | 'yellow'
+  | 'green'
+  | 'light'
+  | 'light-green'
+  | 'light-blue'
+  | 'pure-yellow'
+  | 'midnight-green';
 export type ThemeMode = 'dark' | 'light';
 
 const STORAGE_KEY = 'vc_theme';
@@ -14,6 +22,8 @@ export const THEMES: { id: ThemeId; label: string; mode: ThemeMode }[] = [
   { id: 'light', label: '日光黄', mode: 'light' },
   { id: 'light-green', label: '日光绿', mode: 'light' },
   { id: 'light-blue', label: '日光蓝', mode: 'light' },
+  { id: 'pure-yellow', label: '纯粹黄', mode: 'light' },
+  { id: 'midnight-green', label: '深夜绿', mode: 'dark' },
 ];
 
 function isThemeId(value: string): value is ThemeId {
