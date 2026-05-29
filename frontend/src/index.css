@@ -1291,16 +1291,16 @@ body {
 [data-theme="sunlight"] .theme-brand-title {
   background-image: linear-gradient(
     112deg,
-    rgb(var(--color-primary-800)) 0%,
-    rgb(var(--color-primary-600)) 34%,
-    rgb(var(--color-primary-300)) 54%,
-    rgb(var(--color-primary-600)) 76%,
-    rgb(var(--color-primary-900)) 100%
+    rgb(var(--color-primary-700)) 0%,
+    rgb(var(--color-primary-600)) 28%,
+    rgb(var(--color-primary-400)) 52%,
+    rgb(var(--color-primary-500)) 74%,
+    rgb(var(--color-primary-700)) 100%
   ) !important;
   filter:
     drop-shadow(0 1px 0 rgba(255, 255, 255, 0.9))
-    drop-shadow(0 2px 1px rgb(var(--color-primary-700) / 0.22))
-    drop-shadow(0 0 8px rgb(var(--color-primary-300) / 0.46));
+    drop-shadow(0 2px 1px rgb(var(--color-primary-700) / 0.18))
+    drop-shadow(0 0 8px rgb(var(--color-primary-300) / 0.42));
 }
 
 [data-theme="pure"] .semantic-green-button {
