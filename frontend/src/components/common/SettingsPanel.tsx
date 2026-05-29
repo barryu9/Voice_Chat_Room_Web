@@ -75,7 +75,7 @@ export const SettingsPanel: React.FC = () => {
               </label>
             ))}
           </div>
-          <div className="border-t border-gray-700/50 mt-2 pt-2 flex items-center justify-between">
+          <div className="border-t border-gray-700/50 mt-2 pt-2 space-y-2">
             <span className="text-xs text-gray-400">外观</span>
             <ThemeSwitcher />
           </div>

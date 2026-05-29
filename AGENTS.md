@@ -87,19 +87,23 @@ login → room:join (no USER_JOINED yet)
 | Placeholder | `placeholder-gray-600` |
 
 ### 1.1.1 Theme Design Philosophy
-- The appearance system is split into **dark themes** and **light themes**.
-- Dark themes currently include `暗夜紫`, `暗夜黄`, `暗夜绿`, and `深夜绿`. They share the same dark foundation: dark body background, translucent panels/cards, white primary text, and light-gray secondary/muted text. The selected theme changes the accent palette, button treatment, site-name color, background treatment, checkbox accent, and related decorative highlights. `深夜绿` is a flatter special case: pure black background, minimal gradients, and green glowing borders.
-- Light themes currently include `日光黄`, `日光绿`, `日光蓝`, and `纯粹黄`. They keep the same readability rules, but use warm white or very pale tinted backgrounds with soft accent treatments. Primary text must be black or near-black, and secondary/muted text must be dark gray; do not use overly pale gray text in light themes. `纯粹黄` is a flatter special case: pure white background, minimal gradients, and doodle-like line borders.
+- The appearance system is split into two independent dimensions: **appearance style** and **primary color**.
+- Appearance styles currently include `暗夜`, `日光`, `纯粹`, and `深夜`. `暗夜` and `深夜` are dark-mode appearances; `日光` and `纯粹` are light-mode appearances. The default is `暗夜 + 紫色`.
+- Primary colors currently include common presets such as `红`, `黄`, `蓝`, `绿`, `青`, `紫`, `粉`, and `橙`, plus `自定义`. Custom colors are stored separately for dark and light modes, because the same hex value may not read well in both modes.
+- `暗夜` uses the dark glassmorphism foundation: dark body background, translucent panels/cards, white primary text, light-gray secondary/muted text, and accent-colored glow.
+- `日光` keeps the glassmorphism structure but uses warm white or very pale tinted backgrounds with soft accent glows. Primary text must be black or near-black, and secondary/muted text must be dark gray; do not use overly pale gray text in light appearances.
+- `纯粹` is a flatter light special case: pure white background, minimal gradients, and doodle-like line borders. It still follows the selected primary color, but the treatment should feel hand-drawn rather than glossy.
+- `深夜` is a flatter dark special case: pure black background, minimal gradients, and primary-color glowing borders.
 - Inputs, selects, checkboxes, secondary buttons, and small utility controls must remain readable in both theme modes. In the light theme, form controls should be white background with dark text and visible borders. SVG icons should become dark unless they are inside a semantic colored button.
-- Primary theme buttons follow the active accent color. In the light theme, yellow gradients should stay bright and warm, with a subtle border so buttons do not disappear into the bright background.
+- Primary theme buttons follow the active primary color. In light appearances, gradients should stay bright and warm with a subtle border so buttons do not disappear into the bright background. In `纯粹` and `深夜`, reduce gradients and emphasize the appearance-specific border treatment.
 - Semantic action colors override the current theme:
   - Joining a **voice session inside a room** stays green.
   - Disconnecting voice, leaving a room, and logging out stay red, preferably as a softer red/rose gradient rather than a harsh flat red.
   - Joining a **channel card** follows the current theme accent, not the semantic green voice color.
 - Status states should be theme-aware: muted microphone uses red tones, muted speaker uses warm amber tones, warnings/notification bars are yellow-family but must be softer and darker-text in the light theme.
-- User avatars must carry both dark and light color palettes and switch immediately with `data-theme`; dark themes use saturated colors, while the light theme uses brighter/pastel tones. Speaking glow should also switch with the avatar palette.
+- User avatars must carry both dark and light color palettes and switch immediately with `data-theme-mode`; dark appearances use saturated colors, while light appearances use brighter/pastel tones. Speaking glow should also switch with the avatar palette.
 - Prefer CSS variables and theme-aware utility classes in `frontend/src/index.css` for cross-cutting theme behavior. Avoid scattering one-off light-theme overrides throughout components unless the behavior is truly component-specific.
-- When adding new UI, first decide whether its color is **theme accent**, **semantic action/status**, or **neutral surface/text**. Theme accent follows the selected skin; semantic colors keep their meaning across all skins; neutral surfaces/text follow dark/light mode readability rules.
+- When adding new UI, first decide whether its color is **primary color**, **semantic action/status**, or **neutral surface/text**. Primary color follows the selected color; semantic colors keep their meaning across all appearances; neutral surfaces/text follow dark/light mode readability rules.
 
 ### 1.2 Typography
 | Element | Class |

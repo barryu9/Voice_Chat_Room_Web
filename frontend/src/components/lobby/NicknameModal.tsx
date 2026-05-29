@@ -98,7 +98,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
       <div className="relative w-full max-w-md mx-4">
         <div className="glass-panel p-8 animate-in zoom-in-95 fade-in duration-300">
           <h2 className="text-2xl font-bold text-center mb-1 text-white">欢迎来到</h2>
-          <p className="text-center mb-2 text-lg bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent font-semibold">
+          <p className="theme-brand-title text-center mb-2 text-lg bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent font-semibold">
             {siteName}
           </p>
           <p className="text-gray-500 text-center mb-6 text-sm">输入昵称开始聊天</p>

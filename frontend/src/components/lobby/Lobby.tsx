@@ -191,7 +191,7 @@ export const Lobby: React.FC = () => {
         )}
         <header className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+            <h1 className="theme-brand-title text-3xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
               {siteName}
             </h1>
             <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
