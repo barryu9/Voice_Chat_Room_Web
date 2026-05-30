@@ -25,6 +25,7 @@ interface MediaState {
   noiseSuppressionEnabled: boolean;
   echoCancellationEnabled: boolean;
   autoGainControlEnabled: boolean;
+  peakLimiterEnabled: boolean;
   vocalEnhancerEnabled: boolean;
   masterVolume: number;
   serverMutedUsers: Map<string, number>;
@@ -54,6 +55,7 @@ interface MediaState {
   setNoiseSuppressionEnabled: (v: boolean) => void;
   setEchoCancellationEnabled: (v: boolean) => void;
   setAutoGainControlEnabled: (v: boolean) => void;
+  setPeakLimiterEnabled: (v: boolean) => void;
   setVocalEnhancerEnabled: (v: boolean) => void;
   setMasterVolume: (v: number) => void;
   setServerMutedUser: (userId: string, expiresAt: number) => void;
@@ -93,6 +95,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   autoGainControlEnabled: (() => {
     const saved = localStorage.getItem('vc_auto_gain_control_enabled');
     return saved !== null ? saved === 'true' : true;
+  })(),
+  peakLimiterEnabled: (() => {
+    const saved = localStorage.getItem('vc_peak_limiter_enabled');
+    return saved !== null ? saved === 'true' : false;
   })(),
   vocalEnhancerEnabled: (() => {
     const saved = localStorage.getItem('vc_vocal_enhancer_enabled');
@@ -187,6 +193,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     localStorage.setItem('vc_auto_gain_control_enabled', String(v));
     set({ autoGainControlEnabled: v });
   },
+  setPeakLimiterEnabled: (v) => {
+    localStorage.setItem('vc_peak_limiter_enabled', String(v));
+    set({ peakLimiterEnabled: v });
+  },
   setVocalEnhancerEnabled: (v) => {
     localStorage.setItem('vc_vocal_enhancer_enabled', String(v));
     set({ vocalEnhancerEnabled: v });
@@ -264,6 +274,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       autoGainControlEnabled: (() => {
         const saved = localStorage.getItem('vc_auto_gain_control_enabled');
         return saved !== null ? saved === 'true' : true;
+      })(),
+      peakLimiterEnabled: (() => {
+        const saved = localStorage.getItem('vc_peak_limiter_enabled');
+        return saved !== null ? saved === 'true' : false;
       })(),
       vocalEnhancerEnabled: (() => {
         const saved = localStorage.getItem('vc_vocal_enhancer_enabled');

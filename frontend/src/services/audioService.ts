@@ -17,6 +17,7 @@ let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let micGainNode: GainNode | null = null;
 let agcGainNode: GainNode | null = null;
+let peakLimiterNode: DynamicsCompressorNode | null = null;
 let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
@@ -62,6 +63,7 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   micGainNode = ctx.createGain();
   agcGainNode = ctx.createGain();
+  peakLimiterNode = ctx.createDynamicsCompressor();
   gateGainNode = ctx.createGain();
   analyserNode = ctx.createAnalyser();
   processedDestination = ctx.createMediaStreamDestination();
@@ -72,6 +74,7 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   localAudioSource.connect(micGainNode);
   micGainNode.connect(agcGainNode);
   agcGainNode.gain.value = useMediaStore.getState().autoGainControlEnabled ? autoGainValue : 1;
+  configurePeakLimiter();
 
   await tryConnectRNNoise(ctx);
 
@@ -119,6 +122,7 @@ export function reconnectAudioGraph() {
   if (!agcGainNode || !analyserNode || !gateGainNode) return;
 
   agcGainNode.disconnect();
+  peakLimiterNode?.disconnect();
   if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
   disconnectVoiceChanger();
   disconnectVocalEnhancer();
@@ -132,9 +136,21 @@ export function reconnectAudioGraph() {
   const canUseVocalEnhancer = vocalEnabled && isVocalEnhancerReady();
   const graphInputNode = agcGainNode;
   const outputNode = gateGainNode;
-  const connectToOutput = (sourceNode: AudioNode) => {
-    if (canUseVocalEnhancer && connectVocalEnhancer(sourceNode, outputNode)) return;
+  const connectLimiterOrOutput = (sourceNode: AudioNode) => {
+    if (isPeakLimiterActive() && peakLimiterNode) {
+      sourceNode.connect(peakLimiterNode);
+      peakLimiterNode.connect(outputNode);
+      return;
+    }
     sourceNode.connect(outputNode);
+  };
+  const connectToOutput = (sourceNode: AudioNode) => {
+    if (canUseVocalEnhancer && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancer(sourceNode, peakLimiterNode)) {
+      peakLimiterNode.connect(outputNode);
+      return;
+    }
+    if (canUseVocalEnhancer && connectVocalEnhancer(sourceNode, outputNode)) return;
+    connectLimiterOrOutput(sourceNode);
   };
 
   if (vcEnabled) {
@@ -144,8 +160,14 @@ export function reconnectAudioGraph() {
     if (rnEnabled) {
       vcOut.connect(rnnoiseInput!);
       const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
-      if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+      if (vocalInput && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancerOutput(peakLimiterNode)) {
+        peakLimiterNode.connect(outputNode);
         rnnoiseConnectOutput!(vocalInput);
+      } else if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+        rnnoiseConnectOutput!(vocalInput);
+      } else if (peakLimiterNode && isPeakLimiterActive()) {
+        rnnoiseConnectOutput!(peakLimiterNode);
+        peakLimiterNode.connect(outputNode);
       } else {
         rnnoiseConnectOutput!(gateGainNode);
       }
@@ -159,8 +181,14 @@ export function reconnectAudioGraph() {
     if (rnEnabled) {
       graphInputNode.connect(rnnoiseInput!);
       const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
-      if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+      if (vocalInput && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancerOutput(peakLimiterNode)) {
+        peakLimiterNode.connect(outputNode);
         rnnoiseConnectOutput!(vocalInput);
+      } else if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+        rnnoiseConnectOutput!(vocalInput);
+      } else if (peakLimiterNode && isPeakLimiterActive()) {
+        rnnoiseConnectOutput!(peakLimiterNode);
+        peakLimiterNode.connect(outputNode);
       } else {
         rnnoiseConnectOutput!(gateGainNode);
       }
@@ -186,6 +214,11 @@ export function toggleNoiseSuppressor(enabled: boolean) {
 
 export function toggleVocalEnhancer(enabled: boolean) {
   useMediaStore.getState().setVocalEnhancerEnabled(enabled);
+  reconnectAudioGraph();
+}
+
+export function togglePeakLimiter(enabled: boolean) {
+  useMediaStore.getState().setPeakLimiterEnabled(enabled);
   reconnectAudioGraph();
 }
 
@@ -226,6 +259,20 @@ export function setLocalAutoGainEnabled(enabled: boolean) {
     return;
   }
   agcGainNode.gain.setTargetAtTime(autoGainValue, agcGainNode.context.currentTime, 0.2);
+}
+
+function configurePeakLimiter() {
+  if (!peakLimiterNode) return;
+  peakLimiterNode.threshold.value = -3;
+  peakLimiterNode.knee.value = 0;
+  peakLimiterNode.ratio.value = 20;
+  peakLimiterNode.attack.value = 0.003;
+  peakLimiterNode.release.value = 0.08;
+}
+
+function isPeakLimiterActive() {
+  const state = useMediaStore.getState();
+  return state.autoGainControlEnabled || state.peakLimiterEnabled;
 }
 
 function updateAutoGain(level: number, threshold: number) {
@@ -370,6 +417,10 @@ export function cleanupLocalAudio() {
   if (agcGainNode) {
     agcGainNode.disconnect();
     agcGainNode = null;
+  }
+  if (peakLimiterNode) {
+    peakLimiterNode.disconnect();
+    peakLimiterNode = null;
   }
   if (gateGainNode) {
     gateGainNode.disconnect();
