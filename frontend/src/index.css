@@ -778,12 +778,12 @@ body {
 
 [data-theme] {
   --speaking-color: rgb(74 222 128);
-  --speaking-color-soft: rgb(74 222 128 / 0.58);
-  --speaking-color-muted: rgb(74 222 128 / 0.36);
+  --speaking-color-soft: rgb(74 222 128 / 0.5);
+  --speaking-color-muted: rgb(74 222 128 / 0.26);
   --speaking-badge-bg: rgb(34 197 94 / 0.14);
   --speaking-badge-border: rgb(74 222 128 / 0.42);
-  --speaking-badge-shadow: 0 0 14px rgb(34 197 94 / 0.22);
-  --speaking-card-shadow: 0 14px 34px rgb(34 197 94 / 0.16);
+  --speaking-badge-shadow: 0 0 12px rgb(34 197 94 / 0.18);
+  --speaking-card-shadow: 0 10px 24px rgb(34 197 94 / 0.1);
 }
 
 [data-theme-mode="light"] {
@@ -2186,4 +2186,61 @@ body {
   --switch-off-bg: #dbe4ea;
   --switch-border: rgba(51, 65, 85, 0.22);
   --switch-knob-off: #64748b;
+}
+
+[data-theme] .theme-speaking-card {
+  box-shadow:
+    var(--speaking-card-shadow),
+    0 0 0 1px var(--speaking-color-muted) !important;
+}
+
+[data-theme="night"] .theme-speaking-card {
+  box-shadow:
+    0 10px 24px rgb(34 197 94 / 0.1),
+    0 0 0 1px rgb(74 222 128 / 0.24) !important;
+}
+
+[data-theme="sunlight"] .theme-speaking-card {
+  box-shadow:
+    0 12px 28px rgb(22 163 74 / 0.1),
+    0 0 0 1px rgb(22 163 74 / 0.22) !important;
+}
+
+[data-theme="paper"] .theme-speaking-card {
+  box-shadow:
+    0 12px 28px rgba(86, 75, 58, 0.08),
+    0 0 0 1px rgb(22 163 74 / 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42) !important;
+}
+
+[data-theme="seaSalt"] .theme-speaking-card {
+  box-shadow:
+    0 16px 34px rgba(51, 65, 85, 0.07),
+    0 0 0 1px rgb(20 184 166 / 0.22),
+    0 0 18px rgb(20 184 166 / 0.09) !important;
+}
+
+[data-theme="neon"] .theme-speaking-card {
+  box-shadow:
+    0 0 0 1px rgb(var(--color-primary-300) / 0.28),
+    0 0 16px rgb(var(--color-primary-500) / 0.22),
+    inset 0 0 18px rgb(var(--color-primary-500) / 0.05) !important;
+}
+
+[data-theme="midnight"] .theme-speaking-card {
+  box-shadow:
+    0 0 0 1px rgb(var(--color-primary-400) / 0.34),
+    0 0 16px rgb(var(--color-primary-500) / 0.18) !important;
+}
+
+[data-theme="pure"] .theme-speaking-card {
+  box-shadow:
+    3px 3px 0 #111827,
+    0 0 0 2px rgb(22 163 74 / 0.26) !important;
+}
+
+[data-theme="comic"] .theme-speaking-card {
+  box-shadow:
+    5px 5px 0 #111827,
+    0 0 0 3px rgb(22 163 74 / 0.24) !important;
 }
