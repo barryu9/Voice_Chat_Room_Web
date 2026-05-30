@@ -8,8 +8,6 @@ let chainReady = false;
 let externalSource: AudioNode | null = null;
 let externalDest: AudioNode | null = null;
 
-const OUTPUT_TRIM_GAIN = Math.pow(10, -1 / 20);
-
 export function isVocalEnhancerReady(): boolean {
   return chainReady;
 }
@@ -28,32 +26,28 @@ export function initVocalEnhancer(): void {
     destroyVocalEnhancer();
 
     inputGain = new Tone.Gain(1);
-    outputGain = new Tone.Gain(OUTPUT_TRIM_GAIN);
+    outputGain = new Tone.Gain(1);
 
     const highpass = new Tone.Filter({ type: 'highpass', frequency: 95, rolloff: -12 });
-    const lowMidCut = new Tone.Filter({ type: 'peaking', frequency: 220, Q: 1.1, gain: -2.5 });
-    const presenceLift = new Tone.Filter({ type: 'peaking', frequency: 2800, Q: 0.75, gain: 1.5 });
-    const feedbackGuardLow = new Tone.Filter({ type: 'peaking', frequency: 3800, Q: 3.2, gain: -2.2 });
-    const feedbackGuardHigh = new Tone.Filter({ type: 'peaking', frequency: 5800, Q: 3.8, gain: -2.6 });
-    const sibilanceSoftener = new Tone.Filter({ type: 'peaking', frequency: 7600, Q: 2.2, gain: -2.4 });
-    const airShelf = new Tone.Filter({ type: 'highshelf', frequency: 11000, Q: 0.7, gain: 0.8 });
-    const softCompressor = new Tone.Compressor({
-      threshold: -16,
-      knee: 12,
-      ratio: 1.7,
-      attack: 0.006,
-      release: 0.16,
-    });
+    const lowMidCut = new Tone.Filter({ type: 'peaking', frequency: 240, Q: 0.85, gain: -2.2 });
+    const boxinessCut = new Tone.Filter({ type: 'peaking', frequency: 520, Q: 1.0, gain: -0.8 });
+    const clarityLift = new Tone.Filter({ type: 'peaking', frequency: 2100, Q: 0.75, gain: 0.9 });
+    const presenceLift = new Tone.Filter({ type: 'peaking', frequency: 3000, Q: 0.8, gain: 0.8 });
+    const feedbackGuardLow = new Tone.Filter({ type: 'peaking', frequency: 3900, Q: 4.0, gain: -2.4 });
+    const feedbackGuardHigh = new Tone.Filter({ type: 'peaking', frequency: 5800, Q: 4.2, gain: -2.8 });
+    const sibilanceSoftener = new Tone.Filter({ type: 'peaking', frequency: 7600, Q: 2.0, gain: -2.6 });
+    const airShelf = new Tone.Filter({ type: 'highshelf', frequency: 11500, Q: 0.7, gain: 0.7 });
 
     chainNodes = [
       highpass,
       lowMidCut,
+      boxinessCut,
+      clarityLift,
       presenceLift,
       feedbackGuardLow,
       feedbackGuardHigh,
       sibilanceSoftener,
       airShelf,
-      softCompressor,
     ];
 
     let prev: Tone.ToneAudioNode = inputGain;
