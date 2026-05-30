@@ -35,18 +35,14 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
   const vcState = vcStates.get(user.deviceId);
   const speaker = activeSpeakers.get(user.deviceId);
-  const myAudioLevel = useMediaStore((s) => s.myAudioLevel);
-  const noiseGateThreshold = useMediaStore((s) => s.noiseGateThreshold);
   const isSelf = user.userId === currentUserId;
   const speakingHoldUntil = useRef(0);
-  const rawSpeaking = isSelf
-    ? myAudioLevel > noiseGateThreshold
-    : !!speaker?.isSpeaking;
+  const rawSpeaking = !!speaker?.isSpeaking;
   if (rawSpeaking) {
     speakingHoldUntil.current = Date.now() + SPEAKING_HOLD_MS;
   }
   const isSpeaking = rawSpeaking || Date.now() < speakingHoldUntil.current;
-  const speakingLevel = isSelf ? myAudioLevel : (speaker?.level ?? -100);
+  const speakingLevel = speaker?.level ?? -100;
   const isMuted = mutedUsers.has(user.deviceId);
   const serverMutedUsers = useMediaStore((s) => s.serverMutedUsers);
   const [now, setNow] = useState(Date.now());
@@ -151,20 +147,6 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
             已被禁言
             {(isAdmin || isSelf) && serverMutedExpires ? ` ${Math.max(0, Math.ceil((serverMutedExpires - now) / 1000))}s` : ''}
           </p>
-        )}
-        {isSpeaking && (
-          <div className="flex items-center justify-center gap-1 mt-1">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="w-1 bg-green-400 rounded-full animate-audio-bar"
-                style={{
-                  height: `${4 + Math.random() * 12}px`,
-                  animationDelay: `${i * 0.1}s`,
-                }}
-              />
-            ))}
-          </div>
         )}
       </div>
 
