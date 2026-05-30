@@ -17,11 +17,14 @@ let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let micGainNode: GainNode | null = null;
 let agcGainNode: GainNode | null = null;
+let agcAnalyserNode: AnalyserNode | null = null;
 let peakLimiterNode: DynamicsCompressorNode | null = null;
 let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -45;
+let manualGainValue = 1;
+let micMuted = false;
 let autoGainValue = 1;
 let lastAutoGainUpdate = 0;
 const AUTO_GAIN_TARGET_DB = -24;
@@ -63,6 +66,7 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   micGainNode = ctx.createGain();
   agcGainNode = ctx.createGain();
+  agcAnalyserNode = ctx.createAnalyser();
   peakLimiterNode = ctx.createDynamicsCompressor();
   gateGainNode = ctx.createGain();
   analyserNode = ctx.createAnalyser();
@@ -70,9 +74,10 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   analyserNode.fftSize = 256;
   analyserNode.smoothingTimeConstant = 0.8;
+  agcAnalyserNode.fftSize = 256;
+  agcAnalyserNode.smoothingTimeConstant = 0.8;
 
-  localAudioSource.connect(micGainNode);
-  micGainNode.connect(agcGainNode);
+  localAudioSource.connect(agcGainNode);
   agcGainNode.gain.value = useMediaStore.getState().autoGainControlEnabled ? autoGainValue : 1;
   configurePeakLimiter();
 
@@ -84,7 +89,7 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   const savedGain = localStorage.getItem('vc_gain');
   if (savedGain) setMicGain(parseFloat(savedGain));
   const savedMuted = localStorage.getItem('vc_muted');
-  if (savedMuted === 'true') micGainNode.gain.value = 0;
+  setMicMute(savedMuted === 'true');
   const savedThreshold = localStorage.getItem('vc_threshold');
   if (savedThreshold) setNoiseGateThreshold(parseInt(savedThreshold));
 
@@ -112,9 +117,10 @@ export function getProcessedStream(): MediaStream | null {
 }
 
 export function reconnectAudioGraph() {
-  if (!agcGainNode || !analyserNode || !gateGainNode || !processedDestination) return;
+  if (!micGainNode || !agcGainNode || !analyserNode || !agcAnalyserNode || !gateGainNode || !processedDestination) return;
 
   agcGainNode.disconnect();
+  micGainNode.disconnect();
   peakLimiterNode?.disconnect();
   gateGainNode.disconnect();
   if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
@@ -128,7 +134,9 @@ export function reconnectAudioGraph() {
     initVocalEnhancer();
   }
   const canUseVocalEnhancer = vocalEnabled && isVocalEnhancerReady();
-  const graphInputNode = agcGainNode;
+  agcGainNode.connect(agcAnalyserNode);
+  agcGainNode.connect(micGainNode);
+  const graphInputNode = micGainNode;
   const outputNode = gateGainNode;
   graphInputNode.connect(analyserNode);
 
@@ -210,14 +218,16 @@ export function updateNoiseGate(level: number, threshold: number) {
 }
 
 export function setMicGain(value: number) {
+  manualGainValue = Math.max(0, Math.min(value, 3));
   if (micGainNode) {
-    micGainNode.gain.value = Math.max(0, Math.min(value, 3));
+    micGainNode.gain.value = micMuted ? 0 : manualGainValue;
   }
 }
 
 export function setMicMute(muted: boolean) {
+  micMuted = muted;
   if (micGainNode) {
-    micGainNode.gain.value = muted ? 0 : 1;
+    micGainNode.gain.value = muted ? 0 : manualGainValue;
   }
 }
 
@@ -253,14 +263,16 @@ function isPeakLimiterActive() {
 
 function updateAutoGain(level: number, threshold: number) {
   if (!agcGainNode || !useMediaStore.getState().autoGainControlEnabled) return;
+  if (micMuted) return;
 
   const now = agcGainNode.context.currentTime;
   if (now - lastAutoGainUpdate < AUTO_GAIN_UPDATE_INTERVAL) return;
   lastAutoGainUpdate = now;
 
-  if (!Number.isFinite(level) || level <= threshold) return;
+  const agcLevel = getAutoGainLevel();
+  if (!Number.isFinite(agcLevel) || level <= threshold) return;
 
-  const errorDb = AUTO_GAIN_TARGET_DB - level;
+  const errorDb = AUTO_GAIN_TARGET_DB - agcLevel;
   const multiplier = Math.pow(10, (errorDb * AUTO_GAIN_STEP) / 20);
   const nextGain = Math.max(AUTO_GAIN_MIN, Math.min(AUTO_GAIN_MAX, autoGainValue * multiplier));
   const timeConstant = nextGain > autoGainValue ? 0.7 : 0.25;
@@ -268,6 +280,21 @@ function updateAutoGain(level: number, threshold: number) {
   autoGainValue = nextGain;
   agcGainNode.gain.cancelScheduledValues(now);
   agcGainNode.gain.setTargetAtTime(autoGainValue, now, timeConstant);
+}
+
+function getAutoGainLevel(): number {
+  if (!agcAnalyserNode) return -100;
+
+  const dataArray = new Uint8Array(agcAnalyserNode.frequencyBinCount);
+  agcAnalyserNode.getByteTimeDomainData(dataArray);
+
+  let sum = 0;
+  for (let i = 0; i < dataArray.length; i++) {
+    const v = (dataArray[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / dataArray.length);
+  return 20 * Math.log10(Math.max(rms, 1e-6));
 }
 
 export function getAudioLevel(): number {
@@ -393,6 +420,10 @@ export function cleanupLocalAudio() {
   if (agcGainNode) {
     agcGainNode.disconnect();
     agcGainNode = null;
+  }
+  if (agcAnalyserNode) {
+    agcAnalyserNode.disconnect();
+    agcAnalyserNode = null;
   }
   if (peakLimiterNode) {
     peakLimiterNode.disconnect();
