@@ -54,10 +54,10 @@ export function initVocalEnhancer(): void {
         knee: 8,
       },
     });
-    const lowMudCut = new Tone.Filter({ type: 'peaking', frequency: 240, Q: 0.9, gain: -3.5 });
-    const presenceBoost = new Tone.Filter({ type: 'peaking', frequency: 3200, Q: 0.85, gain: 4 });
-    const harshnessCut = new Tone.Filter({ type: 'peaking', frequency: 6800, Q: 1.8, gain: -0.6 });
-    const airLift = new Tone.Filter({ type: 'highshelf', frequency: 7000, gain: 1.8 });
+    const lowMudCut = new Tone.Filter({ type: 'peaking', frequency: 250, Q: 0.9, gain: -3 });
+    const presenceBoost = new Tone.Filter({ type: 'peaking', frequency: 3100, Q: 0.85, gain: 2.8 });
+    const harshnessCut = new Tone.Filter({ type: 'peaking', frequency: 6800, Q: 1.8, gain: -0.8 });
+    const airLift = new Tone.Filter({ type: 'highshelf', frequency: 7200, gain: 1.2 });
     const airLimit = new Tone.Filter({ type: 'lowpass', frequency: 14000, rolloff: -12 });
     const smoother = new Tone.Compressor({
       threshold: -22,
