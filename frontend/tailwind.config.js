@@ -22,13 +22,14 @@ export default {
         },
       },
       animation: {
-        'pulse-ring': 'pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite',
+        'pulse-ring': 'pulse-ring 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite',
         'audio-bar': 'audio-bar 0.5s ease-in-out infinite alternate',
       },
       keyframes: {
         'pulse-ring': {
-          '0%': { transform: 'scale(0.8)', opacity: '1' },
-          '100%': { transform: 'scale(2)', opacity: '0' },
+          '0%': { transform: 'scale(0.92)', opacity: '0.55' },
+          '70%': { opacity: '0.18' },
+          '100%': { transform: 'scale(1.55)', opacity: '0' },
         },
         'audio-bar': {
           '0%': { height: '4px' },

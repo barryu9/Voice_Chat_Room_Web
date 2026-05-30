@@ -2188,61 +2188,136 @@ body {
   --switch-knob-off: #64748b;
 }
 
+[data-theme] {
+  --speaking-color: rgb(74 222 128);
+  --speaking-color-soft: rgb(74 222 128 / 0.32);
+  --speaking-color-muted: rgb(74 222 128 / 0.16);
+  --speaking-badge-bg: rgb(34 197 94 / 0.12);
+  --speaking-badge-border: rgb(74 222 128 / 0.32);
+  --speaking-badge-shadow: 0 0 10px rgb(34 197 94 / 0.12);
+  --speaking-card-shadow: 0 8px 18px rgb(34 197 94 / 0.055), 0 0 0 1px rgb(74 222 128 / 0.16);
+  --speaking-avatar-shadow-dark: 0 0 14px var(--avatar-glow-dark, rgb(74 222 128 / 0.5)), 0 0 0 2px rgb(74 222 128 / 0.18);
+  --speaking-avatar-shadow-light: 0 0 12px var(--avatar-glow-light, rgb(22 163 74 / 0.35)), 0 0 0 2px rgb(22 163 74 / 0.18);
+  --speaking-pulse-primary-width: 2px;
+  --speaking-pulse-secondary-width: 1px;
+  --speaking-pulse-duration: 1.8s;
+}
+
+[data-theme-mode="light"] {
+  --speaking-color: rgb(22 163 74);
+  --speaking-color-soft: rgb(22 163 74 / 0.3);
+  --speaking-color-muted: rgb(22 163 74 / 0.16);
+  --speaking-badge-bg: rgb(34 197 94 / 0.1);
+  --speaking-badge-border: rgb(22 163 74 / 0.26);
+  --speaking-badge-shadow: 0 6px 14px rgb(22 163 74 / 0.1);
+  --speaking-card-shadow: 0 10px 24px rgb(22 163 74 / 0.075), 0 0 0 1px rgb(22 163 74 / 0.16);
+}
+
+[data-theme="sunlight"] {
+  --speaking-card-shadow: 0 10px 24px rgb(22 163 74 / 0.07), 0 0 0 1px rgb(22 163 74 / 0.17);
+  --speaking-badge-bg: rgb(34 197 94 / 0.11);
+}
+
+[data-theme="pure"] {
+  --speaking-color: rgb(21 128 61);
+  --speaking-color-soft: rgb(21 128 61 / 0.26);
+  --speaking-color-muted: rgb(21 128 61 / 0.18);
+  --speaking-badge-bg: #ffffff;
+  --speaking-badge-border: #111827;
+  --speaking-badge-shadow: 1px 1px 0 #111827;
+  --speaking-card-shadow: 2px 2px 0 #111827, 0 0 0 2px rgb(21 128 61 / 0.2);
+  --speaking-avatar-shadow-light: 2px 2px 0 #111827, 0 0 0 2px rgb(21 128 61 / 0.2);
+  --speaking-pulse-primary-width: 2px;
+  --speaking-pulse-secondary-width: 1px;
+}
+
+[data-theme="midnight"] {
+  --speaking-color: rgb(var(--color-primary-200));
+  --speaking-color-soft: rgb(var(--color-primary-300) / 0.3);
+  --speaking-color-muted: rgb(var(--color-primary-400) / 0.2);
+  --speaking-badge-bg: rgb(var(--color-primary-500) / 0.12);
+  --speaking-badge-border: rgb(var(--color-primary-300) / 0.38);
+  --speaking-badge-shadow: 0 0 12px rgb(var(--color-primary-500) / 0.16);
+  --speaking-card-shadow: 0 0 0 1px rgb(var(--color-primary-400) / 0.38), 0 0 18px rgb(var(--color-primary-500) / 0.2);
+  --speaking-avatar-shadow-dark: 0 0 16px rgb(var(--color-primary-500) / 0.26), 0 0 0 2px rgb(var(--color-primary-400) / 0.2);
+}
+
+[data-theme="neon"] {
+  --speaking-color: rgb(var(--color-primary-200));
+  --speaking-color-soft: rgb(var(--color-primary-300) / 0.34);
+  --speaking-color-muted: rgb(var(--color-primary-500) / 0.18);
+  --speaking-badge-bg: rgb(var(--color-primary-500) / 0.12);
+  --speaking-badge-border: rgb(var(--color-primary-300) / 0.42);
+  --speaking-badge-shadow: 0 0 14px rgb(var(--color-primary-500) / 0.18);
+  --speaking-card-shadow: 0 0 0 1px rgb(var(--color-primary-300) / 0.34), 0 0 20px rgb(var(--color-primary-500) / 0.24), inset 0 0 16px rgb(var(--color-primary-500) / 0.05);
+  --speaking-avatar-shadow-dark: 0 0 16px rgb(var(--color-primary-500) / 0.28), 0 0 0 2px rgb(var(--color-primary-300) / 0.2);
+}
+
+[data-theme="paper"] {
+  --speaking-color: #3f7f44;
+  --speaking-color-soft: rgba(63, 127, 68, 0.26);
+  --speaking-color-muted: rgba(63, 127, 68, 0.16);
+  --speaking-badge-bg: rgba(245, 251, 238, 0.92);
+  --speaking-badge-border: rgba(63, 127, 68, 0.28);
+  --speaking-badge-shadow: 0 5px 12px rgba(86, 75, 58, 0.08);
+  --speaking-card-shadow: 0 10px 22px rgba(86, 75, 58, 0.075), 0 0 0 1px rgba(63, 127, 68, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+  --speaking-avatar-shadow-light: 0 0 10px rgba(63, 127, 68, 0.14), 0 0 0 2px rgba(63, 127, 68, 0.16);
+}
+
+[data-theme="seaSalt"] {
+  --speaking-color: #0f766e;
+  --speaking-color-soft: rgba(15, 118, 110, 0.25);
+  --speaking-color-muted: rgba(15, 118, 110, 0.15);
+  --speaking-badge-bg: rgba(240, 253, 250, 0.86);
+  --speaking-badge-border: rgba(15, 118, 110, 0.24);
+  --speaking-badge-shadow: 0 8px 16px rgba(51, 65, 85, 0.07);
+  --speaking-card-shadow: 0 12px 26px rgba(51, 65, 85, 0.06), 0 0 0 1px rgba(15, 118, 110, 0.16);
+  --speaking-avatar-shadow-light: 0 0 10px rgba(15, 118, 110, 0.14), 0 0 0 2px rgba(15, 118, 110, 0.15);
+}
+
+[data-theme="comic"] {
+  --speaking-color: rgb(22 101 52);
+  --speaking-color-soft: rgb(22 101 52 / 0.28);
+  --speaking-color-muted: rgb(22 101 52 / 0.2);
+  --speaking-badge-bg: #dcfce7;
+  --speaking-badge-border: #111827;
+  --speaking-badge-shadow: 2px 2px 0 #111827;
+  --speaking-card-shadow: 3px 3px 0 #111827, 0 0 0 2px rgb(22 101 52 / 0.22);
+  --speaking-avatar-shadow-light: 2px 2px 0 #111827, 0 0 0 2px rgb(22 101 52 / 0.22);
+  --speaking-pulse-primary-width: 2px;
+  --speaking-pulse-secondary-width: 1px;
+}
+
+[data-theme] .avatar-circle.avatar-speaking {
+  box-shadow: var(--speaking-avatar-shadow-dark) !important;
+}
+
+[data-theme-mode="light"] .avatar-circle.avatar-speaking {
+  box-shadow: var(--speaking-avatar-shadow-light) !important;
+}
+
 [data-theme] .theme-speaking-card {
-  box-shadow:
-    var(--speaking-card-shadow),
-    0 0 0 1px var(--speaking-color-muted) !important;
+  box-shadow: var(--speaking-card-shadow) !important;
+  transition-property: box-shadow, border-color, background-color;
+  transition-duration: 260ms;
+  transition-timing-function: ease-out;
 }
 
-[data-theme="night"] .theme-speaking-card {
-  box-shadow:
-    0 8px 18px rgb(34 197 94 / 0.055),
-    0 0 0 1px rgb(74 222 128 / 0.16) !important;
+[data-theme] .theme-speaking-badge {
+  color: var(--speaking-color) !important;
+  background: var(--speaking-badge-bg) !important;
+  border-color: var(--speaking-badge-border) !important;
+  box-shadow: var(--speaking-badge-shadow) !important;
 }
 
-[data-theme="sunlight"] .theme-speaking-card {
-  box-shadow:
-    0 12px 28px rgb(22 163 74 / 0.1),
-    0 0 0 1px rgb(22 163 74 / 0.22) !important;
+[data-theme] .theme-speaking-pulse-primary {
+  border-color: var(--speaking-color-soft) !important;
+  border-width: var(--speaking-pulse-primary-width) !important;
+  animation-duration: var(--speaking-pulse-duration) !important;
 }
 
-[data-theme="paper"] .theme-speaking-card {
-  box-shadow:
-    0 12px 28px rgba(86, 75, 58, 0.08),
-    0 0 0 1px rgb(22 163 74 / 0.22),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.42) !important;
-}
-
-[data-theme="seaSalt"] .theme-speaking-card {
-  box-shadow:
-    0 16px 34px rgba(51, 65, 85, 0.07),
-    0 0 0 1px rgb(20 184 166 / 0.22),
-    0 0 18px rgb(20 184 166 / 0.09) !important;
-}
-
-[data-theme="neon"] .theme-speaking-card {
-  box-shadow:
-    0 0 0 1px rgb(var(--color-primary-300) / 0.48),
-    0 0 22px rgb(var(--color-primary-500) / 0.32),
-    0 0 40px rgb(var(--color-primary-500) / 0.12),
-    inset 0 0 18px rgb(var(--color-primary-500) / 0.08) !important;
-}
-
-[data-theme="midnight"] .theme-speaking-card {
-  box-shadow:
-    0 0 0 1px rgb(var(--color-primary-400) / 0.54),
-    0 0 22px rgb(var(--color-primary-500) / 0.3),
-    0 0 36px rgb(var(--color-primary-500) / 0.12) !important;
-}
-
-[data-theme="pure"] .theme-speaking-card {
-  box-shadow:
-    3px 3px 0 #111827,
-    0 0 0 2px rgb(22 163 74 / 0.26) !important;
-}
-
-[data-theme="comic"] .theme-speaking-card {
-  box-shadow:
-    5px 5px 0 #111827,
-    0 0 0 3px rgb(22 163 74 / 0.24) !important;
+[data-theme] .theme-speaking-pulse-secondary {
+  border-color: var(--speaking-color-muted) !important;
+  border-width: var(--speaking-pulse-secondary-width) !important;
+  animation-duration: var(--speaking-pulse-duration) !important;
 }

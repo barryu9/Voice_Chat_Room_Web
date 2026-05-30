@@ -30,7 +30,7 @@ let autoGainValue = 1;
 let lastAutoGainUpdate = 0;
 const AUTO_GAIN_TARGET_DB = -24;
 const AUTO_GAIN_MIN = 0.5;
-const AUTO_GAIN_MAX = 5;
+const AUTO_GAIN_MAX = 8;
 const AUTO_GAIN_STEP = 0.015;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
@@ -217,7 +217,7 @@ export function updateNoiseGate(level: number, threshold: number) {
 }
 
 export function setMicGain(value: number) {
-  manualGainValue = Math.max(0, Math.min(value, 3));
+  manualGainValue = Math.max(0, Math.min(value, 4));
   if (micGainNode) {
     micGainNode.gain.value = micMuted ? 0 : manualGainValue;
   }

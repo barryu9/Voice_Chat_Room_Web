@@ -59,7 +59,7 @@ export const MicController: React.FC<MicControllerProps> = ({
           <input
             type="range"
             min="0"
-            max="2"
+            max="4"
             step="0.1"
             value={gain}
             onChange={(e) => onGainChange(parseFloat(e.target.value))}

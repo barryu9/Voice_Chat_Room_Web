@@ -261,7 +261,7 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
         </select>
         <div className="flex items-center gap-2 mb-1.5">
           <span className="text-xs text-gray-400 w-10 shrink-0">增益</span>
-              <input type="range" min="0" max="3" step="0.1" value={gain}
+              <input type="range" min="0" max="4" step="0.1" value={gain}
             onChange={(e) => onGainChange(parseFloat(e.target.value))}
             className="flex-1 h-1.5 accent-primary-500 cursor-pointer" />
           <span className="text-xs text-gray-400 w-8 text-right">{gain.toFixed(1)}x</span>
