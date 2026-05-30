@@ -103,8 +103,8 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   return (
     <div
       className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 group/hover ${
-        isSpeaking ? 'theme-speaking-card' : ''
-      } ${isSelf ? 'ring-1 ring-primary-500/30' : ''}`}
+        isSelf ? 'ring-1 ring-primary-500/30' : ''
+      }`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
       {/* Avatar */}
