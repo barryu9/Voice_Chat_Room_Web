@@ -2,159 +2,242 @@
 
 [中文](./README.md)
 
-A **registration-free** real-time multi-user voice chat room with channels, voice changer, noise suppression, and volume controls.
-
-> This project was developed **entirely through** [Opencode](https://opencode.ai) + **DeepSeek V4 Pro**, using vibe coding.
-> See [AGENTS.md](./AGENTS.md) for detailed development conventions.
+A lightweight real-time voice chat room with no account registration. Users enter with a nickname, browse channels, and only appear in the room grid after they actually join voice. The project focuses on stable voice transport, practical microphone processing, theme-aware UI, and simple administration for small groups.
 
 ## Features
 
-- **Anonymous Voice Chat** — No registration required; login via FingerprintJS device ID
-- **Multi-Channel** — Default lobby + admin/user-created channels with password protection
-- **Voice Changer** — 18 built-in presets (male-to-female, female-to-male, loli, robot, etc.) powered by Tone.js
-- **Voice Preview** — Record 5 seconds and preview any preset before enabling
-- **Mic Test** — One-click recording with playback through the current audio pipeline (gain + voice changer)
-- **Real-time Noise Suppression** — AI-based RNNoise WASM, toggleable
-- **Noise Gate** — Adjustable threshold (-60 ~ -30dB) to filter ambient noise
-- **Per-User Volume** — Independent volume control for each remote user (0.1 ~ 1.0)
-- **Speaking Indicator** — Green ring glow + audio bar animations
-- **Admin Controls** — Kick, mute, ban, force-unmute
-- **Announcements** — Site-wide and room-level announcements
-- **Responsive Design** — Desktop and mobile support
-
-## Screenshots
-
-| Login | Channel List |
-|-------|--------------|
-| ![Login](screenshots/登录界面.png) | ![Channel List](screenshots/频道列表界面.png) |
-
-| In Channel | Mobile |
-|------------|--------|
-| ![In Channel](screenshots/频道内界面.png) | ![Mobile](screenshots/移动端界面.png) |
+- No registration: users are identified by FingerprintJS, with a local random ID fallback.
+- Channel lobby: supports system channels and user-created channels with capacity limits, passwords, announcements, and admin configuration.
+- Real-time voice: Mediasoup SFU transport; users appear in the room grid only after joining voice.
+- Microphone processing: RNNoise denoise, browser echo cancellation, custom AGC, manual gain, peak limiting, voice threshold, and mute.
+- Vocal clarity: Tone.js shares the existing AudioContext; the current enhancer keeps an 80Hz high-pass filter to reduce low-end rumble.
+- Voice changer: applied at the end of the local chain, right before sending to the server, so the final processed voice is transformed.
+- Sound effects: preference modal supports toggling and previewing notification sounds.
+- Per-user output volume: users can adjust master output and individual remote users.
+- Speaking state: server-side AudioLevelObserver drives speaking status for every user, including yourself.
+- Appearance system: appearance style and primary color are independent. Built-in appearances include Night, Sunlight, Doodle, Blackout, Neon, Paper, Sea Salt, and Comic.
+- Theme-aware UI: buttons, alerts, switches, sliders, speaking glows, and current-appearance indicators adapt to the selected theme.
+- Admin panel: channel management, announcements, bans, kicks, and site settings.
+- Deployment ready: Docker Compose, Nginx, and MongoDB configuration included.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18 + TypeScript + Vite + TailwindCSS + Zustand |
-| Real-time | Socket.io + Mediasoup (WebRTC SFU) |
-| Audio Processing | Tone.js (voice changer) + simple-rnnoise-wasm (noise suppression) |
-| Backend | Node.js + Express + Mediasoup 3.x |
-| Database | MongoDB + Mongoose |
-| Deployment | Docker + Docker Compose (Mongo + Backend + Nginx) |
+**Frontend**
 
-## Quick Start (Development)
+- React 18 + TypeScript + Vite
+- TailwindCSS
+- Zustand
+- Socket.io-client
+- mediasoup-client
+- Tone.js
 
-```bash
-# 1. Backend (nodemon with hot reload)
-cd backend && npm run dev
+**Backend**
 
-# 2. Frontend (Vite HMR)
-cd frontend && npm run dev
-```
+- Node.js + Express
+- Socket.io
+- Mediasoup 3.x
+- Mongoose
+- mongodb-memory-server fallback for local development
 
-- Backend: `http://localhost:3001` (health check: `/health`)
-- Frontend: `https://localhost:5173` (LAN IP auto-detected)
-- Dev MongoDB auto-starts via `mongodb-memory-server` — no manual setup needed
+**Deployment**
 
-### ⚠️ Browser Security Policy
+- Docker + Docker Compose
+- MongoDB
+- Nginx
 
-Except for `localhost` and `127.0.0.1`, modern browsers require **HTTPS/WSS** to access the microphone. Solutions:
+## Quick Start
 
-1. **Production** — Bind a domain and obtain an SSL/TLS certificate (e.g., Let's Encrypt).
-2. **LAN debugging** — Use a self-signed certificate and skip the browser warning (Vite dev server uses a self-signed cert by default).
-3. **Chrome-based browsers** — Navigate to `chrome://flags/#unsafely-treat-insecure-origin-as-secure` and whitelist your LAN or public IP.
-
-> Even with a valid SSL/TLS certificate, IP-only addresses will still trigger a browser security warning — users must manually bypass it.
-
-### Admin Panel
-
-Append `?admin` to the URL (e.g., `https://localhost:5173/?admin`) to reveal the **⚙ Admin** button. Click it, enter the admin password, and access:
-
-- Channel management (create / edit / delete / reorder)
-- User management (kick / mute / ban / force-unmute)
-- Announcement publishing
-- Global settings (site name, voice changer toggle, channel limits, etc.)
-
-## Production Deployment
+### 1. Clone
 
 ```bash
-# 1. Configure environment
-cp deploy.conf.example deploy.conf
-# Edit deploy.conf with your public IP and admin password
-
-# 2. One-click deploy (requires Docker)
-git pull && bash deploy.sh
+git clone <your-repo-url>
+cd voice-chat-room
 ```
 
-> ⚠️ **Before going live**: On first deploy, the script automatically copies blocked-word example files. Review and edit these with your actual word list (leave empty to disable filtering):
-> - Frontend: `frontend/src/utils/blockedWords.ts`
-> - Backend: `backend/src/utils/blockedWords.js`
+### 2. Install dependencies
 
-### Docker Architecture
+```bash
+cd backend
+npm install
 
-```
-┌─────────────────────────────────────────┐
-│  docker compose                          │
-│  ┌──────────┐ ┌──────────┐ ┌─────────┐  │
-│  │ MongoDB │  │ Backend  │ │  Nginx  │  │
-│  │ :27017  │  │ :3001    │ │ :8080   │  │
-│  └──────────┘ └──────────┘ └─────────┘  │
-│                     ↑                    │
-│              UDP 40000-49999            │
-│              (Mediasoup RTP)            │
-└─────────────────────────────────────────┘
+cd ../frontend
+npm install
 ```
 
-- Backend uses `node:20-slim` (**not** alpine — Mediasoup is incompatible with musl)
-- Backend listens on `127.0.0.1:3001`, Nginx on `127.0.0.1:8080`
-- Ensure RTP ports (UDP 40000-49999) are open before deployment
-- Your own reverse proxy (e.g., Nginx/Caddy) in front of both ports
+### 3. Run development servers
+
+Terminal 1:
+
+```bash
+cd backend
+npm run dev
+```
+
+Terminal 2:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Default URLs:
+
+- Backend: `http://localhost:3001`
+- Health check: `http://localhost:3001/health`
+- Frontend: `https://localhost:5173`
+
+> Browsers usually require HTTPS or localhost for microphone access. The Vite HTTPS setup helps LAN testing request microphone permission correctly.
 
 ## Audio Pipeline
 
-```
-Mic → Gain → [Voice Changer (Tone.js)] → Analyser → [Noise Supp. (RNNoise)] → Noise Gate → SFU
-                                                                                     ↓
-Remote Users ← <audio> ← GainNode ← MediaElementSource ← SFU Consumer
+The server does not modify user audio. It only forwards media and observes audio levels for speaking status. Microphone processing happens locally in the browser.
+
+```text
+Microphone input
+  -> RNNoise denoise
+  -> Vocal clarity 80Hz high-pass
+  -> Custom AGC
+  -> Manual gain / mute
+  -> Peak limiter
+  -> Voice threshold / noise gate
+  -> Voice changer
+  -> Mediasoup Producer
 ```
 
-- Local chain: Gain → Voice Changer → Noise Suppression → Noise Gate → Mediasoup Producer
-- Remote audio: Native `<audio>` elements, routed through GainNode for volume control
-- Voice preview/test use independent processing chains — no interference with main audio
+Current audio decisions:
+
+- Browser-native `echoCancellation` is toggleable in microphone settings and defaults to on.
+- Browser-native `noiseSuppression` is forced off to avoid mixing it with RNNoise.
+- Browser-native `autoGainControl` is forced off; the app uses its own AGC.
+- Custom AGC defaults to on, targets about `-24dB`, and uses a `0.5x ~ 5.0x` gain range.
+- Peak limiting can be enabled manually; it is automatically active whenever AGC is on.
+- Manual microphone gain is applied after AGC as a user fine-tuning step.
+- The voice changer is the final stage before sending audio to the server.
+
+Remote audio playback uses native `<audio>` elements instead of Web Audio for better cross-browser reliability.
+
+## Speaking State
+
+The backend uses Mediasoup `AudioLevelObserver` to detect active speakers and broadcasts that state to room clients. The frontend no longer uses a separate local-only rule for your own card, so what you see matches what other users see.
+
+When a user is speaking, the card shows:
+
+- Avatar ripple
+- Theme-aware card glow
+- Green speaker icon next to the nickname
+
+The card no longer scales while speaking.
+
+## Appearance And Preferences
+
+Both the login page and the channel page use the preference modal for appearance, primary color, and sound settings. Appearance controls the visual style, while primary color controls the accent color.
+
+Built-in appearances:
+
+- Night
+- Sunlight
+- Doodle
+- Blackout
+- Neon
+- Paper
+- Sea Salt
+- Comic
+
+Built-in primary colors:
+
+- Red, yellow, blue, green, cyan, purple, pink, orange
+- Custom color for dark appearances
+- Custom color for light appearances
+
+## Admin Panel
+
+Admins can:
+
+- Create, edit, and delete channels
+- Configure capacity, passwords, and feature switches
+- Publish and manage announcements
+- Kick users
+- Ban users
+- Update site settings
+
+Admin operations use a request-ACK pattern: the frontend waits for the backend acknowledgement before showing success feedback.
+
+## Production Deployment
+
+Docker Compose deployment is included:
+
+```bash
+git pull
+bash deploy.sh
+```
+
+Production layout:
+
+```text
+Internet
+  -> Your reverse proxy / TLS
+  -> Nginx container
+     -> frontend static files
+     -> backend 127.0.0.1:3001
+        -> Mediasoup RTP UDP 40000-49999
+        -> MongoDB
+```
+
+Notes:
+
+- The backend image uses `node:22-slim`; do not switch it to alpine because Mediasoup has poor compatibility with musl.
+- Backend binds to `127.0.0.1:3001` by default.
+- Nginx binds to `127.0.0.1:8080` by default.
+- UDP `40000-49999` must be open for WebRTC RTP.
+- Frontend and backend WebSocket/API domains must be configured correctly in environment variables.
 
 ## Project Structure
 
-```
+```text
 voice-chat-room/
-├── frontend/               # React + TypeScript + Vite
-│   └── src/
-│       ├── components/     # UI components
-│       │   ├── audio/      # Audio controls (voice changer, preview, test, volume)
-│       │   ├── admin/      # Admin panel
-│       │   ├── lobby/      # Channel lobby
-│       │   └── room/       # Voice room (user cards, grid)
-│       ├── services/       # Audio service layer (voice changer, noise supp., preview)
-│       ├── stores/         # Zustand state management
-│       ├── hooks/          # Custom hooks
-│       └── utils/          # Constants, presets, helpers
-├── backend/                # Node.js + Express + Socket.io
-│   └── src/
-│       ├── socket/         # Socket event handling
-│       │   └── handlers/   # Login, room, admin, producer handlers
-│       ├── mediasoup/      # WebRTC SFU (Router, AudioObserver)
-│       ├── models/         # Mongoose data models
-│       └── services/       # Business logic (channels, config, bans)
-└── docker/                 # Docker deployment files
-    ├── docker-compose.yml
-    ├── backend.Dockerfile
-    └── frontend.Dockerfile
+  backend/
+    src/
+      config/
+      handlers/
+      mediasoup/
+      models/
+      services/
+      utils/
+  frontend/
+    src/
+      components/
+      hooks/
+      services/
+      stores/
+      types/
+      utils/
+  docker-compose.yml
+  deploy.sh
+```
+
+## Common Checks
+
+Frontend type check:
+
+```bash
+cd frontend
+npx tsc --noEmit
+```
+
+Frontend production build:
+
+```bash
+cd frontend
+npx vite build
+```
+
+Backend syntax check example:
+
+```bash
+cd backend
+node --check src/server.js
 ```
 
 ## License
 
 MIT
-
----
-
-*Built with ❤️ by vibe coding using [Opencode](https://opencode.ai) + DeepSeek V4 Pro*
