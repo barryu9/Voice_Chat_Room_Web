@@ -776,6 +776,65 @@ body {
   box-shadow: 0 0 20px var(--avatar-glow-light);
 }
 
+[data-theme] {
+  --speaking-color: rgb(74 222 128);
+  --speaking-color-soft: rgb(74 222 128 / 0.58);
+  --speaking-color-muted: rgb(74 222 128 / 0.36);
+  --speaking-badge-bg: rgb(34 197 94 / 0.14);
+  --speaking-badge-border: rgb(74 222 128 / 0.42);
+  --speaking-badge-shadow: 0 0 14px rgb(34 197 94 / 0.22);
+  --speaking-card-shadow: 0 14px 34px rgb(34 197 94 / 0.16);
+}
+
+[data-theme-mode="light"] {
+  --speaking-color: rgb(22 163 74);
+  --speaking-color-soft: rgb(22 163 74 / 0.5);
+  --speaking-color-muted: rgb(22 163 74 / 0.28);
+  --speaking-badge-bg: rgb(34 197 94 / 0.12);
+  --speaking-badge-border: rgb(22 163 74 / 0.3);
+  --speaking-badge-shadow: 0 6px 14px rgb(22 163 74 / 0.14);
+  --speaking-card-shadow: 0 10px 26px rgb(22 163 74 / 0.12);
+}
+
+[data-theme] .theme-speaking-card {
+  box-shadow: var(--speaking-card-shadow), 0 0 0 2px var(--speaking-color-muted);
+}
+
+[data-theme] .theme-speaking-badge {
+  display: inline-flex;
+  width: 1.125rem;
+  height: 1.125rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--speaking-color);
+  background: var(--speaking-badge-bg);
+  border: 1px solid var(--speaking-badge-border);
+  border-radius: 9999px;
+  box-shadow: var(--speaking-badge-shadow);
+}
+
+[data-theme] .theme-speaking-pulse-primary {
+  border-color: var(--speaking-color-soft);
+}
+
+[data-theme] .theme-speaking-pulse-secondary {
+  border-color: var(--speaking-color-muted);
+}
+
+[data-theme="pure"] .theme-speaking-card,
+[data-theme="comic"] .theme-speaking-card {
+  box-shadow: 3px 3px 0 #111827, 0 0 0 2px var(--speaking-color-muted);
+}
+
+[data-theme="pure"] .theme-speaking-badge,
+[data-theme="comic"] .theme-speaking-badge {
+  box-shadow: 1px 1px 0 #111827;
+}
+
+[data-theme="midnight"] .theme-speaking-card {
+  box-shadow: 0 0 0 1px rgb(var(--color-primary-400) / 0.42), 0 0 22px rgb(var(--color-primary-500) / 0.24);
+}
+
 [data-theme] .semantic-green-button {
   background-color: transparent !important;
   background-image: var(--semantic-green-bg) !important;

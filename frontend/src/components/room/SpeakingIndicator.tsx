@@ -14,14 +14,14 @@ export const SpeakingIndicator: React.FC<SpeakingIndicatorProps> = ({ isSpeaking
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
       <div
-        className="rounded-full border-[3px] border-green-400/70 animate-pulse-ring"
+        className="theme-speaking-pulse-primary rounded-full border-[3px] animate-pulse-ring"
         style={{
           width: sizeMap[size],
           height: sizeMap[size],
         }}
       />
       <div
-        className="rounded-full border-2 border-green-400/50 animate-pulse-ring"
+        className="theme-speaking-pulse-secondary rounded-full border-2 animate-pulse-ring"
         style={{
           width: sizeMap[size] * 0.7,
           height: sizeMap[size] * 0.7,

@@ -103,7 +103,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   return (
     <div
       className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 group/hover ${
-        isSpeaking ? 'ring-2 ring-green-400/60 shadow-lg shadow-green-400/20' : ''
+        isSpeaking ? 'theme-speaking-card' : ''
       } ${isSelf ? 'ring-1 ring-primary-500/30' : ''}`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
@@ -135,10 +135,13 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         )}
         <div className="flex items-center justify-center gap-1 max-w-[92px] sm:max-w-[112px] mx-auto">
           {isSpeaking && (
-            <svg className="w-3 h-3 text-green-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 9v6h4l5 4V5l-5 4H7z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 8.5a5 5 0 010 7" />
-            </svg>
+            <span className="theme-speaking-badge shrink-0" aria-hidden="true">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 9.5v5h3.5L13 18V6L8.5 9.5H5z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16 9a4 4 0 010 6" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 6.5a7.5 7.5 0 010 11" />
+              </svg>
+            </span>
           )}
           <p className="min-w-0 text-xs sm:text-sm font-medium text-white truncate">
             {user.nickname}
