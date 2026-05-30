@@ -15,6 +15,7 @@ import * as Tone from 'tone';
 
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
+let preProcessGainNode: GainNode | null = null;
 let micGainNode: GainNode | null = null;
 let agcGainNode: GainNode | null = null;
 let agcAnalyserNode: AnalyserNode | null = null;
@@ -27,9 +28,9 @@ let manualGainValue = 1;
 let micMuted = false;
 let autoGainValue = 1;
 let lastAutoGainUpdate = 0;
-const AUTO_GAIN_TARGET_DB = -24;
-const AUTO_GAIN_MIN = 0.1;
-const AUTO_GAIN_MAX = 5;
+const AUTO_GAIN_TARGET_DB = -15;
+const AUTO_GAIN_MIN = 0.5;
+const AUTO_GAIN_MAX = 8;
 const AUTO_GAIN_STEP = 0.015;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
@@ -64,6 +65,7 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   localAudioSource = ctx.createMediaStreamSource(stream);
 
+  preProcessGainNode = ctx.createGain();
   micGainNode = ctx.createGain();
   agcGainNode = ctx.createGain();
   agcAnalyserNode = ctx.createAnalyser();
@@ -77,7 +79,6 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   agcAnalyserNode.fftSize = 256;
   agcAnalyserNode.smoothingTimeConstant = 0.8;
 
-  localAudioSource.connect(agcGainNode);
   agcGainNode.gain.value = useMediaStore.getState().autoGainControlEnabled ? autoGainValue : 1;
   configurePeakLimiter();
 
@@ -100,9 +101,9 @@ async function tryConnectRNNoise(ctx: AudioContext) {
   try {
     const { createNoiseSuppressor } = await import('./rnnoiseService');
     const suppressor = await createNoiseSuppressor(ctx);
-    if (suppressor && micGainNode && gateGainNode) {
+    if (suppressor && preProcessGainNode && gateGainNode) {
       rnnoiseInput = suppressor.inputNode;
-      rnnoiseOutputTarget = gateGainNode;
+      rnnoiseOutputTarget = preProcessGainNode;
       rnnoiseConnectOutput = suppressor.connectOutput;
       rnnoiseDisconnectOutput = suppressor.disconnectOutput;
       rnnoiseConnected = true;
@@ -117,8 +118,10 @@ export function getProcessedStream(): MediaStream | null {
 }
 
 export function reconnectAudioGraph() {
-  if (!micGainNode || !agcGainNode || !analyserNode || !agcAnalyserNode || !gateGainNode || !processedDestination) return;
+  if (!localAudioSource || !preProcessGainNode || !micGainNode || !agcGainNode || !analyserNode || !agcAnalyserNode || !gateGainNode || !processedDestination) return;
 
+  localAudioSource.disconnect();
+  preProcessGainNode.disconnect();
   agcGainNode.disconnect();
   micGainNode.disconnect();
   peakLimiterNode?.disconnect();
@@ -134,47 +137,43 @@ export function reconnectAudioGraph() {
     initVocalEnhancer();
   }
   const canUseVocalEnhancer = vocalEnabled && isVocalEnhancerReady();
-  agcGainNode.connect(agcAnalyserNode);
-  agcGainNode.connect(micGainNode);
-  const graphInputNode = micGainNode;
+  const preAgcOutputNode = preProcessGainNode;
+  const agcNode = agcGainNode;
+  const manualGainNode = micGainNode;
+  const agcMeterNode = agcAnalyserNode;
+  const levelMeterNode = analyserNode;
   const outputNode = gateGainNode;
-  graphInputNode.connect(analyserNode);
-
-  const connectLimiterOrOutput = (sourceNode: AudioNode) => {
-    if (isPeakLimiterActive() && peakLimiterNode) {
-      sourceNode.connect(peakLimiterNode);
-      peakLimiterNode.connect(outputNode);
-      return;
-    }
-    sourceNode.connect(outputNode);
-  };
-  const connectToOutput = (sourceNode: AudioNode) => {
-    if (canUseVocalEnhancer && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancer(sourceNode, peakLimiterNode)) {
-      peakLimiterNode.connect(outputNode);
-      return;
-    }
-    if (canUseVocalEnhancer && connectVocalEnhancer(sourceNode, outputNode)) return;
-    connectLimiterOrOutput(sourceNode);
+  const connectAgcStage = (sourceNode: AudioNode) => {
+    sourceNode.connect(agcNode);
+    agcNode.connect(agcMeterNode);
+    agcNode.connect(manualGainNode);
+    manualGainNode.connect(levelMeterNode);
   };
 
   if (rnEnabled) {
-    graphInputNode.connect(rnnoiseInput!);
+    localAudioSource.connect(rnnoiseInput!);
     const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
-    if (vocalInput && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancerOutput(peakLimiterNode)) {
-      peakLimiterNode.connect(outputNode);
+    if (vocalInput && connectVocalEnhancerOutput(preAgcOutputNode)) {
       rnnoiseConnectOutput!(vocalInput);
-    } else if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
-      rnnoiseConnectOutput!(vocalInput);
-    } else if (peakLimiterNode && isPeakLimiterActive()) {
-      rnnoiseConnectOutput!(peakLimiterNode);
-      peakLimiterNode.connect(outputNode);
     } else {
-      rnnoiseConnectOutput!(outputNode);
+      rnnoiseConnectOutput!(preAgcOutputNode);
     }
     isBypassMode = false;
   } else {
-    connectToOutput(graphInputNode);
+    if (canUseVocalEnhancer && connectVocalEnhancer(localAudioSource, preAgcOutputNode)) {
+      // connected through vocal enhancer
+    } else {
+      localAudioSource.connect(preAgcOutputNode);
+    }
     isBypassMode = true;
+  }
+
+  connectAgcStage(preAgcOutputNode);
+  if (isPeakLimiterActive() && peakLimiterNode) {
+    micGainNode.connect(peakLimiterNode);
+    peakLimiterNode.connect(outputNode);
+  } else {
+    micGainNode.connect(outputNode);
   }
 
   if (vcEnabled) {
@@ -412,6 +411,10 @@ export function cleanupLocalAudio() {
   if (localAudioSource) {
     localAudioSource.disconnect();
     localAudioSource = null;
+  }
+  if (preProcessGainNode) {
+    preProcessGainNode.disconnect();
+    preProcessGainNode = null;
   }
   if (micGainNode) {
     micGainNode.disconnect();
