@@ -9,15 +9,17 @@ interface DeviceInfo {
 
 interface StreamOptions {
   echoCancellation?: boolean;
+  autoGainControl?: boolean;
 }
 
 export function getAudioInputConstraints(deviceId?: string, options: StreamOptions = {}): MediaTrackConstraints {
   const echoCancellation = options.echoCancellation ?? useMediaStore.getState().echoCancellationEnabled;
+  const autoGainControl = options.autoGainControl ?? useMediaStore.getState().autoGainControlEnabled;
   return {
     deviceId: deviceId ? { exact: deviceId } : undefined,
     echoCancellation,
     noiseSuppression: false,
-    autoGainControl: false,
+    autoGainControl,
   };
 }
 
@@ -35,6 +37,13 @@ export async function getUserAudioStream(deviceId?: string, options: StreamOptio
       console.warn('[Devices] echoCancellation constraint unsupported, retrying without it:', error);
       return navigator.mediaDevices.getUserMedia({
         audio: getAudioInputConstraints(deviceId, { ...options, echoCancellation: false }),
+        video: false,
+      });
+    }
+    if (name === 'OverconstrainedError' && constraint === 'autoGainControl') {
+      console.warn('[Devices] autoGainControl constraint unsupported, retrying without it:', error);
+      return navigator.mediaDevices.getUserMedia({
+        audio: getAudioInputConstraints(deviceId, { ...options, autoGainControl: false }),
         video: false,
       });
     }

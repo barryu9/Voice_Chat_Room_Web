@@ -24,6 +24,7 @@ interface MediaState {
   isAllMuted: boolean;
   noiseSuppressionEnabled: boolean;
   echoCancellationEnabled: boolean;
+  autoGainControlEnabled: boolean;
   masterVolume: number;
   serverMutedUsers: Map<string, number>;
   amIServerMuted: boolean;
@@ -51,6 +52,7 @@ interface MediaState {
   toggleMuteAll: () => void;
   setNoiseSuppressionEnabled: (v: boolean) => void;
   setEchoCancellationEnabled: (v: boolean) => void;
+  setAutoGainControlEnabled: (v: boolean) => void;
   setMasterVolume: (v: number) => void;
   setServerMutedUser: (userId: string, expiresAt: number) => void;
   removeServerMutedUser: (userId: string) => void;
@@ -84,6 +86,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   })(),
   echoCancellationEnabled: (() => {
     const saved = localStorage.getItem('vc_echo_cancellation_enabled');
+    return saved !== null ? saved === 'true' : true;
+  })(),
+  autoGainControlEnabled: (() => {
+    const saved = localStorage.getItem('vc_auto_gain_control_enabled');
     return saved !== null ? saved === 'true' : true;
   })(),
   masterVolume: (() => {
@@ -171,6 +177,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
     localStorage.setItem('vc_echo_cancellation_enabled', String(v));
     set({ echoCancellationEnabled: v });
   },
+  setAutoGainControlEnabled: (v) => {
+    localStorage.setItem('vc_auto_gain_control_enabled', String(v));
+    set({ autoGainControlEnabled: v });
+  },
 
   setMasterVolume: (v) => {
     localStorage.setItem('vc_master_volume', String(v));
@@ -239,6 +249,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       isAllMuted: false,
       echoCancellationEnabled: (() => {
         const saved = localStorage.getItem('vc_echo_cancellation_enabled');
+        return saved !== null ? saved === 'true' : true;
+      })(),
+      autoGainControlEnabled: (() => {
+        const saved = localStorage.getItem('vc_auto_gain_control_enabled');
         return saved !== null ? saved === 'true' : true;
       })(),
     }),

@@ -170,10 +170,10 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
 
       {/* Desktop: controls on hover at bottom */}
       {!isSelf && (
-        <div className="hidden sm:flex absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/hover:pointer-events-auto z-10 items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-900/80 backdrop-blur">
+        <div className="remote-volume-toolbar hidden sm:flex absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover/hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/hover:pointer-events-auto z-10 items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-900/80 backdrop-blur">
           <button
             onClick={handleToggleLocalMute}
-            className={`text-gray-400 hover:text-white transition-colors p-0.5 ${isMuted ? 'text-yellow-400' : ''}`}
+            className={`remote-volume-icon text-gray-400 hover:text-white transition-colors p-0.5 ${isMuted ? 'text-yellow-400' : ''}`}
             title={isMuted ? '取消静音' : '静音'}
           >
             {isMuted ? (
@@ -197,7 +197,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         <div className="sm:hidden flex items-center gap-1 mt-1">
           <button
             onClick={handleToggleLocalMute}
-            className={`text-gray-400 hover:text-white transition-colors p-1 ${isMuted ? 'text-yellow-400' : ''}`}
+            className={`remote-volume-icon text-gray-400 hover:text-white transition-colors p-1 ${isMuted ? 'text-yellow-400' : ''}`}
             title={isMuted ? '取消静音' : '静音'}
           >
             {isMuted ? (

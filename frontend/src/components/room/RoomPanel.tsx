@@ -45,6 +45,8 @@ export const RoomPanel: React.FC = () => {
   const setNoiseSuppressionEnabled = useMediaStore((s) => s.setNoiseSuppressionEnabled);
   const echoCancellationEnabled = useMediaStore((s) => s.echoCancellationEnabled);
   const setEchoCancellationEnabled = useMediaStore((s) => s.setEchoCancellationEnabled);
+  const autoGainControlEnabled = useMediaStore((s) => s.autoGainControlEnabled);
+  const setAutoGainControlEnabled = useMediaStore((s) => s.setAutoGainControlEnabled);
   const masterVolume = useMediaStore((s) => s.masterVolume);
   const setMasterVolume = useMediaStore((s) => s.setMasterVolume);
 
@@ -200,6 +202,7 @@ export const RoomPanel: React.FC = () => {
 
   const [noiseTransiting, setNoiseTransiting] = useState(false);
   const [echoTransiting, setEchoTransiting] = useState(false);
+  const [agcTransiting, setAgcTransiting] = useState(false);
   const handleNoiseSuppressionToggle = useCallback(() => {
     if (noiseTransiting) return;
     const next = !noiseSuppressionEnabled;
@@ -234,6 +237,38 @@ export const RoomPanel: React.FC = () => {
     echoTransiting,
     echoCancellationEnabled,
     setEchoCancellationEnabled,
+    isVoiceConnected,
+    getStream,
+    selectedInput,
+    switchStream,
+    replaceTrack,
+  ]);
+
+  const handleAutoGainControlToggle = useCallback(async () => {
+    if (agcTransiting) return;
+    const next = !autoGainControlEnabled;
+    setAgcTransiting(true);
+    setAutoGainControlEnabled(next);
+
+    try {
+      if (isVoiceConnected) {
+        const stream = await getStream(selectedInput || undefined, { autoGainControl: next });
+        const processedTrack = await switchStream(stream);
+        if (processedTrack) {
+          await replaceTrack(processedTrack);
+        }
+      }
+    } catch (e) {
+      console.warn('[RoomPanel] auto gain control toggle failed:', e);
+      setAutoGainControlEnabled(autoGainControlEnabled);
+      showToast('自动增益切换失败', 'error');
+    } finally {
+      setAgcTransiting(false);
+    }
+  }, [
+    agcTransiting,
+    autoGainControlEnabled,
+    setAutoGainControlEnabled,
     isVoiceConnected,
     getStream,
     selectedInput,
@@ -453,6 +488,7 @@ export const RoomPanel: React.FC = () => {
             audioLevel={audioLevel}
             noiseSuppressionEnabled={noiseSuppressionEnabled}
             echoCancellationEnabled={echoCancellationEnabled}
+            autoGainControlEnabled={autoGainControlEnabled}
             onToggleMute={handleMicToggle}
             onGainChange={(v) => {
               updateGain(v);
@@ -464,8 +500,10 @@ export const RoomPanel: React.FC = () => {
             }}
             onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
             onEchoCancellationToggle={handleEchoCancellationToggle}
+            onAutoGainControlToggle={handleAutoGainControlToggle}
             noiseTransiting={noiseTransiting}
             echoTransiting={echoTransiting}
+            agcTransiting={agcTransiting}
             inputs={audioInputs}
             outputs={audioOutputs}
             selectedInput={selectedInput}

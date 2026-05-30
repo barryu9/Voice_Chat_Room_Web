@@ -2049,6 +2049,43 @@ body {
   border-color: var(--switch-border) !important;
 }
 
+[data-theme] .remote-volume-toolbar {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.24);
+}
+
+[data-theme] .remote-volume-value,
+[data-theme] .remote-volume-icon {
+  color: rgba(209, 213, 219, 0.95);
+}
+
+[data-theme] .remote-volume-icon:hover {
+  color: #ffffff;
+}
+
+[data-theme-mode="light"] .remote-volume-toolbar {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme-mode="light"] .remote-volume-value,
+[data-theme-mode="light"] .remote-volume-icon {
+  color: rgba(15, 23, 42, 0.78) !important;
+}
+
+[data-theme-mode="light"] .remote-volume-icon:hover {
+  color: rgba(15, 23, 42, 0.96) !important;
+}
+
+[data-theme-mode="light"] .remote-volume-icon.text-yellow-400 {
+  color: #b45309 !important;
+}
+
+[data-theme-mode="light"] .remote-volume-range {
+  accent-color: rgb(var(--color-primary-500));
+}
+
 [data-theme="midnight"] {
   --switch-on-bg: rgba(0, 0, 0, 0.96);
   --switch-off-bg: rgba(0, 0, 0, 0.92);
