@@ -1,7 +1,7 @@
 import { useMediaStore } from '../stores/mediaStore';
 import { useVoiceChangerStore } from '../stores/voiceChangerStore';
 import { destroyNoiseSuppressor, isNoiseSuppressorEnabled, setNoiseSuppressorEnabled as setRNEnabled } from './rnnoiseService';
-import { isVoiceChangerReady, connectVoiceChanger, disconnectVoiceChanger, getVoiceChangerOutput } from './voiceChangerService';
+import { isVoiceChangerReady, connectVoiceChanger, disconnectVoiceChanger } from './voiceChangerService';
 import {
   connectVocalEnhancer,
   connectVocalEnhancerOutput,
@@ -78,8 +78,6 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
 
   await tryConnectRNNoise(ctx);
 
-  gateGainNode.connect(processedDestination);
-
   setMicGain(1.0);
   gateGainNode.gain.value = 0;
 
@@ -102,11 +100,6 @@ async function tryConnectRNNoise(ctx: AudioContext) {
       rnnoiseOutputTarget = gateGainNode;
       rnnoiseConnectOutput = suppressor.connectOutput;
       rnnoiseDisconnectOutput = suppressor.disconnectOutput;
-      if (isNoiseSuppressorEnabled()) {
-        suppressor.connectOutput(gateGainNode);
-        micGainNode.connect(suppressor.inputNode);
-        isBypassMode = false;
-      }
       rnnoiseConnected = true;
     }
   } catch {
@@ -119,10 +112,11 @@ export function getProcessedStream(): MediaStream | null {
 }
 
 export function reconnectAudioGraph() {
-  if (!agcGainNode || !analyserNode || !gateGainNode) return;
+  if (!agcGainNode || !analyserNode || !gateGainNode || !processedDestination) return;
 
   agcGainNode.disconnect();
   peakLimiterNode?.disconnect();
+  gateGainNode.disconnect();
   if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
   disconnectVoiceChanger();
   disconnectVocalEnhancer();
@@ -136,6 +130,8 @@ export function reconnectAudioGraph() {
   const canUseVocalEnhancer = vocalEnabled && isVocalEnhancerReady();
   const graphInputNode = agcGainNode;
   const outputNode = gateGainNode;
+  graphInputNode.connect(analyserNode);
+
   const connectLimiterOrOutput = (sourceNode: AudioNode) => {
     if (isPeakLimiterActive() && peakLimiterNode) {
       sourceNode.connect(peakLimiterNode);
@@ -153,50 +149,30 @@ export function reconnectAudioGraph() {
     connectLimiterOrOutput(sourceNode);
   };
 
-  if (vcEnabled) {
-    connectVoiceChanger(graphInputNode, analyserNode);
-    const vcOut = getVoiceChangerOutput();
-    if (!vcOut) return;
-    if (rnEnabled) {
-      vcOut.connect(rnnoiseInput!);
-      const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
-      if (vocalInput && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancerOutput(peakLimiterNode)) {
-        peakLimiterNode.connect(outputNode);
-        rnnoiseConnectOutput!(vocalInput);
-      } else if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
-        rnnoiseConnectOutput!(vocalInput);
-      } else if (peakLimiterNode && isPeakLimiterActive()) {
-        rnnoiseConnectOutput!(peakLimiterNode);
-        peakLimiterNode.connect(outputNode);
-      } else {
-        rnnoiseConnectOutput!(gateGainNode);
-      }
-      isBypassMode = false;
+  if (rnEnabled) {
+    graphInputNode.connect(rnnoiseInput!);
+    const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
+    if (vocalInput && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancerOutput(peakLimiterNode)) {
+      peakLimiterNode.connect(outputNode);
+      rnnoiseConnectOutput!(vocalInput);
+    } else if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+      rnnoiseConnectOutput!(vocalInput);
+    } else if (peakLimiterNode && isPeakLimiterActive()) {
+      rnnoiseConnectOutput!(peakLimiterNode);
+      peakLimiterNode.connect(outputNode);
     } else {
-      connectToOutput(vcOut);
-      isBypassMode = true;
+      rnnoiseConnectOutput!(outputNode);
     }
+    isBypassMode = false;
   } else {
-    graphInputNode.connect(analyserNode);
-    if (rnEnabled) {
-      graphInputNode.connect(rnnoiseInput!);
-      const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
-      if (vocalInput && peakLimiterNode && isPeakLimiterActive() && connectVocalEnhancerOutput(peakLimiterNode)) {
-        peakLimiterNode.connect(outputNode);
-        rnnoiseConnectOutput!(vocalInput);
-      } else if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
-        rnnoiseConnectOutput!(vocalInput);
-      } else if (peakLimiterNode && isPeakLimiterActive()) {
-        rnnoiseConnectOutput!(peakLimiterNode);
-        peakLimiterNode.connect(outputNode);
-      } else {
-        rnnoiseConnectOutput!(gateGainNode);
-      }
-      isBypassMode = false;
-    } else {
-      connectToOutput(graphInputNode);
-      isBypassMode = true;
-    }
+    connectToOutput(graphInputNode);
+    isBypassMode = true;
+  }
+
+  if (vcEnabled) {
+    connectVoiceChanger(gateGainNode, processedDestination);
+  } else {
+    gateGainNode.connect(processedDestination);
   }
 }
 
