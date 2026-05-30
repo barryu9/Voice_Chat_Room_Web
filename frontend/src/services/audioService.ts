@@ -7,10 +7,18 @@ import * as Tone from 'tone';
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let micGainNode: GainNode | null = null;
+let agcGainNode: GainNode | null = null;
 let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -45;
+let autoGainValue = 1;
+let lastAutoGainUpdate = 0;
+const AUTO_GAIN_TARGET_DB = -24;
+const AUTO_GAIN_MIN = 0.85;
+const AUTO_GAIN_MAX = 3;
+const AUTO_GAIN_STEP = 0.015;
+const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
 let rnnoiseConnected = false;
@@ -44,6 +52,7 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   localAudioSource = ctx.createMediaStreamSource(stream);
 
   micGainNode = ctx.createGain();
+  agcGainNode = ctx.createGain();
   gateGainNode = ctx.createGain();
   analyserNode = ctx.createAnalyser();
   processedDestination = ctx.createMediaStreamDestination();
@@ -52,6 +61,8 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   analyserNode.smoothingTimeConstant = 0.8;
 
   localAudioSource.connect(micGainNode);
+  micGainNode.connect(agcGainNode);
+  agcGainNode.gain.value = useMediaStore.getState().autoGainControlEnabled ? autoGainValue : 1;
 
   await tryConnectRNNoise(ctx);
 
@@ -96,17 +107,18 @@ export function getProcessedStream(): MediaStream | null {
 }
 
 export function reconnectAudioGraph() {
-  if (!micGainNode || !analyserNode || !gateGainNode) return;
+  if (!agcGainNode || !analyserNode || !gateGainNode) return;
 
-  micGainNode.disconnect();
+  agcGainNode.disconnect();
   if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
   disconnectVoiceChanger();
 
   const vcEnabled = useVoiceChangerStore.getState().enabled && isVoiceChangerReady();
   const rnEnabled = rnnoiseConnected && isNoiseSuppressorEnabled();
+  const graphInputNode = agcGainNode;
 
   if (vcEnabled) {
-    connectVoiceChanger(micGainNode, analyserNode);
+    connectVoiceChanger(graphInputNode, analyserNode);
     const vcOut = getVoiceChangerOutput();
     if (!vcOut) return;
     if (rnEnabled) {
@@ -118,13 +130,13 @@ export function reconnectAudioGraph() {
       isBypassMode = true;
     }
   } else {
-    micGainNode.connect(analyserNode);
+    graphInputNode.connect(analyserNode);
     if (rnEnabled) {
-      micGainNode.connect(rnnoiseInput!);
+      graphInputNode.connect(rnnoiseInput!);
       rnnoiseConnectOutput!(gateGainNode);
       isBypassMode = false;
     } else {
-      micGainNode.connect(gateGainNode);
+      graphInputNode.connect(gateGainNode);
       isBypassMode = true;
     }
   }
@@ -145,6 +157,7 @@ export function toggleNoiseSuppressor(enabled: boolean) {
 export function updateNoiseGate(level: number, threshold: number) {
   if (!gateGainNode) return;
   noiseGateThreshold = threshold;
+  updateAutoGain(level, threshold);
   const target = level > threshold ? 1.0 : 0;
   const now = gateGainNode.context.currentTime;
   gateGainNode.gain.cancelScheduledValues(now);
@@ -166,6 +179,37 @@ export function setMicMute(muted: boolean) {
 
 export function setNoiseGateThreshold(db: number) {
   noiseGateThreshold = db;
+}
+
+export function setLocalAutoGainEnabled(enabled: boolean) {
+  if (!agcGainNode) return;
+  if (!enabled) {
+    autoGainValue = 1;
+    const now = agcGainNode.context.currentTime;
+    agcGainNode.gain.cancelScheduledValues(now);
+    agcGainNode.gain.setTargetAtTime(1, now, 0.12);
+    return;
+  }
+  agcGainNode.gain.setTargetAtTime(autoGainValue, agcGainNode.context.currentTime, 0.2);
+}
+
+function updateAutoGain(level: number, threshold: number) {
+  if (!agcGainNode || !useMediaStore.getState().autoGainControlEnabled) return;
+
+  const now = agcGainNode.context.currentTime;
+  if (now - lastAutoGainUpdate < AUTO_GAIN_UPDATE_INTERVAL) return;
+  lastAutoGainUpdate = now;
+
+  if (!Number.isFinite(level) || level <= threshold) return;
+
+  const errorDb = AUTO_GAIN_TARGET_DB - level;
+  const multiplier = Math.pow(10, (errorDb * AUTO_GAIN_STEP) / 20);
+  const nextGain = Math.max(AUTO_GAIN_MIN, Math.min(AUTO_GAIN_MAX, autoGainValue * multiplier));
+  const timeConstant = nextGain > autoGainValue ? 0.7 : 0.25;
+
+  autoGainValue = nextGain;
+  agcGainNode.gain.cancelScheduledValues(now);
+  agcGainNode.gain.setTargetAtTime(autoGainValue, now, timeConstant);
 }
 
 export function getAudioLevel(): number {
@@ -287,6 +331,10 @@ export function cleanupLocalAudio() {
   if (micGainNode) {
     micGainNode.disconnect();
     micGainNode = null;
+  }
+  if (agcGainNode) {
+    agcGainNode.disconnect();
+    agcGainNode = null;
   }
   if (gateGainNode) {
     gateGainNode.disconnect();

@@ -6,7 +6,7 @@ import { useAdminStore } from '../../stores/adminStore';
 import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
 import { playSound } from '../../services/soundService';
-import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph } from '../../services/audioService';
+import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, setLocalAutoGainEnabled } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
 import { startRecording, stopRecording, getRecordedBuffer, playTest, destroyPreview } from '../../services/previewService';
 import { VOICE_PRESETS } from '../../utils/voicePresets';
@@ -244,36 +244,18 @@ export const RoomPanel: React.FC = () => {
     replaceTrack,
   ]);
 
-  const handleAutoGainControlToggle = useCallback(async () => {
+  const handleAutoGainControlToggle = useCallback(() => {
     if (agcTransiting) return;
     const next = !autoGainControlEnabled;
     setAgcTransiting(true);
     setAutoGainControlEnabled(next);
 
-    try {
-      if (isVoiceConnected) {
-        const stream = await getStream(selectedInput || undefined, { autoGainControl: next });
-        const processedTrack = await switchStream(stream);
-        if (processedTrack) {
-          await replaceTrack(processedTrack);
-        }
-      }
-    } catch (e) {
-      console.warn('[RoomPanel] auto gain control toggle failed:', e);
-      setAutoGainControlEnabled(autoGainControlEnabled);
-      showToast('自动增益切换失败', 'error');
-    } finally {
-      setAgcTransiting(false);
-    }
+    setLocalAutoGainEnabled(next);
+    window.setTimeout(() => setAgcTransiting(false), 200);
   }, [
     agcTransiting,
     autoGainControlEnabled,
     setAutoGainControlEnabled,
-    isVoiceConnected,
-    getStream,
-    selectedInput,
-    switchStream,
-    replaceTrack,
   ]);
 
   const voiceChangerGlobalEnabled = useAdminStore((s) => s.config.voiceChangerEnabled);
