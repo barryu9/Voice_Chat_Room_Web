@@ -26,7 +26,7 @@ export function initVocalEnhancer(): void {
     destroyVocalEnhancer();
 
     inputGain = new Tone.Gain(1);
-    outputGain = new Tone.Gain(0.96);
+    outputGain = new Tone.Gain(0.94);
 
     const highpass = new Tone.Filter({ type: 'highpass', frequency: 120, rolloff: -12 });
     const plosiveTamer = new Tone.MultibandCompressor({
@@ -55,9 +55,10 @@ export function initVocalEnhancer(): void {
       },
     });
     const lowMudCut = new Tone.Filter({ type: 'peaking', frequency: 250, Q: 0.9, gain: -3 });
-    const presenceBoost = new Tone.Filter({ type: 'peaking', frequency: 3100, Q: 0.85, gain: 2.8 });
-    const harshnessCut = new Tone.Filter({ type: 'peaking', frequency: 6800, Q: 1.8, gain: -0.8 });
-    const airLift = new Tone.Filter({ type: 'highshelf', frequency: 7200, gain: 1.2 });
+    const presenceBoost = new Tone.Filter({ type: 'peaking', frequency: 3000, Q: 0.9, gain: 1.8 });
+    const articulationBoost = new Tone.Filter({ type: 'peaking', frequency: 4300, Q: 1.05, gain: 2.2 });
+    const harshnessCut = new Tone.Filter({ type: 'peaking', frequency: 7000, Q: 1.8, gain: -0.6 });
+    const airLift = new Tone.Filter({ type: 'highshelf', frequency: 7600, gain: 1.6 });
     const airLimit = new Tone.Filter({ type: 'lowpass', frequency: 14000, rolloff: -12 });
     const smoother = new Tone.Compressor({
       threshold: -22,
@@ -67,7 +68,7 @@ export function initVocalEnhancer(): void {
       knee: 8,
     });
 
-    chainNodes = [highpass, plosiveTamer, lowMudCut, presenceBoost, harshnessCut, airLift, airLimit, smoother];
+    chainNodes = [highpass, plosiveTamer, lowMudCut, presenceBoost, articulationBoost, harshnessCut, airLift, airLimit, smoother];
 
     let prev: Tone.ToneAudioNode = inputGain;
     for (const node of chainNodes) {
