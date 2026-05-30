@@ -7,15 +7,18 @@ interface AudioControlsProps {
   noiseSuppressionEnabled: boolean;
   echoCancellationEnabled: boolean;
   autoGainControlEnabled: boolean;
+  vocalEnhancerEnabled: boolean;
   onToggleMute: () => void;
   onGainChange: (v: number) => void;
   onThresholdChange: (v: number) => void;
   onNoiseSuppressionToggle: () => void;
   onEchoCancellationToggle: () => void;
   onAutoGainControlToggle: () => void;
+  onVocalEnhancerToggle: () => void;
   noiseTransiting: boolean;
   echoTransiting: boolean;
   agcTransiting: boolean;
+  vocalEnhancerTransiting: boolean;
   inputs: { deviceId: string; label: string }[];
   outputs: { deviceId: string; label: string }[];
   selectedInput: string; selectedOutput: string;
@@ -69,9 +72,9 @@ const Popover: React.FC<{
 
 export const AudioControls: React.FC<AudioControlsProps> = ({
   gain, muted, threshold, audioLevel,
-  noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled,
+  noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled, vocalEnhancerEnabled,
   onToggleMute, onGainChange, onThresholdChange,
-  onNoiseSuppressionToggle, onEchoCancellationToggle, onAutoGainControlToggle, noiseTransiting, echoTransiting, agcTransiting,
+  onNoiseSuppressionToggle, onEchoCancellationToggle, onAutoGainControlToggle, onVocalEnhancerToggle, noiseTransiting, echoTransiting, agcTransiting, vocalEnhancerTransiting,
   inputs, outputs, selectedInput, selectedOutput,
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
@@ -290,6 +293,19 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           >
             <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
               autoGainControlEnabled ? 'translate-x-4' : 'translate-x-0.5'
+            }`} />
+          </button>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-400">人声清晰</span>
+          <button
+            onClick={vocalEnhancerTransiting ? undefined : onVocalEnhancerToggle}
+            className={`relative w-9 h-5 rounded-full transition-colors ${
+              vocalEnhancerEnabled ? 'bg-primary-500' : 'bg-gray-600'
+            } ${vocalEnhancerTransiting ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              vocalEnhancerEnabled ? 'translate-x-4' : 'translate-x-0.5'
             }`} />
           </button>
         </div>

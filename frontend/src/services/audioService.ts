@@ -2,6 +2,15 @@ import { useMediaStore } from '../stores/mediaStore';
 import { useVoiceChangerStore } from '../stores/voiceChangerStore';
 import { destroyNoiseSuppressor, isNoiseSuppressorEnabled, setNoiseSuppressorEnabled as setRNEnabled } from './rnnoiseService';
 import { isVoiceChangerReady, connectVoiceChanger, disconnectVoiceChanger, getVoiceChangerOutput } from './voiceChangerService';
+import {
+  connectVocalEnhancer,
+  connectVocalEnhancerOutput,
+  destroyVocalEnhancer,
+  disconnectVocalEnhancer,
+  getVocalEnhancerInput,
+  initVocalEnhancer,
+  isVocalEnhancerReady,
+} from './vocalEnhancerService';
 import * as Tone from 'tone';
 
 let audioContext: AudioContext | null = null;
@@ -14,9 +23,9 @@ let analyserNode: AnalyserNode | null = null;
 let noiseGateThreshold = -45;
 let autoGainValue = 1;
 let lastAutoGainUpdate = 0;
-const AUTO_GAIN_TARGET_DB = -15;
+const AUTO_GAIN_TARGET_DB = -24;
 const AUTO_GAIN_MIN = 0.1;
-const AUTO_GAIN_MAX = 10;
+const AUTO_GAIN_MAX = 5;
 const AUTO_GAIN_STEP = 0.015;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
@@ -112,10 +121,21 @@ export function reconnectAudioGraph() {
   agcGainNode.disconnect();
   if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
   disconnectVoiceChanger();
+  disconnectVocalEnhancer();
 
   const vcEnabled = useVoiceChangerStore.getState().enabled && isVoiceChangerReady();
   const rnEnabled = rnnoiseConnected && isNoiseSuppressorEnabled();
+  const vocalEnabled = useMediaStore.getState().vocalEnhancerEnabled;
+  if (vocalEnabled && !isVocalEnhancerReady()) {
+    initVocalEnhancer();
+  }
+  const canUseVocalEnhancer = vocalEnabled && isVocalEnhancerReady();
   const graphInputNode = agcGainNode;
+  const outputNode = gateGainNode;
+  const connectToOutput = (sourceNode: AudioNode) => {
+    if (canUseVocalEnhancer && connectVocalEnhancer(sourceNode, outputNode)) return;
+    sourceNode.connect(outputNode);
+  };
 
   if (vcEnabled) {
     connectVoiceChanger(graphInputNode, analyserNode);
@@ -123,20 +143,30 @@ export function reconnectAudioGraph() {
     if (!vcOut) return;
     if (rnEnabled) {
       vcOut.connect(rnnoiseInput!);
-      rnnoiseConnectOutput!(gateGainNode);
+      const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
+      if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+        rnnoiseConnectOutput!(vocalInput);
+      } else {
+        rnnoiseConnectOutput!(gateGainNode);
+      }
       isBypassMode = false;
     } else {
-      vcOut.connect(gateGainNode);
+      connectToOutput(vcOut);
       isBypassMode = true;
     }
   } else {
     graphInputNode.connect(analyserNode);
     if (rnEnabled) {
       graphInputNode.connect(rnnoiseInput!);
-      rnnoiseConnectOutput!(gateGainNode);
+      const vocalInput = canUseVocalEnhancer ? getVocalEnhancerInput() : null;
+      if (vocalInput && connectVocalEnhancerOutput(outputNode)) {
+        rnnoiseConnectOutput!(vocalInput);
+      } else {
+        rnnoiseConnectOutput!(gateGainNode);
+      }
       isBypassMode = false;
     } else {
-      graphInputNode.connect(gateGainNode);
+      connectToOutput(graphInputNode);
       isBypassMode = true;
     }
   }
@@ -152,6 +182,11 @@ export function toggleNoiseSuppressor(enabled: boolean) {
   if (rnnoiseConnected && micGainNode) {
     reconnectAudioGraph();
   }
+}
+
+export function toggleVocalEnhancer(enabled: boolean) {
+  useMediaStore.getState().setVocalEnhancerEnabled(enabled);
+  reconnectAudioGraph();
 }
 
 export function updateNoiseGate(level: number, threshold: number) {
@@ -357,6 +392,7 @@ export function cleanupLocalAudio() {
     isBypassMode = true;
   }
   disconnectVoiceChanger();
+  destroyVocalEnhancer();
   localStream = null;
 }
 
