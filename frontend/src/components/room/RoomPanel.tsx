@@ -107,6 +107,18 @@ export const RoomPanel: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isVoiceConnected) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isVoiceConnected]);
+
   const fmtKick = (ms: number) => {
     if (ms <= 0) return '已过期';
     const s = Math.ceil(ms / 1000);
