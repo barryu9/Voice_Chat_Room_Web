@@ -28,11 +28,16 @@ let manualGainValue = 1;
 let micMuted = false;
 let autoGainValue = 1;
 let lastAutoGainUpdate = 0;
-const AUTO_GAIN_TARGET_DB = -24;
-const AUTO_GAIN_MIN = 0.5;
-const AUTO_GAIN_MAX = 8;
-const AUTO_GAIN_STEP = 0.015;
+let gateOpen = false;
+let gateCloseAt = 0;
+const AUTO_GAIN_TARGET_DB = -30;
+const AUTO_GAIN_MIN = 0.75;
+const AUTO_GAIN_MAX = 3;
+const AUTO_GAIN_STEP = 0.008;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
+const NOISE_GATE_HYSTERESIS_DB = 6;
+const NOISE_GATE_HOLD_SECONDS = 0.35;
+const NOISE_GATE_CLOSED_GAIN = 0.03;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
 let rnnoiseConnected = false;
@@ -59,9 +64,17 @@ export async function initAudioContext(): Promise<AudioContext> {
   return audioContext;
 }
 
+export async function resumeAudioContext(): Promise<void> {
+  if (audioContext?.state === 'suspended') {
+    await audioContext.resume();
+  }
+}
+
 export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   const ctx = await initAudioContext();
   localStream = stream;
+  autoGainValue = 1;
+  lastAutoGainUpdate = 0;
 
   localAudioSource = ctx.createMediaStreamSource(stream);
 
@@ -85,7 +98,9 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   await tryConnectRNNoise(ctx);
 
   setMicGain(1.0);
-  gateGainNode.gain.value = 0;
+  gateOpen = false;
+  gateCloseAt = 0;
+  gateGainNode.gain.value = NOISE_GATE_CLOSED_GAIN;
 
   const savedGain = localStorage.getItem('vc_gain');
   if (savedGain) setMicGain(parseFloat(savedGain));
@@ -209,8 +224,20 @@ export function updateNoiseGate(level: number, threshold: number) {
   if (!gateGainNode) return;
   noiseGateThreshold = threshold;
   updateAutoGain(level, threshold);
-  const target = level > threshold ? 1.0 : 0;
   const now = gateGainNode.context.currentTime;
+  const openThreshold = threshold;
+  const closeThreshold = threshold - NOISE_GATE_HYSTERESIS_DB;
+
+  if (level > openThreshold) {
+    gateOpen = true;
+    gateCloseAt = now + NOISE_GATE_HOLD_SECONDS;
+  } else if (gateOpen && level > closeThreshold) {
+    gateCloseAt = now + NOISE_GATE_HOLD_SECONDS;
+  } else if (gateOpen && now >= gateCloseAt) {
+    gateOpen = false;
+  }
+
+  const target = micMuted ? 0 : gateOpen ? 1.0 : NOISE_GATE_CLOSED_GAIN;
   gateGainNode.gain.cancelScheduledValues(now);
   const timeConstant = target > gateGainNode.gain.value ? 0.01 : 0.2;
   gateGainNode.gain.setTargetAtTime(target, now, timeConstant);
@@ -227,6 +254,11 @@ export function setMicMute(muted: boolean) {
   micMuted = muted;
   if (micGainNode) {
     micGainNode.gain.value = muted ? 0 : manualGainValue;
+  }
+  if (gateGainNode) {
+    const now = gateGainNode.context.currentTime;
+    gateGainNode.gain.cancelScheduledValues(now);
+    gateGainNode.gain.setTargetAtTime(muted ? 0 : (gateOpen ? 1.0 : NOISE_GATE_CLOSED_GAIN), now, 0.02);
   }
 }
 

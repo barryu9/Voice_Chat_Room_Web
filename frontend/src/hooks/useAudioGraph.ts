@@ -2,9 +2,10 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { useMediaStore } from '../stores/mediaStore';
 import { useVoiceChangerStore } from '../stores/voiceChangerStore';
 import {
-  initAudioContext, setupLocalAudioGraph, setMicGain,
+  initAudioContext, resumeAudioContext, setupLocalAudioGraph, setMicGain,
   setMicMute, setNoiseGateThreshold, getAudioLevel, cleanupLocalAudio,
   updateNoiseGate, getProcessedStream, toggleVoiceChanger,
+  reconnectAudioGraph,
 } from '../services/audioService';
 import { initVoiceChanger, destroyVoiceChanger } from '../services/voiceChangerService';
 
@@ -22,7 +23,7 @@ export function useAudioGraph() {
     return saved ? parseInt(saved) : -45;
   });
   const [audioLevel, setAudioLevel] = useState(-100);
-  const animRef = useRef<number>(0);
+  const meterTimerRef = useRef<ReturnType<typeof window.setInterval> | null>(null);
 
   const setupLocal = useCallback(async (stream: MediaStream) => {
     await setupLocalAudioGraph(stream);
@@ -57,22 +58,53 @@ export function useAudioGraph() {
   }, []);
 
   useEffect(() => {
-    const loop = () => {
+    const updateMeter = () => {
       const level = getAudioLevel();
       setAudioLevel(level);
       useMediaStore.getState().setMyAudioLevel(level);
       updateNoiseGate(level, threshold);
-      animRef.current = requestAnimationFrame(loop);
     };
-    animRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animRef.current);
+
+    updateMeter();
+    meterTimerRef.current = window.setInterval(updateMeter, 50);
+    return () => {
+      if (meterTimerRef.current) {
+        window.clearInterval(meterTimerRef.current);
+        meterTimerRef.current = null;
+      }
+    };
   }, [threshold]);
+
+  useEffect(() => {
+    const recoverAudio = async () => {
+      try {
+        await resumeAudioContext();
+        reconnectAudioGraph();
+      } catch (e) {
+        console.warn('[AudioGraph] audio context recovery failed:', e);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        recoverAudio();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', recoverAudio);
+    window.addEventListener('pageshow', recoverAudio);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', recoverAudio);
+      window.removeEventListener('pageshow', recoverAudio);
+    };
+  }, []);
 
   const cleanup = useCallback(() => {
     cleanupLocalAudio();
     destroyVoiceChanger();
     useVoiceChangerStore.getState().reset();
-    cancelAnimationFrame(animRef.current);
   }, []);
 
   const switchStream = useCallback(async (stream: MediaStream) => {
