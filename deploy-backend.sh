@@ -1,6 +1,7 @@
 #!/bin/bash
 # === 语音聊天室 - 后端部署 ===
 # 在后端服务器上执行: bash deploy-backend.sh
+# 首次部署或 Dockerfile 有改动: bash deploy-backend.sh --clean
 # 部署: MongoDB + Mediasoup 后端
 
 set -e
@@ -42,6 +43,11 @@ if [ ! -f "$BLOCKED_WORDS_FILE" ] && [ -f "$BLOCKED_WORDS_EXAMPLE" ]; then
 fi
 
 BACKEND_PORT="${BACKEND_PORT:-3001}"
+BUILD_FLAG=""
+if [ "$1" == "--clean" ]; then
+  echo "  ▶ --clean 模式：强制重新构建（不使用缓存）"
+  BUILD_FLAG="--no-cache"
+fi
 
 echo "========================================"
 echo "  语音聊天室 - 后端部署"
@@ -50,25 +56,33 @@ echo "  端口:  $BACKEND_PORT"
 echo "  版本:  v2026.05.27.1"
 echo "========================================"
 
-echo "[1/4] 检查 Docker..."
+echo "[1/5] 检查 Docker..."
 if ! command -v docker &> /dev/null; then curl -fsSL https://get.docker.com | bash; fi
 echo "  Docker $(docker --version 2>&1 | head -1) ✓"
 
-echo "[2/4] 防火墙..."
+echo "[2/5] 检查 mediasoup-worker 预编译二进制..."
+if ls "$SCRIPT_DIR/mediasoup_release/mediasoup-worker-"*.tgz >/dev/null 2>&1; then
+  MEDIA_RELEASE=$(ls "$SCRIPT_DIR/mediasoup_release/mediasoup-worker-"*.tgz 2>/dev/null | head -1)
+  echo "  mediasoup-worker 预编译文件存在 ✓ ($(basename "$MEDIA_RELEASE"))"
+else
+  echo "  ⚠ 未找到 mediasoup-worker 预编译文件，Dockerfile 将回退处理"
+fi
+
+echo "[3/5] 防火墙..."
 ufw allow 22/tcp 2>/dev/null || true
 ufw allow ${BACKEND_PORT}/tcp 2>/dev/null || true
 ufw allow ${RTC_MIN_PORT:-40000}:${RTC_MAX_PORT:-49999}/udp 2>/dev/null || true
 iptables -I INPUT -p udp --dport ${RTC_MIN_PORT:-40000}:${RTC_MAX_PORT:-49999} -j ACCEPT 2>/dev/null || true
 echo "  TCP: 22, ${BACKEND_PORT} | UDP: ${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-49999} ✓"
 
-echo "[3/4] 构建并启动..."
+echo "[4/5] 构建并启动..."
 docker pull mongo:7.0 2>/dev/null || true
 docker compose -f docker/docker-compose.yml down 2>/dev/null || true
-docker compose -f docker/docker-compose.yml build
+docker compose -f docker/docker-compose.yml build $BUILD_FLAG
 docker compose -f docker/docker-compose.yml up -d mongo backend
 echo "  后端容器已启动 ✓"
 
-echo "[4/4] 验证..."
+echo "[5/5] 验证..."
 sleep 5
 echo -n "  后端: "
 curl -s http://127.0.0.1:${BACKEND_PORT}/health 2>/dev/null || echo 'unreachable'
