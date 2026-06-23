@@ -11,9 +11,18 @@ import { handleLocalVoiceSessionLost } from './voiceSessionService';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 const SPEAKING_HOLD_MS = 200;
+const SOCKET_DISCONNECT_GRACE_MS = 5000;
 
 let socket: Socket | null = null;
 const speakerExpiryTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+let socketDisconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearSocketDisconnectTimer() {
+  if (socketDisconnectTimer) {
+    clearTimeout(socketDisconnectTimer);
+    socketDisconnectTimer = null;
+  }
+}
 
 function clearSpeakingAfter(deviceId: string, delayMs: number) {
   const existing = speakerExpiryTimers.get(deviceId);
@@ -54,16 +63,22 @@ function registerConnectionListeners() {
   if (!socket) return;
 
   socket.on('connect', () => {
+    clearSocketDisconnectTimer();
     useUserStore.getState().setConnectionState('connected');
   });
 
   socket.on('disconnect', (reason) => {
-    handleLocalVoiceSessionLost('socket');
+    clearSocketDisconnectTimer();
     if (reason === 'io server disconnect') {
+      handleLocalVoiceSessionLost('socket');
       useUserStore.getState().setConnectionState('failed');
       return;
     }
     useUserStore.getState().setConnectionState('disconnected');
+    socketDisconnectTimer = setTimeout(() => {
+      socketDisconnectTimer = null;
+      handleLocalVoiceSessionLost('socket');
+    }, SOCKET_DISCONNECT_GRACE_MS);
   });
 
   socket.on('reconnect_attempt', (attempt) => {
@@ -71,6 +86,7 @@ function registerConnectionListeners() {
   });
 
   socket.on('reconnect', () => {
+    clearSocketDisconnectTimer();
     useUserStore.getState().setConnectionState('connected');
     const { nickname, deviceId } = useUserStore.getState();
     if (nickname && deviceId) {

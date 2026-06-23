@@ -49,7 +49,9 @@ function handleConnection(socket, io) {
                 room.removeConsumersForProducer(p.producerId);
                 room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
                   producerId: p.producerId,
+                  userId: conn.userId,
                   deviceId: conn.deviceId,
+                  reason: 'disconnect',
                 });
               }
               if (producers.length > 0) {
@@ -57,6 +59,7 @@ function handleConnection(socket, io) {
                   userId: conn.userId,
                   deviceId: conn.deviceId,
                   nickname: conn.nickname,
+                  reason: 'disconnect',
                 });
               }
               const transportsToRemove = [];
@@ -199,7 +202,9 @@ function handleConnection(socket, io) {
           room.removeConsumersForProducer(p.producerId);
           room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
             producerId: p.producerId,
+            userId: conn.userId,
             deviceId: conn.deviceId,
+            reason: 'disconnect',
           });
         }
 
@@ -208,6 +213,7 @@ function handleConnection(socket, io) {
             userId: conn.userId,
             deviceId: conn.deviceId,
             nickname: conn.nickname,
+            reason: 'disconnect',
           });
         }
 
