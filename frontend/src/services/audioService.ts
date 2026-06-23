@@ -440,6 +440,11 @@ export function applyMuteState(producerId: string, isGloballyMuted: boolean, isP
 }
 
 export function cleanupLocalAudio() {
+  if (localStream) {
+    localStream.getTracks().forEach((track) => {
+      try { track.stop(); } catch {}
+    });
+  }
   if (localAudioSource) {
     localAudioSource.disconnect();
     localAudioSource = null;

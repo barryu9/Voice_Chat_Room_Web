@@ -3,6 +3,7 @@ import { getSocket } from './socketService';
 import { EVENTS } from '../utils/constants';
 import { useMediaStore } from '../stores/mediaStore';
 import { useUserStore } from '../stores/userStore';
+import { handleLocalVoiceSessionLost } from './voiceSessionService';
 
 export async function getRtpCapabilities(): Promise<any> {
   const socket = getSocket();
@@ -30,6 +31,37 @@ async function createTransport(direction: 'producer' | 'consumer'): Promise<any>
       }
     };
     socket.on(EVENTS.SERVER.TRANSPORT_CREATED, onCreated);
+  });
+}
+
+function watchTransportConnection(transport: any, label: 'producer' | 'consumer') {
+  let disconnectTimer: ReturnType<typeof window.setTimeout> | null = null;
+  const isCurrentTransport = () => {
+    const state = useMediaStore.getState();
+    return label === 'producer' ? state.producerTransport === transport : state.consumerTransport === transport;
+  };
+
+  transport.on('connectionstatechange', (state: string) => {
+    if (disconnectTimer && state !== 'disconnected') {
+      window.clearTimeout(disconnectTimer);
+      disconnectTimer = null;
+    }
+
+    if (state === 'failed') {
+      if (!isCurrentTransport()) return;
+      console.warn(`[Mediasoup] ${label} transport failed`);
+      handleLocalVoiceSessionLost('transport');
+      return;
+    }
+
+    if (state === 'disconnected') {
+      console.warn(`[Mediasoup] ${label} transport disconnected`);
+      disconnectTimer = window.setTimeout(() => {
+        disconnectTimer = null;
+        if (!isCurrentTransport()) return;
+        handleLocalVoiceSessionLost('transport');
+      }, 5000);
+    }
   });
 }
 
@@ -64,6 +96,7 @@ export async function createProducerTransport(device: mediasoup.Device): Promise
     getSocket()?.on(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
   });
 
+  watchTransportConnection(transport, 'producer');
   useMediaStore.getState().setProducerTransport(transport);
   return { transport, params };
 }
@@ -85,6 +118,7 @@ export async function createConsumerTransport(device: mediasoup.Device): Promise
     cb();
   });
 
+  watchTransportConnection(transport, 'consumer');
   useMediaStore.getState().setConsumerTransport(transport);
   return { transport, params };
 }

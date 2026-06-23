@@ -7,6 +7,7 @@ import { playSound } from './soundService';
 import { showToast } from '../components/common/Toast';
 import { EVENTS } from '../utils/constants';
 import { clearChannelUrlParam } from '../utils/helpers';
+import { handleLocalVoiceSessionLost } from './voiceSessionService';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 const SPEAKING_HOLD_MS = 200;
@@ -57,6 +58,7 @@ function registerConnectionListeners() {
   });
 
   socket.on('disconnect', (reason) => {
+    handleLocalVoiceSessionLost('socket');
     if (reason === 'io server disconnect') {
       useUserStore.getState().setConnectionState('failed');
       return;
@@ -70,6 +72,10 @@ function registerConnectionListeners() {
 
   socket.on('reconnect', () => {
     useUserStore.getState().setConnectionState('connected');
+    const { nickname, deviceId } = useUserStore.getState();
+    if (nickname && deviceId) {
+      socket?.emit(EVENTS.CLIENT.USER_LOGIN, { nickname, deviceId });
+    }
   });
 
   socket.on('reconnect_error', () => {
@@ -87,6 +93,10 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.LOGIN_SUCCESS, (data) => {
     useUserStore.getState().setLogin(data.userId, data.nickname, data.deviceId);
     useRoomStore.getState().setChannels(data.rooms || []);
+    const { voiceReconnectPending, voiceReconnectTargetRoom } = useMediaStore.getState();
+    if (voiceReconnectPending && voiceReconnectTargetRoom) {
+      socket?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: voiceReconnectTargetRoom });
+    }
   });
 
   socket.on(EVENTS.SERVER.LOGIN_ERROR, (data) => {
@@ -101,6 +111,10 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.ROOM_USERS, (data) => {
     useUserStore.getState().setCurrentRoom(data.roomId);
     useRoomStore.getState().setRoomUsers(data.users || []);
+    const { voiceReconnectPending, voiceReconnectTargetRoom } = useMediaStore.getState();
+    if (voiceReconnectPending && voiceReconnectTargetRoom === data.roomId) {
+      useMediaStore.getState().setVoiceReconnectRoomReady(true);
+    }
     useRoomStore.getState().clearVcStates();
     if (data.vcStates) {
       for (const [deviceId, state] of Object.entries(data.vcStates)) {

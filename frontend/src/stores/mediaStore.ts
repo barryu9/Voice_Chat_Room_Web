@@ -31,6 +31,9 @@ interface MediaState {
   serverMutedUsers: Map<string, number>;
   amIServerMuted: boolean;
   amIServerMutedByAdmin: boolean;
+  voiceReconnectPending: boolean;
+  voiceReconnectTargetRoom: string | null;
+  voiceReconnectRoomReady: boolean;
 
   setProducerTransport: (t: any) => void;
   setConsumerTransport: (t: any) => void;
@@ -39,6 +42,7 @@ interface MediaState {
   removeConsumer: (id: string) => void;
   addRemoteProducer: (p: RemoteProducer) => void;
   removeRemoteProducer: (producerId: string) => void;
+  clearRemoteProducers: () => void;
   getProducerIdByDeviceId: (deviceId: string) => string | undefined;
   markConsumed: (producerId: string) => void;
   markConsuming: (producerId: string) => void;
@@ -62,6 +66,9 @@ interface MediaState {
   removeServerMutedUser: (userId: string) => void;
   clearServerMutedUsers: () => void;
   setAmIServerMuted: (v: boolean, byAdmin?: boolean) => void;
+  requestVoiceReconnect: (roomId: string) => void;
+  setVoiceReconnectRoomReady: (ready: boolean) => void;
+  clearVoiceReconnect: () => void;
   resetVoice: () => void;
   reset: () => void;
 }
@@ -111,6 +118,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   serverMutedUsers: new Map(),
   amIServerMuted: false,
   amIServerMutedByAdmin: true,
+  voiceReconnectPending: false,
+  voiceReconnectTargetRoom: null,
+  voiceReconnectRoomReady: false,
 
   setProducerTransport: (t) => set({ producerTransport: t }),
   setConsumerTransport: (t) => set({ consumerTransport: t }),
@@ -144,6 +154,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       m.delete(producerId);
       return { remoteProducers: m };
     }),
+  clearRemoteProducers: () => set({ remoteProducers: new Map() }),
   getProducerIdByDeviceId: (deviceId) => {
     for (const [pid, info] of get().remoteProducers) {
       if (info.deviceId === deviceId) return pid;
@@ -225,6 +236,10 @@ export const useMediaStore = create<MediaState>((set, get) => ({
 
   setAmIServerMuted: (v, byAdmin) => set({ amIServerMuted: v, amIServerMutedByAdmin: byAdmin ?? true }),
 
+  requestVoiceReconnect: (roomId) => set({ voiceReconnectPending: true, voiceReconnectTargetRoom: roomId, voiceReconnectRoomReady: false }),
+  setVoiceReconnectRoomReady: (ready) => set({ voiceReconnectRoomReady: ready }),
+  clearVoiceReconnect: () => set({ voiceReconnectPending: false, voiceReconnectTargetRoom: null, voiceReconnectRoomReady: false }),
+
   toggleMuteUser: (deviceId) =>
     set((s) => {
       const m = new Set(s.mutedUsers);
@@ -267,6 +282,9 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       myAudioLevel: -100,
       mutedUsers: new Set(),
       isAllMuted: false,
+      voiceReconnectPending: false,
+      voiceReconnectTargetRoom: null,
+      voiceReconnectRoomReady: false,
       echoCancellationEnabled: (() => {
         const saved = localStorage.getItem('vc_echo_cancellation_enabled');
         return saved !== null ? saved === 'true' : true;

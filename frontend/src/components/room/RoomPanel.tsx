@@ -28,6 +28,7 @@ import { clearChannelUrlParam } from '../../utils/helpers';
 export const RoomPanel: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
   const setCurrentRoom = useUserStore((s) => s.setCurrentRoom);
+  const connectionState = useUserStore((s) => s.connectionState);
   const myUserId = useUserStore((s) => s.userId);
   const myDeviceId = useUserStore((s) => s.deviceId);
   const channels = useRoomStore((s) => s.channels);
@@ -51,6 +52,9 @@ export const RoomPanel: React.FC = () => {
   const vocalEnhancerEnabled = useMediaStore((s) => s.vocalEnhancerEnabled);
   const masterVolume = useMediaStore((s) => s.masterVolume);
   const setMasterVolume = useMediaStore((s) => s.setMasterVolume);
+  const voiceReconnectPending = useMediaStore((s) => s.voiceReconnectPending);
+  const voiceReconnectTargetRoom = useMediaStore((s) => s.voiceReconnectTargetRoom);
+  const voiceReconnectRoomReady = useMediaStore((s) => s.voiceReconnectRoomReady);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
   const { gain, muted, threshold, audioLevel, toggleMute, forceMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
@@ -63,11 +67,27 @@ export const RoomPanel: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [testCountdown, setTestCountdown] = useState(0);
   const [testPlaying, setTestPlaying] = useState(false);
+  const [voiceReconnectTick, setVoiceReconnectTick] = useState(0);
   const testTimerRef = useRef<ReturnType<typeof setInterval>>();
+  const voiceReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceReconnectInFlightRef = useRef(false);
+  const voiceReconnectAttemptsRef = useRef(0);
 
   useEffect(() => {
-    return () => clearInterval(testTimerRef.current);
+    return () => {
+      clearInterval(testTimerRef.current);
+      if (voiceReconnectTimerRef.current) {
+        clearTimeout(voiceReconnectTimerRef.current);
+        voiceReconnectTimerRef.current = null;
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (voiceReconnectPending) {
+      voiceReconnectAttemptsRef.current = 0;
+    }
+  }, [voiceReconnectPending, voiceReconnectTargetRoom]);
   const durationRef = useRef<number>(0);
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
   const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === myUserId;
@@ -127,8 +147,8 @@ export const RoomPanel: React.FC = () => {
     return `${m}分${s % 60}秒`;
   };
 
-  const handleVoiceConnect = useCallback(async () => {
-    if (connecting) return;
+  const handleVoiceConnect = useCallback(async (): Promise<boolean> => {
+    if (connecting) return false;
     setConnecting(true);
 
     try {
@@ -138,20 +158,67 @@ export const RoomPanel: React.FC = () => {
       await startProduce();
       await startConsume();
       setVoiceConnected(true);
+      useMediaStore.getState().clearVoiceReconnect();
       playSound('connected');
       showToast('已加入语音', 'success');
+      return true;
     } catch (err: any) {
       console.error('[RoomPanel] Voice connect failed:', err);
       stopProduce();
       cleanup();
       showToast(err.message || '加入语音失败，请检查麦克风权限', 'error');
       setVoiceConnected(false);
+      return false;
     } finally {
       setConnecting(false);
     }
   }, [connecting, initDevice, startProduce, startConsume, stopProduce, cleanup, setVoiceConnected]);
 
+  useEffect(() => {
+    if (!voiceReconnectPending || !voiceReconnectTargetRoom || !voiceReconnectRoomReady) return;
+    if (voiceReconnectTargetRoom !== currentRoom) return;
+    if (connectionState !== 'connected' || isVoiceConnected || connecting) return;
+    if (voiceReconnectInFlightRef.current) return;
+
+    voiceReconnectInFlightRef.current = true;
+    useRoomStore.getState().setNotification('正在自动重连语音...');
+
+    handleVoiceConnect().then((ok) => {
+      voiceReconnectInFlightRef.current = false;
+      if (ok) {
+        voiceReconnectAttemptsRef.current = 0;
+        useRoomStore.getState().setNotification('语音已自动重连');
+        return;
+      }
+
+      if (!useMediaStore.getState().voiceReconnectPending) return;
+      voiceReconnectAttemptsRef.current += 1;
+      if (voiceReconnectAttemptsRef.current >= 5) {
+        useMediaStore.getState().clearVoiceReconnect();
+        useRoomStore.getState().setNotification('语音自动重连失败，请手动加入语音');
+        return;
+      }
+
+      useRoomStore.getState().setNotification(`语音重连失败，正在重试 (${voiceReconnectAttemptsRef.current}/5)`);
+      voiceReconnectTimerRef.current = setTimeout(() => {
+        voiceReconnectTimerRef.current = null;
+        setVoiceReconnectTick((v) => v + 1);
+      }, 2500);
+    });
+  }, [
+    voiceReconnectPending,
+    voiceReconnectTargetRoom,
+    voiceReconnectRoomReady,
+    currentRoom,
+    connectionState,
+    isVoiceConnected,
+    connecting,
+    handleVoiceConnect,
+    voiceReconnectTick,
+  ]);
+
   const handleVoiceDisconnect = useCallback(() => {
+    useMediaStore.getState().clearVoiceReconnect();
     stopProduce();
     cleanup();
     setVoiceConnected(false);
@@ -160,6 +227,7 @@ export const RoomPanel: React.FC = () => {
   }, [stopProduce, cleanup, setVoiceConnected]);
 
   const handleLeaveRoom = useCallback(() => {
+    useMediaStore.getState().clearVoiceReconnect();
     if (isVoiceConnected) {
       stopProduce();
       cleanup();
