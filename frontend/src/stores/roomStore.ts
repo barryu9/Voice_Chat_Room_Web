@@ -25,6 +25,7 @@ interface RoomState {
   addUser: (user: UserInfo) => void;
   removeUser: (userId: string) => void;
   updateUserNickname: (userId: string, nickname: string) => void;
+  setUserReconnecting: (user: UserInfo, reconnecting: boolean) => void;
   setActiveSpeaker: (deviceId: string, level: number, isSpeaking: boolean) => void;
   setPeerLatency: (deviceId: string, latency: number) => void;
   setVcState: (deviceId: string, state: { enabled: boolean; presetLabel: string }) => void;
@@ -87,6 +88,14 @@ export const useRoomStore = create<RoomState>((set) => ({
         return { roomUsers: m };
       }
       return {};
+    }),
+  setUserReconnecting: (user, reconnecting) =>
+    set((s) => {
+      const m = new Map(s.roomUsers);
+      const current = m.get(user.userId);
+      if (!current && !reconnecting) return {};
+      m.set(user.userId, { ...(current || user), ...user, reconnecting });
+      return { roomUsers: m, userCount: m.size };
     }),
 
   setActiveSpeaker: (deviceId, level, isSpeaking) =>

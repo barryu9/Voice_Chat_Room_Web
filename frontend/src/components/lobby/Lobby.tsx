@@ -3,7 +3,7 @@ import { useRoomStore } from '../../stores/roomStore';
 import { useUserStore, ConnectionState } from '../../stores/userStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { useMediaStore } from '../../stores/mediaStore';
-import { getSocket } from '../../services/socketService';
+import { endCurrentSession, getSocket } from '../../services/socketService';
 import { EVENTS } from '../../utils/constants';
 import { deleteCookie, getCookie, setCookie } from '../../utils/cookies';
 import { containsBlockedWord } from '../../utils/blockedWords';
@@ -140,9 +140,7 @@ export const Lobby: React.FC = () => {
   };
 
   const handleLogout = () => {
-    if (currentRoom) {
-      getSocket()?.emit(EVENTS.CLIENT.ROOM_LEAVE);
-    }
+    endCurrentSession();
     deleteCookie('vc_nickname');
     useMediaStore.getState().reset();
     logout();

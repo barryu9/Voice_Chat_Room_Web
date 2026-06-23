@@ -12,10 +12,16 @@ import { handleLocalVoiceSessionLost } from './voiceSessionService';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 const SPEAKING_HOLD_MS = 200;
 const SOCKET_DISCONNECT_GRACE_MS = 5000;
+const SOCKET_RECONNECT_DELAY_MS = 10000;
+const SOCKET_RECONNECT_ATTEMPTS = 5;
 
 let socket: Socket | null = null;
 const speakerExpiryTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+const recentlyReconnectedUsers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 let socketDisconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let socketHasConnectedOnce = false;
+let socketReconnectWarningShown = false;
+let pageLifecycleRegistered = false;
 
 function clearSocketDisconnectTimer() {
   if (socketDisconnectTimer) {
@@ -33,6 +39,14 @@ function clearSpeakingAfter(deviceId: string, delayMs: number) {
   }, delayMs));
 }
 
+function markRecentlyReconnected(userId: string) {
+  const existing = recentlyReconnectedUsers.get(userId);
+  if (existing) clearTimeout(existing);
+  recentlyReconnectedUsers.set(userId, setTimeout(() => {
+    recentlyReconnectedUsers.delete(userId);
+  }, 5000));
+}
+
 export function getSocket(): Socket | null {
   return socket;
 }
@@ -43,13 +57,38 @@ export function connectSocket(): Socket {
   socket = io(SOCKET_URL, {
     transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
+    reconnectionAttempts: SOCKET_RECONNECT_ATTEMPTS,
+    reconnectionDelay: SOCKET_RECONNECT_DELAY_MS,
+    reconnectionDelayMax: SOCKET_RECONNECT_DELAY_MS,
+    randomizationFactor: 0,
   });
 
   registerConnectionListeners();
   registerListeners();
+  registerPageLifecycleListeners();
   return socket;
+}
+
+function resetSocketLifecycleState() {
+  clearSocketDisconnectTimer();
+  for (const timer of recentlyReconnectedUsers.values()) {
+    clearTimeout(timer);
+  }
+  recentlyReconnectedUsers.clear();
+  socketHasConnectedOnce = false;
+  socketReconnectWarningShown = false;
+}
+
+export function endCurrentSession(options: { disconnect?: boolean } = {}) {
+  if (!socket?.connected) return;
+
+  socket.emit(EVENTS.CLIENT.USER_LOGOUT);
+
+  if (options.disconnect) {
+    socket.disconnect();
+    socket = null;
+    resetSocketLifecycleState();
+  }
 }
 
 export function disconnectSocket() {
@@ -57,14 +96,37 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+  resetSocketLifecycleState();
+}
+
+function registerPageLifecycleListeners() {
+  if (pageLifecycleRegistered) return;
+  pageLifecycleRegistered = true;
+
+  window.addEventListener('pagehide', (event) => {
+    if (event.persisted) return;
+    const { isLoggedIn, connectionState } = useUserStore.getState();
+    if (!isLoggedIn || connectionState !== 'connected' || !socket?.connected) return;
+    endCurrentSession({ disconnect: true });
+  });
 }
 
 function registerConnectionListeners() {
   if (!socket) return;
 
+  const emitCurrentLogin = () => {
+    const { isLoggedIn, nickname, deviceId } = useUserStore.getState();
+    if (isLoggedIn && nickname && deviceId) {
+      socket?.emit(EVENTS.CLIENT.USER_LOGIN, { nickname, deviceId });
+    }
+  };
+
   socket.on('connect', () => {
+    const isReconnect = socketHasConnectedOnce;
+    socketHasConnectedOnce = true;
     clearSocketDisconnectTimer();
     useUserStore.getState().setConnectionState('connected');
+    if (isReconnect) emitCurrentLogin();
   });
 
   socket.on('disconnect', (reason) => {
@@ -75,31 +137,38 @@ function registerConnectionListeners() {
       return;
     }
     useUserStore.getState().setConnectionState('disconnected');
+    if (!socketReconnectWarningShown && useUserStore.getState().isLoggedIn) {
+      socketReconnectWarningShown = true;
+      if (useUserStore.getState().currentRoom) {
+        useRoomStore.getState().setNotification('连接已断开，正在尝试重连服务器...');
+      }
+      playSound('connectionLost');
+    }
     socketDisconnectTimer = setTimeout(() => {
       socketDisconnectTimer = null;
       handleLocalVoiceSessionLost('socket');
     }, SOCKET_DISCONNECT_GRACE_MS);
   });
 
-  socket.on('reconnect_attempt', (attempt) => {
+  socket.io.on('reconnect_attempt', (attempt) => {
     useUserStore.getState().setConnectionState('reconnecting', attempt);
-  });
-
-  socket.on('reconnect', () => {
-    clearSocketDisconnectTimer();
-    useUserStore.getState().setConnectionState('connected');
-    const { nickname, deviceId } = useUserStore.getState();
-    if (nickname && deviceId) {
-      socket?.emit(EVENTS.CLIENT.USER_LOGIN, { nickname, deviceId });
+    if (useUserStore.getState().currentRoom) {
+      useRoomStore.getState().setNotification(`连接已断开，正在尝试重连服务器... (${attempt}/5)`);
     }
   });
 
-  socket.on('reconnect_error', () => {
+  socket.io.on('reconnect', () => {
+    clearSocketDisconnectTimer();
+    useUserStore.getState().setConnectionState('connected');
+  });
+
+  socket.io.on('reconnect_error', () => {
     useUserStore.getState().setConnectionState('reconnecting');
   });
 
-  socket.on('reconnect_failed', () => {
+  socket.io.on('reconnect_failed', () => {
     useUserStore.getState().setConnectionState('failed');
+    socketReconnectWarningShown = false;
   });
 }
 
@@ -109,13 +178,20 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.LOGIN_SUCCESS, (data) => {
     useUserStore.getState().setLogin(data.userId, data.nickname, data.deviceId);
     useRoomStore.getState().setChannels(data.rooms || []);
-    const { voiceReconnectPending, voiceReconnectTargetRoom } = useMediaStore.getState();
+    const { voiceReconnectPending, voiceReconnectTargetRoom, isVoiceConnected } = useMediaStore.getState();
+    if (data.recoveredRoom && data.recoveredVoice && !voiceReconnectPending && !isVoiceConnected) {
+      useMediaStore.getState().requestVoiceReconnect(data.recoveredRoom);
+    }
     const roomToRestore = voiceReconnectPending && voiceReconnectTargetRoom
       ? voiceReconnectTargetRoom
-      : useUserStore.getState().currentRoom;
+      : data.recoveredRoom || useUserStore.getState().currentRoom;
     if (roomToRestore) {
       socket?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: roomToRestore });
     }
+    if (socketReconnectWarningShown && roomToRestore && (!data.recoveredVoice || isVoiceConnected)) {
+      playSound('connected');
+    }
+    socketReconnectWarningShown = false;
   });
 
   socket.on(EVENTS.SERVER.LOGIN_ERROR, (data) => {
@@ -144,7 +220,7 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.USER_JOINED, (data) => {
     useRoomStore.getState().addUser(data);
-    if (data.userId !== useUserStore.getState().userId) {
+    if (data.userId !== useUserStore.getState().userId && !recentlyReconnectedUsers.has(data.userId)) {
       playSound('otherJoined');
     }
   });
@@ -154,6 +230,25 @@ function registerListeners() {
     useRoomStore.getState().removeVcState(data.deviceId);
     if (data.userId !== useUserStore.getState().userId && data.reason !== 'disconnect') {
       playSound('otherLeft');
+    }
+  });
+
+  socket.on(EVENTS.SERVER.USER_RECONNECTING, (data) => {
+    const currentUserId = useUserStore.getState().userId;
+    const existing = useRoomStore.getState().roomUsers.get(data.userId);
+    useRoomStore.getState().setUserReconnecting(data, true);
+    if (data.userId !== currentUserId && !existing?.reconnecting) {
+      playSound('otherDisconnected');
+    }
+  });
+
+  socket.on(EVENTS.SERVER.USER_RECONNECTED, (data) => {
+    const currentUserId = useUserStore.getState().userId;
+    const existing = useRoomStore.getState().roomUsers.get(data.userId);
+    useRoomStore.getState().setUserReconnecting(data, false);
+    if (data.userId !== currentUserId && existing?.reconnecting) {
+      markRecentlyReconnected(data.userId);
+      playSound('otherJoined');
     }
   });
 
@@ -291,7 +386,8 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.PRODUCER_CLOSED, (data) => {
     useMediaStore.getState().removeRemoteProducer(data.producerId);
     useMediaStore.getState().removeConsumer(data.producerId);
-    if (data.userId !== useUserStore.getState().userId && data.reason === 'disconnect') {
+    const user = useRoomStore.getState().roomUsers.get(data.userId);
+    if (data.userId !== useUserStore.getState().userId && data.reason === 'disconnect' && !user?.reconnecting) {
       playSound('otherDisconnected');
     }
   });

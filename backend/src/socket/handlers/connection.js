@@ -4,6 +4,186 @@ const { containsBlockedWord } = require('../../utils/blockedWords');
 const { EVENTS } = require('../events');
 
 const connections = new Map();
+const RECONNECT_GRACE_MS = 60000;
+const FAST_RECONNECT_MS = 5000;
+
+function clearReconnectTimer(conn) {
+  if (conn?.reconnectTimer) {
+    clearTimeout(conn.reconnectTimer);
+    conn.reconnectTimer = null;
+  }
+}
+
+function buildReconnectUser(conn, socketId) {
+  return {
+    socketId,
+    userId: conn.userId,
+    nickname: conn.nickname,
+    deviceId: conn.deviceId,
+  };
+}
+
+function notifyUserReconnecting(sid, conn) {
+  if (!conn?.currentRoom || conn.reconnectNotified) return;
+
+  const { getRoom } = require('../../mediasoup/roomManager');
+  const room = getRoom(conn.currentRoom);
+  if (!room || room.getProducersForUser(sid).length === 0) return;
+
+  conn.reconnectNotified = true;
+  const user = room.getUser(sid);
+  if (user) {
+    room.addUser(sid, { ...user, reconnecting: true });
+  }
+  room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_RECONNECTING, buildReconnectUser(conn, sid));
+}
+
+function notifyUserReconnected(conn, socketId) {
+  if (!conn?.recoveredRoom || !conn.reconnectNotified) return;
+
+  const { getRoom } = require('../../mediasoup/roomManager');
+  const room = getRoom(conn.recoveredRoom);
+  if (!room) return;
+
+  room.broadcast(conn.recoveredRoom, EVENTS.SERVER.USER_RECONNECTED, buildReconnectUser(conn, socketId));
+  conn.reconnectNotified = false;
+}
+
+function cleanupConnectionResources(sid, conn, io, reason) {
+  if (!conn?.currentRoom) return;
+
+  const { getRoom, broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
+  const room = getRoom(conn.currentRoom);
+  if (!room) return;
+
+  room.removeUser(sid);
+  room.removeVcState(conn.deviceId);
+  io.sockets.sockets.get(sid)?.leave(conn.currentRoom);
+
+  const producers = room.getProducersForUser(sid);
+  const hadProducers = producers.length > 0;
+
+  for (const p of producers) {
+    const info = room.removeProducer(p.producerId);
+    if (info?.instance) {
+      try { info.instance.close(); } catch (e) { /* ignore */ }
+    }
+    room.removeConsumersForProducer(p.producerId);
+    room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
+      producerId: p.producerId,
+      userId: conn.userId,
+      deviceId: conn.deviceId,
+      reason,
+    });
+  }
+
+  if (hadProducers && (reason === 'disconnect' || reason === 'leave')) {
+    room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
+      userId: conn.userId,
+      deviceId: conn.deviceId,
+      nickname: conn.nickname,
+      reason: reason === 'disconnect' ? 'disconnect' : 'leave',
+    });
+  }
+
+  const transportsToRemove = [];
+  for (const [tid, t] of room.transports) {
+    if (t.appData.socketId === sid) transportsToRemove.push(tid);
+  }
+  for (const tid of transportsToRemove) {
+    const t = room.getTransport(tid);
+    try { t?.close(); } catch (e) { /* ignore */ }
+    room.removeTransport(tid);
+  }
+
+  if (room.users.size === 0 && reason !== 'reconnect') {
+    const { refreshActivity, getAllChannels } = require('../../services/channelService');
+    refreshActivity(conn.currentRoom).catch(() => {});
+    const { startAutoDelete } = require('./roomHandler');
+    getAllChannels().then(async chs => {
+      const ch = chs.find(c => c.roomId === conn.currentRoom);
+      if (ch?.type === 'user') await startAutoDelete(conn.currentRoom, io);
+    }).catch((e) => console.error('[AutoDelete] Error in disconnect:', e));
+  }
+
+  if (reason !== 'reconnect') {
+    broadcastAllRoomOnlineCounts(io);
+  }
+}
+
+function endConnection(sid, io, reason) {
+  const conn = connections.get(sid);
+  if (!conn) return;
+
+  clearReconnectTimer(conn);
+  cleanupConnectionResources(sid, conn, io, reason);
+
+  const { removeAdmin } = require('../../services/adminService');
+  removeAdmin(sid);
+  connections.delete(sid);
+}
+
+function finalizeDisconnectedConnection(sid, io) {
+  const conn = connections.get(sid);
+  if (!conn || !conn.disconnected) return;
+
+  endConnection(sid, io, 'disconnect');
+}
+
+function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
+  clearReconnectTimer(conn);
+  const recoveredRoom = conn.currentRoom;
+  const disconnectedFor = conn.disconnectedAt ? Date.now() - conn.disconnectedAt : RECONNECT_GRACE_MS;
+  let recoveredVoice = false;
+  if (recoveredRoom) {
+    const { getRoom } = require('../../mediasoup/roomManager');
+    const room = getRoom(recoveredRoom);
+    recoveredVoice = !!room && room.getProducersForUser(oldSid).length > 0;
+  }
+
+  if (disconnectedFor <= FAST_RECONNECT_MS) {
+    const { getRoom } = require('../../mediasoup/roomManager');
+    const room = recoveredRoom ? getRoom(recoveredRoom) : null;
+    if (room) {
+      const user = room.getUser(oldSid);
+      room.removeUser(oldSid);
+      room.addUser(socket.id, {
+        ...(user || {}),
+        socketId: socket.id,
+        userId: conn.userId,
+        nickname,
+        deviceId: conn.deviceId,
+        reconnecting: false,
+      });
+      for (const [, info] of room.producers) {
+        if (info.socketId === oldSid) info.socketId = socket.id;
+      }
+      for (const [, info] of room.consumers) {
+        if (info.socketId === oldSid) info.socketId = socket.id;
+      }
+      for (const [, transport] of room.transports) {
+        if (transport.appData?.socketId === oldSid) {
+          transport.appData.socketId = socket.id;
+        }
+      }
+    }
+  } else {
+    cleanupConnectionResources(oldSid, conn, io, 'reconnect');
+  }
+  connections.delete(oldSid);
+
+  conn.socketId = socket.id;
+  conn.nickname = nickname;
+  conn.currentRoom = null;
+  conn.disconnected = false;
+  conn.disconnectedAt = null;
+  conn.reconnectTimer = null;
+  conn.recoveredRoom = recoveredRoom;
+  conn.recoveredVoice = recoveredVoice;
+  connections.set(socket.id, conn);
+  notifyUserReconnected(conn, socket.id);
+  return conn;
+}
 
 function handleConnection(socket, io) {
 
@@ -32,10 +212,15 @@ function handleConnection(socket, io) {
     const { getConfig } = require('../../services/configService');
     const multiLogin = await getConfig('config:multi_login');
     let existingSid = null;
+    let recoveredConn = null;
     for (const [sid, conn] of connections) {
       if (conn.deviceId === deviceId && sid !== socket.id) {
         const existingSocket = io.sockets.sockets.get(sid);
         if (!existingSocket || !existingSocket.connected) {
+          if (conn.disconnected && conn.disconnectedAt && Date.now() - conn.disconnectedAt <= RECONNECT_GRACE_MS) {
+            recoveredConn = recoverDisconnectedConnection(sid, socket, conn, trimmed, io);
+            break;
+          }
           // Stale connection — clean up the old entry
           if (conn.currentRoom) {
             const { getRoom } = require('../../mediasoup/roomManager');
@@ -103,14 +288,22 @@ function handleConnection(socket, io) {
       }
     }
 
-    const userId = socket.id;
-    connections.set(socket.id, {
-      socketId: socket.id,
-      userId,
-      nickname: trimmed,
-      deviceId,
-      currentRoom: null,
-    });
+    const userId = recoveredConn ? recoveredConn.userId : socket.id;
+    if (!recoveredConn) {
+      connections.set(socket.id, {
+        socketId: socket.id,
+        userId,
+        nickname: trimmed,
+        deviceId,
+        currentRoom: null,
+        disconnected: false,
+        disconnectedAt: null,
+        reconnectTimer: null,
+        reconnectNotified: false,
+        recoveredRoom: null,
+        recoveredVoice: false,
+      });
+    }
 
     const channels = await getAllChannels();
     const { getRooms } = require('../../mediasoup/roomManager');
@@ -129,6 +322,8 @@ function handleConnection(socket, io) {
       nickname: trimmed,
       deviceId,
       rooms: serializeChannels(enriched),
+      recoveredRoom: recoveredConn?.recoveredRoom || null,
+      recoveredVoice: !!recoveredConn?.recoveredVoice,
     });
 
     const { getAnnouncements, getSiteName, getSetting } = require('../../services/channelService');
@@ -182,8 +377,26 @@ function handleConnection(socket, io) {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on(EVENTS.CLIENT.USER_LOGOUT, () => {
+    endConnection(socket.id, io, 'leave');
+  });
+
+  socket.on('disconnect', (reason) => {
     const conn = connections.get(socket.id);
+    if (conn) {
+      if (reason === 'client namespace disconnect') {
+        endConnection(socket.id, io, 'leave');
+        return;
+      }
+      conn.disconnected = true;
+      conn.disconnectedAt = Date.now();
+      notifyUserReconnecting(socket.id, conn);
+      clearReconnectTimer(conn);
+      conn.reconnectTimer = setTimeout(() => {
+        finalizeDisconnectedConnection(socket.id, io);
+      }, RECONNECT_GRACE_MS);
+      return;
+    }
     if (conn && conn.currentRoom) {
       const { getRoom } = require('../../mediasoup/roomManager');
       const room = getRoom(conn.currentRoom);

@@ -47,6 +47,8 @@ const EVENTS = {
     ROOM_USERS:          'room:users',
     USER_JOINED:         'room:user-joined',
     USER_LEFT:           'room:user-left',
+    USER_RECONNECTING:   'room:user-reconnecting',
+    USER_RECONNECTED:    'room:user-reconnected',
     ROOM_INFO_UPDATED:   'room:info-updated',
     ROOM_ONLINE_UPDATED: 'room:online-updated',
     ANNOUNCEMENT:        'announcement',

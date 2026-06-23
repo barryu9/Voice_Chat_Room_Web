@@ -47,7 +47,9 @@ export function handleLocalVoiceSessionLost(reason: VoiceLossReason) {
       }
     }
 
-    playSound('disconnected');
+    if (reason !== 'socket') {
+      playSound('disconnected');
+    }
   } finally {
     window.setTimeout(() => {
       handlingLoss = false;

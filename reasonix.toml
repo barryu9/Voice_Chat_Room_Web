@@ -1,0 +1,2 @@
+[permissions]
+allow = ["Bash(cd D:\\my_projects\\voice-chat-room && git status)", "Bash(cd D:\\my_projects\\voice-chat-room && git remote -v)", "Bash(cd /d/my_projects/voice-chat-room && git status)", "Bash(cd /d/my_projects/voice-chat-room && git remote -v)", "Bash(cd /d/my_projects/voice-chat-room && git add -A)"]

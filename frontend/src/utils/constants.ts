@@ -1,6 +1,7 @@
 export const EVENTS = {
   CLIENT: {
     USER_LOGIN:            'user:login',
+    USER_LOGOUT:           'user:logout',
     ROOM_LIST:             'room:list',
     ROOM_JOIN:             'room:join',
     ROOM_LEAVE:            'room:leave',
@@ -43,6 +44,8 @@ export const EVENTS = {
     ROOM_USERS:          'room:users',
     USER_JOINED:         'room:user-joined',
     USER_LEFT:           'room:user-left',
+    USER_RECONNECTING:   'room:user-reconnecting',
+    USER_RECONNECTED:    'room:user-reconnected',
     ROOM_INFO_UPDATED:   'room:info-updated',
     ROOM_ONLINE_UPDATED: 'room:online-updated',
     ANNOUNCEMENT:        'announcement',
@@ -110,4 +113,5 @@ export type UserInfo = {
   userId: string;
   nickname: string;
   deviceId: string;
+  reconnecting?: boolean;
 };

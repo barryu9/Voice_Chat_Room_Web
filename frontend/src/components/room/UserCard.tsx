@@ -36,6 +36,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const vcState = vcStates.get(user.deviceId);
   const speaker = activeSpeakers.get(user.deviceId);
   const isSelf = user.userId === currentUserId;
+  const isReconnecting = !!user.reconnecting;
   const speakingHoldUntil = useRef(0);
   const rawSpeaking = !!speaker?.isSpeaking;
   if (rawSpeaking) {
@@ -104,13 +105,13 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
     <div
       className={`glass-card p-4 flex flex-col items-center gap-2 relative transition-all duration-300 group/hover ${
         isSelf ? 'ring-1 ring-primary-500/30' : ''
-      }`}
+      } ${isReconnecting ? 'opacity-75 ring-1 ring-yellow-500/30' : ''}`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
       {/* Avatar */}
       <div className="relative">
         <div
-          className={`avatar-circle rounded-full flex items-center justify-center text-white font-bold text-lg select-none ${isSpeaking ? 'avatar-speaking' : ''}`}
+          className={`avatar-circle rounded-full flex items-center justify-center text-white font-bold text-lg select-none ${isSpeaking && !isReconnecting ? 'avatar-speaking' : ''}`}
           style={{
             width: 48,
             height: 48,
@@ -122,11 +123,14 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
         >
           {initial}
         </div>
-        <SpeakingIndicator isSpeaking={isSpeaking} level={speakingLevel} />
+        <SpeakingIndicator isSpeaking={isSpeaking && !isReconnecting} level={speakingLevel} />
       </div>
 
       {/* Name + Badge */}
       <div className="text-center">
+        {isReconnecting && (
+          <p className="text-[10px] text-yellow-400 mb-0.5">重连中</p>
+        )}
         {isMuted && (
           <p className="text-[10px] text-red-400 mb-0.5">已被你静音</p>
         )}
