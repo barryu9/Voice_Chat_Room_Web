@@ -9,11 +9,20 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
 
 # npm 淘宝镜像 + pip 阿里云镜像
 RUN npm config set registry https://registry.npmmirror.com
-ENV MEDIASOUP_SKIP_WORKER_PREBUILT_DOWNLOAD=true
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 
 WORKDIR /app
+COPY mediasoup_release/ /tmp/mediasoup_release/
+
+# 解压 mediasoup-worker 预编译二进制
+RUN tar xzf /tmp/mediasoup_release/mediasoup-worker-*.tgz -C /tmp/mediasoup_release/ && \
+    chmod +x /tmp/mediasoup_release/mediasoup-worker && \
+    rm -f /tmp/mediasoup_release/mediasoup-worker-*.tgz
+
+# MEDIASOUP_WORKER_BIN 让 postinstall 跳过下载/编译，也用于运行时
+ENV MEDIASOUP_WORKER_BIN=/tmp/mediasoup_release/mediasoup-worker
+
 COPY backend/package*.json ./
 RUN npm install --omit=dev --loglevel=verbose
 
