@@ -67,7 +67,9 @@ const App: React.FC = () => {
       failHandled.current = true;
       autoLoginTried.current = false;
       if (currentRoom) {
-        getSocket()?.emit(EVENTS.CLIENT.ROOM_LEAVE);
+        useRoomStore.getState().setNotification('连接失败，仍保留在当前频道内等待重连');
+        playSound('connectionLost');
+        return;
       }
       useMediaStore.getState().reset();
       clearChannelUrlParam();

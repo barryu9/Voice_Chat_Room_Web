@@ -3,7 +3,6 @@ import { useRoomStore } from '../stores/roomStore';
 import { useUserStore } from '../stores/userStore';
 import { destroyAudioGraph } from './audioService';
 import { playSound } from './soundService';
-import { clearChannelUrlParam } from '../utils/helpers';
 
 type VoiceLossReason = 'socket' | 'transport';
 
@@ -32,15 +31,12 @@ export function handleLocalVoiceSessionLost(reason: VoiceLossReason) {
       useMediaStore.getState().requestVoiceReconnect(user.currentRoom);
     }
 
-    if (reason === 'socket' && wasVoiceConnected && user.currentRoom) {
+    if (reason === 'socket') {
       useMediaStore.getState().resetVoice();
       useMediaStore.getState().clearRemoteProducers();
-      useRoomStore.getState().setNotification('连接已断开，正在自动重连语音...');
-    } else if (reason === 'socket') {
-      useMediaStore.getState().reset();
-      useUserStore.getState().setCurrentRoom(null);
-      clearChannelUrlParam();
-      useRoomStore.getState().setNotification('连接已断开，你已离开当前频道，请重新进入频道');
+      useRoomStore.getState().setNotification(
+        wasVoiceConnected ? '连接已断开，正在频道内自动重连语音...' : '连接已断开，正在重新连接频道...'
+      );
     } else {
       useMediaStore.getState().resetVoice();
       if (wasVoiceConnected && user.currentRoom) {

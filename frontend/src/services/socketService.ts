@@ -34,7 +34,7 @@ export function connectSocket(): Socket {
   socket = io(SOCKET_URL, {
     transports: ['polling', 'websocket'],
     reconnection: true,
-    reconnectionAttempts: 5,
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
   });
 
@@ -94,8 +94,11 @@ function registerListeners() {
     useUserStore.getState().setLogin(data.userId, data.nickname, data.deviceId);
     useRoomStore.getState().setChannels(data.rooms || []);
     const { voiceReconnectPending, voiceReconnectTargetRoom } = useMediaStore.getState();
-    if (voiceReconnectPending && voiceReconnectTargetRoom) {
-      socket?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: voiceReconnectTargetRoom });
+    const roomToRestore = voiceReconnectPending && voiceReconnectTargetRoom
+      ? voiceReconnectTargetRoom
+      : useUserStore.getState().currentRoom;
+    if (roomToRestore) {
+      socket?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: roomToRestore });
     }
   });
 
