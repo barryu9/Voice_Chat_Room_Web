@@ -9,6 +9,7 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
 
 # npm 淘宝镜像 + pip 阿里云镜像
 RUN npm config set registry https://registry.npmmirror.com
+ENV MEDIASOUP_WORKER_PREBUILT_DOWNLOAD_BASE_URL=https://gitee.com/barrix/mediasoup/releases/download
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
 
