@@ -69,6 +69,11 @@ export function useMediasoup() {
     const device = deviceRef.current;
     if (!device) return false;
 
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
     const { transport } = await createConsumerTransport(device);
 
     const myDeviceId = useUserStore.getState().deviceId;
@@ -98,6 +103,7 @@ export function useMediasoup() {
     const socket = getSocket();
 
     const onNewProducer = async (data: { producerId: string; userId: string; deviceId: string; kind: string }) => {
+      if (useMediaStore.getState().consumerTransport !== transport) return;
       if (data.deviceId === myDeviceId) return;
       if (useMediaStore.getState().isConsumed(data.producerId) || useMediaStore.getState().isConsuming(data.producerId)) return;
       useMediaStore.getState().markConsuming(data.producerId);

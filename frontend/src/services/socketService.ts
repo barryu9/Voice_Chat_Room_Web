@@ -144,6 +144,12 @@ function registerConnectionListeners() {
       }
       playSound('connectionLost');
     }
+    const media = useMediaStore.getState();
+    const hadVoice = media.isVoiceConnected || !!media.producer || media.consumers.size > 0;
+    if (hadVoice) {
+      handleLocalVoiceSessionLost('socket');
+      return;
+    }
     socketDisconnectTimer = setTimeout(() => {
       socketDisconnectTimer = null;
       handleLocalVoiceSessionLost('socket');

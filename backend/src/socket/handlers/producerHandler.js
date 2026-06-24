@@ -43,12 +43,15 @@ function handleProducerEvents(socket, io) {
       kind,
     });
 
-    if (isFirstProducer) {
+    if (isFirstProducer && !conn.suppressNextVoiceJoin) {
       room.io.to(conn.currentRoom).emit(EVENTS.SERVER.USER_JOINED, {
         userId: conn.userId,
         nickname: conn.nickname,
         deviceId: conn.deviceId,
       });
+    }
+    if (isFirstProducer) {
+      conn.suppressNextVoiceJoin = false;
       broadcastAllRoomOnlineCounts(io);
     }
 

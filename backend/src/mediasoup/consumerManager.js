@@ -45,7 +45,7 @@ async function handleCreateConsumerTransport(socket, roomId) {
 }
 
 async function handleTransportConnect(socket, transportId, dtlsParameters) {
-  const room = findRoomBySocket(socket.id);
+  const room = findRoomByTransport(transportId) || findRoomBySocket(socket.id);
   const transport = room?.getTransport(transportId);
   if (!transport) {
     socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.TRANSPORT_CONNECT, message: 'Transport not found' });
@@ -53,6 +53,14 @@ async function handleTransportConnect(socket, transportId, dtlsParameters) {
   }
 
   await transport.connect({ dtlsParameters });
+}
+
+function findRoomByTransport(transportId) {
+  const { getRooms } = require('./roomManager');
+  for (const [, room] of getRooms()) {
+    if (room.getTransport(transportId)) return room;
+  }
+  return null;
 }
 
 function findRoomBySocket(socketId) {
@@ -67,5 +75,6 @@ module.exports = {
   handleCreateProducerTransport,
   handleCreateConsumerTransport,
   handleTransportConnect,
+  findRoomByTransport,
   findRoomBySocket,
 };

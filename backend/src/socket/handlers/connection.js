@@ -119,6 +119,33 @@ function cleanupConnectionResources(sid, conn, io, reason) {
   }
 }
 
+function cleanupVoiceResourcesForSocket(room, sid, conn, reason) {
+  const producers = room.getProducersForUser(sid);
+  for (const p of producers) {
+    const info = room.removeProducer(p.producerId);
+    if (info?.instance) {
+      try { info.instance.close(); } catch (e) { /* ignore */ }
+    }
+    room.removeConsumersForProducer(p.producerId);
+    room.broadcast(conn.currentRoom, EVENTS.SERVER.PRODUCER_CLOSED, {
+      producerId: p.producerId,
+      userId: conn.userId,
+      deviceId: conn.deviceId,
+      reason,
+    });
+  }
+
+  const transportsToRemove = [];
+  for (const [tid, t] of room.transports) {
+    if (t.appData.socketId === sid) transportsToRemove.push(tid);
+  }
+  for (const tid of transportsToRemove) {
+    const t = room.getTransport(tid);
+    try { t?.close(); } catch (e) { /* ignore */ }
+    room.removeTransport(tid);
+  }
+}
+
 function endConnection(sid, io, reason) {
   const conn = connections.get(sid);
   if (!conn) return;
@@ -162,6 +189,7 @@ function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
     if (room) {
       const user = room.getUser(oldSid);
       room.removeUser(oldSid);
+      cleanupVoiceResourcesForSocket(room, oldSid, conn, 'reconnect');
       room.addUser(socket.id, {
         ...(user || {}),
         socketId: socket.id,
@@ -170,16 +198,8 @@ function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
         deviceId: conn.deviceId,
         reconnecting: false,
       });
-      for (const [, info] of room.producers) {
-        if (info.socketId === oldSid) info.socketId = socket.id;
-      }
       for (const [, info] of room.consumers) {
         if (info.socketId === oldSid) info.socketId = socket.id;
-      }
-      for (const [, transport] of room.transports) {
-        if (transport.appData?.socketId === oldSid) {
-          transport.appData.socketId = socket.id;
-        }
       }
     }
   } else {
@@ -196,6 +216,7 @@ function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
   conn.reconnectNotifyTimer = null;
   conn.recoveredRoom = recoveredRoom;
   conn.recoveredVoice = recoveredVoice;
+  conn.suppressNextVoiceJoin = recoveredVoice;
   conn.lastSeenAt = Date.now();
   connections.set(socket.id, conn);
   notifyUserReconnected(conn, socket.id);

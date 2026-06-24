@@ -103,6 +103,7 @@ export const RoomPanel: React.FC = () => {
   const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === myUserId;
   const selfLatency = myDeviceId ? peerLatencies.get(myDeviceId) : undefined;
   const isConnectionRestoring = connectionState !== 'connected';
+  const isVoiceActionRestoring = isConnectionRestoring || voiceReconnectPending;
 
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const kickedList = useAdminStore((s) => s.kickedList);
@@ -732,21 +733,27 @@ export const RoomPanel: React.FC = () => {
             <span className="text-sm text-gray-400 font-mono tabular-nums">{fmt(duration)}</span>
           )}
 
-          {isVoiceConnected ? (
+          {isVoiceActionRestoring ? (
+            <button
+              disabled
+              className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all"
+            >
+              正在连接
+            </button>
+          ) : isVoiceConnected ? (
             <button
               onClick={handleVoiceDisconnect}
-              disabled={isConnectionRestoring}
-              className="semantic-red-button disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
+              className="semantic-red-button text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
               断开语音
             </button>
           ) : (
             <button
               onClick={handleVoiceConnect}
-              disabled={connecting || isConnectionRestoring}
+              disabled={connecting}
               className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
-              {connecting || isConnectionRestoring ? '正在连接' : '加入语音'}
+              {connecting ? '正在连接' : '加入语音'}
             </button>
           )}
         </div>
