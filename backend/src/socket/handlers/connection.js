@@ -6,6 +6,7 @@ const { EVENTS } = require('../events');
 const connections = new Map();
 const RECONNECT_GRACE_MS = 60000;
 const FAST_RECONNECT_MS = 5000;
+const STALE_CONNECTION_MS = 5000;
 
 function clearReconnectTimer(conn) {
   if (conn?.reconnectTimer) {
@@ -123,6 +124,11 @@ function endConnection(sid, io, reason) {
   connections.delete(sid);
 }
 
+function clearSupersededLogin(sid, io, existingSocket) {
+  endConnection(sid, io, 'leave');
+  existingSocket?.disconnect(true);
+}
+
 function finalizeDisconnectedConnection(sid, io) {
   const conn = connections.get(sid);
   if (!conn || !conn.disconnected) return;
@@ -180,14 +186,20 @@ function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
   conn.reconnectTimer = null;
   conn.recoveredRoom = recoveredRoom;
   conn.recoveredVoice = recoveredVoice;
+  conn.lastSeenAt = Date.now();
   connections.set(socket.id, conn);
   notifyUserReconnected(conn, socket.id);
   return conn;
 }
 
 function handleConnection(socket, io) {
+  socket.use((_, next) => {
+    const conn = connections.get(socket.id);
+    if (conn) conn.lastSeenAt = Date.now();
+    next();
+  });
 
-  socket.on(EVENTS.CLIENT.USER_LOGIN, async ({ nickname, deviceId }) => {
+  socket.on(EVENTS.CLIENT.USER_LOGIN, async ({ nickname, deviceId, recoverSession }) => {
     if (!nickname || !deviceId) {
       socket.emit(EVENTS.SERVER.LOGIN_ERROR, { message: 'Missing nickname or deviceId' });
       return;
@@ -216,10 +228,26 @@ function handleConnection(socket, io) {
     for (const [sid, conn] of connections) {
       if (conn.deviceId === deviceId && sid !== socket.id) {
         const existingSocket = io.sockets.sockets.get(sid);
-        if (!existingSocket || !existingSocket.connected) {
-          if (conn.disconnected && conn.disconnectedAt && Date.now() - conn.disconnectedAt <= RECONNECT_GRACE_MS) {
+        const stale = conn.lastSeenAt && Date.now() - conn.lastSeenAt > STALE_CONNECTION_MS;
+        if (!existingSocket || !existingSocket.connected || stale) {
+          if (recoverSession && stale) {
+            conn.disconnected = true;
+            conn.disconnectedAt = conn.disconnectedAt || Date.now();
+            existingSocket?.disconnect(true);
             recoveredConn = recoverDisconnectedConnection(sid, socket, conn, trimmed, io);
             break;
+          }
+          if (conn.disconnected && conn.disconnectedAt && Date.now() - conn.disconnectedAt <= RECONNECT_GRACE_MS) {
+            if (recoverSession) {
+              recoveredConn = recoverDisconnectedConnection(sid, socket, conn, trimmed, io);
+              break;
+            }
+            clearSupersededLogin(sid, io, existingSocket);
+            continue;
+          }
+          if (stale && !recoverSession) {
+            clearSupersededLogin(sid, io, existingSocket);
+            continue;
           }
           // Stale connection — clean up the old entry
           if (conn.currentRoom) {
@@ -302,6 +330,7 @@ function handleConnection(socket, io) {
         reconnectNotified: false,
         recoveredRoom: null,
         recoveredVoice: false,
+        lastSeenAt: Date.now(),
       });
     }
 

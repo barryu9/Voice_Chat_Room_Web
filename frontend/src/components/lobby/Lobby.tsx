@@ -182,7 +182,7 @@ export const Lobby: React.FC = () => {
             connectionState === 'disconnected' ? 'theme-alert-warning' :
             'theme-alert-error'
           }`}>
-            {connectionState === 'reconnecting' && `正在重连服务器... (${reconnectAttempt}/5)`}
+            {connectionState === 'reconnecting' && `正在重连服务器... (${reconnectAttempt}/120)`}
             {connectionState === 'disconnected' && '连接已断开，正在尝试重连...'}
             {connectionState === 'failed' && '服务器连接失败，请刷新页面重试'}
           </div>

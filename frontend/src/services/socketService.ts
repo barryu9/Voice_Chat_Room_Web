@@ -12,8 +12,8 @@ import { handleLocalVoiceSessionLost } from './voiceSessionService';
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || undefined;
 const SPEAKING_HOLD_MS = 200;
 const SOCKET_DISCONNECT_GRACE_MS = 5000;
-const SOCKET_RECONNECT_DELAY_MS = 10000;
-const SOCKET_RECONNECT_ATTEMPTS = 5;
+const SOCKET_RECONNECT_DELAY_MS = 500;
+const SOCKET_RECONNECT_ATTEMPTS = 120;
 
 let socket: Socket | null = null;
 const speakerExpiryTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
@@ -114,10 +114,10 @@ function registerPageLifecycleListeners() {
 function registerConnectionListeners() {
   if (!socket) return;
 
-  const emitCurrentLogin = () => {
+  const emitCurrentLogin = (recoverSession = false) => {
     const { isLoggedIn, nickname, deviceId } = useUserStore.getState();
     if (isLoggedIn && nickname && deviceId) {
-      socket?.emit(EVENTS.CLIENT.USER_LOGIN, { nickname, deviceId });
+      socket?.emit(EVENTS.CLIENT.USER_LOGIN, { nickname, deviceId, recoverSession });
     }
   };
 
@@ -126,7 +126,7 @@ function registerConnectionListeners() {
     socketHasConnectedOnce = true;
     clearSocketDisconnectTimer();
     useUserStore.getState().setConnectionState('connected');
-    if (isReconnect) emitCurrentLogin();
+    if (isReconnect) emitCurrentLogin(true);
   });
 
   socket.on('disconnect', (reason) => {
@@ -153,7 +153,7 @@ function registerConnectionListeners() {
   socket.io.on('reconnect_attempt', (attempt) => {
     useUserStore.getState().setConnectionState('reconnecting', attempt);
     if (useUserStore.getState().currentRoom) {
-      useRoomStore.getState().setNotification(`连接已断开，正在尝试重连服务器... (${attempt}/5)`);
+      useRoomStore.getState().setNotification(`连接已断开，正在尝试重连服务器... (${attempt}/120)`);
     }
   });
 

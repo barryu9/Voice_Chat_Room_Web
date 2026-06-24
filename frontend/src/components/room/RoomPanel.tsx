@@ -92,6 +92,7 @@ export const RoomPanel: React.FC = () => {
   const currentChannel = channels.find((c) => c.roomId === currentRoom);
   const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === myUserId;
   const selfLatency = myDeviceId ? peerLatencies.get(myDeviceId) : undefined;
+  const isConnectionRestoring = connectionState !== 'connected';
 
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const kickedList = useAdminStore((s) => s.kickedList);
@@ -148,6 +149,7 @@ export const RoomPanel: React.FC = () => {
   };
 
   const handleVoiceConnect = useCallback(async (): Promise<boolean> => {
+    if (connectionState !== 'connected') return false;
     if (connecting) return false;
     setConnecting(true);
 
@@ -172,7 +174,7 @@ export const RoomPanel: React.FC = () => {
     } finally {
       setConnecting(false);
     }
-  }, [connecting, initDevice, startProduce, startConsume, stopProduce, cleanup, setVoiceConnected]);
+  }, [connectionState, connecting, initDevice, startProduce, startConsume, stopProduce, cleanup, setVoiceConnected]);
 
   useEffect(() => {
     if (!voiceReconnectPending || !voiceReconnectTargetRoom || !voiceReconnectRoomReady) return;
@@ -218,15 +220,17 @@ export const RoomPanel: React.FC = () => {
   ]);
 
   const handleVoiceDisconnect = useCallback(() => {
+    if (connectionState !== 'connected') return;
     useMediaStore.getState().clearVoiceReconnect();
     stopProduce();
     cleanup();
     setVoiceConnected(false);
     playSound('disconnected');
     showToast('已断开语音', 'info');
-  }, [stopProduce, cleanup, setVoiceConnected]);
+  }, [connectionState, stopProduce, cleanup, setVoiceConnected]);
 
   const handleLeaveRoom = useCallback(() => {
+    if (connectionState !== 'connected') return;
     useMediaStore.getState().clearVoiceReconnect();
     if (isVoiceConnected) {
       stopProduce();
@@ -237,7 +241,7 @@ export const RoomPanel: React.FC = () => {
     useMediaStore.getState().reset();
     setCurrentRoom(null);
     clearChannelUrlParam();
-  }, [isVoiceConnected, stopProduce, cleanup, setCurrentRoom]);
+  }, [connectionState, isVoiceConnected, stopProduce, cleanup, setCurrentRoom]);
 
   const handleDeviceChange = useCallback(async (deviceId: string) => {
     setSelectedInput(deviceId);
@@ -540,8 +544,9 @@ export const RoomPanel: React.FC = () => {
             <SettingsPanel />
             <button
               onClick={handleLeaveRoom}
+              disabled={isConnectionRestoring}
               title="离开频道"
-              className="semantic-red-button p-3 sm:p-2 rounded-lg transition-all"
+              className="semantic-red-button disabled:opacity-50 disabled:cursor-not-allowed p-3 sm:p-2 rounded-lg transition-all"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -621,7 +626,8 @@ export const RoomPanel: React.FC = () => {
               <span className="text-sm text-gray-400 font-mono tabular-nums">{fmt(duration)}</span>
               <button
                 onClick={handleVoiceDisconnect}
-                className="semantic-red-button text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
+                disabled={isConnectionRestoring}
+                className="semantic-red-button disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
               >
                 断开语音
               </button>
@@ -629,7 +635,7 @@ export const RoomPanel: React.FC = () => {
           ) : (
             <button
               onClick={handleVoiceConnect}
-              disabled={connecting}
+              disabled={connecting || isConnectionRestoring}
               className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
               {connecting ? '连接中...' : '加入语音'}

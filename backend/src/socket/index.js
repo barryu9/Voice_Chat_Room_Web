@@ -17,8 +17,8 @@ function initSocket(server) {
       origin: process.env.CORS_ORIGIN || '*',
       methods: ['GET', 'POST'],
     },
-    pingTimeout: 60000,
-    pingInterval: 25000,
+    pingTimeout: 5000,
+    pingInterval: 1000,
   });
 
   io.on('connection', (socket) => {

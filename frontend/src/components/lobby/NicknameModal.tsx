@@ -126,7 +126,7 @@ export const NicknameModal: React.FC<NicknameModalProps> = ({ onClose }) => {
                 </span>
                 <span>
                   {connectionState === 'reconnecting' && reconnectAttempt > 0 && !isLoginError
-                    ? `${statusText} (${reconnectAttempt}/5)`
+                    ? `${statusText} (${reconnectAttempt}/120)`
                     : statusText}
                 </span>
               </div>
