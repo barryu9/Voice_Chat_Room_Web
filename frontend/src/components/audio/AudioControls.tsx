@@ -7,7 +7,6 @@ interface AudioControlsProps {
   noiseSuppressionEnabled: boolean;
   echoCancellationEnabled: boolean;
   autoGainControlEnabled: boolean;
-  peakLimiterEnabled: boolean;
   vocalEnhancerEnabled: boolean;
   onToggleMute: () => void;
   onGainChange: (v: number) => void;
@@ -15,12 +14,10 @@ interface AudioControlsProps {
   onNoiseSuppressionToggle: () => void;
   onEchoCancellationToggle: () => void;
   onAutoGainControlToggle: () => void;
-  onPeakLimiterToggle: () => void;
   onVocalEnhancerToggle: () => void;
   noiseTransiting: boolean;
   echoTransiting: boolean;
   agcTransiting: boolean;
-  peakLimiterTransiting: boolean;
   vocalEnhancerTransiting: boolean;
   inputs: { deviceId: string; label: string }[];
   outputs: { deviceId: string; label: string }[];
@@ -75,9 +72,9 @@ const Popover: React.FC<{
 
 export const AudioControls: React.FC<AudioControlsProps> = ({
   gain, muted, threshold, audioLevel,
-  noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled, peakLimiterEnabled, vocalEnhancerEnabled,
+  noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled, vocalEnhancerEnabled,
   onToggleMute, onGainChange, onThresholdChange,
-  onNoiseSuppressionToggle, onEchoCancellationToggle, onAutoGainControlToggle, onPeakLimiterToggle, onVocalEnhancerToggle, noiseTransiting, echoTransiting, agcTransiting, peakLimiterTransiting, vocalEnhancerTransiting,
+  onNoiseSuppressionToggle, onEchoCancellationToggle, onAutoGainControlToggle, onVocalEnhancerToggle, noiseTransiting, echoTransiting, agcTransiting, vocalEnhancerTransiting,
   inputs, outputs, selectedInput, selectedOutput,
   onInputChange, onOutputChange,
   isAllMuted, masterVolume, amIServerMuted,
@@ -296,20 +293,6 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
           >
             <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
               autoGainControlEnabled ? 'translate-x-4' : 'translate-x-0.5'
-            }`} />
-          </button>
-        </div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-400">峰值限制</span>
-          <button
-            onClick={(autoGainControlEnabled || peakLimiterTransiting) ? undefined : onPeakLimiterToggle}
-            className={`relative w-9 h-5 rounded-full transition-colors ${
-              autoGainControlEnabled || peakLimiterEnabled ? 'bg-primary-500' : 'bg-gray-600'
-            } ${(autoGainControlEnabled || peakLimiterTransiting) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={autoGainControlEnabled ? '自动增益开启时会自动启用峰值限制' : '峰值限制'}
-          >
-            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-              autoGainControlEnabled || peakLimiterEnabled ? 'translate-x-4' : 'translate-x-0.5'
             }`} />
           </button>
         </div>

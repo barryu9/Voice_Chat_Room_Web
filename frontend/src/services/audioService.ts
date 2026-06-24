@@ -19,7 +19,6 @@ let preProcessGainNode: GainNode | null = null;
 let micGainNode: GainNode | null = null;
 let agcGainNode: GainNode | null = null;
 let agcAnalyserNode: AnalyserNode | null = null;
-let peakLimiterNode: DynamicsCompressorNode | null = null;
 let gateGainNode: GainNode | null = null;
 let localAudioSource: MediaStreamAudioSourceNode | null = null;
 let analyserNode: AnalyserNode | null = null;
@@ -31,9 +30,9 @@ let lastAutoGainUpdate = 0;
 let gateOpen = false;
 let gateCloseAt = 0;
 let noiseGateBackgroundBypass = false;
-const AUTO_GAIN_TARGET_DB = -34;
-const AUTO_GAIN_MIN = 0.75;
-const AUTO_GAIN_MAX = 2.2;
+const AUTO_GAIN_TARGET_DB = -30;
+const AUTO_GAIN_MIN = 0.6;
+const AUTO_GAIN_MAX = 3;
 const AUTO_GAIN_STEP = 0.005;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const NOISE_GATE_HYSTERESIS_DB = 6;
@@ -83,7 +82,6 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   micGainNode = ctx.createGain();
   agcGainNode = ctx.createGain();
   agcAnalyserNode = ctx.createAnalyser();
-  peakLimiterNode = ctx.createDynamicsCompressor();
   gateGainNode = ctx.createGain();
   analyserNode = ctx.createAnalyser();
   processedDestination = ctx.createMediaStreamDestination();
@@ -94,8 +92,6 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   agcAnalyserNode.smoothingTimeConstant = 0.8;
 
   agcGainNode.gain.value = useMediaStore.getState().autoGainControlEnabled ? autoGainValue : 1;
-  configurePeakLimiter();
-
   await tryConnectRNNoise(ctx);
 
   setMicGain(1.0);
@@ -140,7 +136,6 @@ export function reconnectAudioGraph() {
   preProcessGainNode.disconnect();
   agcGainNode.disconnect();
   micGainNode.disconnect();
-  peakLimiterNode?.disconnect();
   gateGainNode.disconnect();
   if (rnnoiseConnected) rnnoiseDisconnectOutput?.();
   disconnectVoiceChanger();
@@ -185,12 +180,7 @@ export function reconnectAudioGraph() {
   }
 
   connectAgcStage(preAgcOutputNode);
-  if (isPeakLimiterActive() && peakLimiterNode) {
-    micGainNode.connect(peakLimiterNode);
-    peakLimiterNode.connect(outputNode);
-  } else {
-    micGainNode.connect(outputNode);
-  }
+  micGainNode.connect(outputNode);
 
   if (vcEnabled) {
     connectVoiceChanger(gateGainNode, processedDestination);
@@ -213,11 +203,6 @@ export function toggleNoiseSuppressor(enabled: boolean) {
 
 export function toggleVocalEnhancer(enabled: boolean) {
   useMediaStore.getState().setVocalEnhancerEnabled(enabled);
-  reconnectAudioGraph();
-}
-
-export function togglePeakLimiter(enabled: boolean) {
-  useMediaStore.getState().setPeakLimiterEnabled(enabled);
   reconnectAudioGraph();
 }
 
@@ -299,20 +284,6 @@ export function setLocalAutoGainEnabled(enabled: boolean) {
     return;
   }
   agcGainNode.gain.setTargetAtTime(autoGainValue, agcGainNode.context.currentTime, 0.2);
-}
-
-function configurePeakLimiter() {
-  if (!peakLimiterNode) return;
-  peakLimiterNode.threshold.value = -1;
-  peakLimiterNode.knee.value = 10;
-  peakLimiterNode.ratio.value = 8;
-  peakLimiterNode.attack.value = 0.006;
-  peakLimiterNode.release.value = 0.16;
-}
-
-function isPeakLimiterActive() {
-  const state = useMediaStore.getState();
-  return state.autoGainControlEnabled || state.peakLimiterEnabled;
 }
 
 function updateAutoGain(level: number, threshold: number) {
@@ -487,10 +458,6 @@ export function cleanupLocalAudio() {
   if (agcAnalyserNode) {
     agcAnalyserNode.disconnect();
     agcAnalyserNode = null;
-  }
-  if (peakLimiterNode) {
-    peakLimiterNode.disconnect();
-    peakLimiterNode = null;
   }
   if (gateGainNode) {
     gateGainNode.disconnect();

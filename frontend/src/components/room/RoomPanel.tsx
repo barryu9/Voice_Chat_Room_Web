@@ -6,7 +6,7 @@ import { useAdminStore } from '../../stores/adminStore';
 import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
 import { playSound, setSoundSinkId } from '../../services/soundService';
-import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, resumeAudioContext, setLocalAutoGainEnabled, setNoiseGateBackgroundBypass, togglePeakLimiter, toggleVocalEnhancer } from '../../services/audioService';
+import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, resumeAudioContext, setLocalAutoGainEnabled, setNoiseGateBackgroundBypass, toggleVocalEnhancer } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
 import { startRecording, stopRecording, getRecordedBuffer, playTest, destroyPreview } from '../../services/previewService';
 import { VOICE_PRESETS } from '../../utils/voicePresets';
@@ -48,7 +48,6 @@ export const RoomPanel: React.FC = () => {
   const setEchoCancellationEnabled = useMediaStore((s) => s.setEchoCancellationEnabled);
   const autoGainControlEnabled = useMediaStore((s) => s.autoGainControlEnabled);
   const setAutoGainControlEnabled = useMediaStore((s) => s.setAutoGainControlEnabled);
-  const peakLimiterEnabled = useMediaStore((s) => s.peakLimiterEnabled);
   const vocalEnhancerEnabled = useMediaStore((s) => s.vocalEnhancerEnabled);
   const masterVolume = useMediaStore((s) => s.masterVolume);
   const setMasterVolume = useMediaStore((s) => s.setMasterVolume);
@@ -397,7 +396,6 @@ export const RoomPanel: React.FC = () => {
   const [noiseTransiting, setNoiseTransiting] = useState(false);
   const [echoTransiting, setEchoTransiting] = useState(false);
   const [agcTransiting, setAgcTransiting] = useState(false);
-  const [peakLimiterTransiting, setPeakLimiterTransiting] = useState(false);
   const [vocalEnhancerTransiting, setVocalEnhancerTransiting] = useState(false);
   const handleNoiseSuppressionToggle = useCallback(() => {
     if (noiseTransiting) return;
@@ -454,14 +452,6 @@ export const RoomPanel: React.FC = () => {
     autoGainControlEnabled,
     setAutoGainControlEnabled,
   ]);
-
-  const handlePeakLimiterToggle = useCallback(() => {
-    if (peakLimiterTransiting || autoGainControlEnabled) return;
-    const next = !peakLimiterEnabled;
-    setPeakLimiterTransiting(true);
-    togglePeakLimiter(next);
-    window.setTimeout(() => setPeakLimiterTransiting(false), 200);
-  }, [peakLimiterTransiting, autoGainControlEnabled, peakLimiterEnabled]);
 
   const handleVocalEnhancerToggle = useCallback(() => {
     if (vocalEnhancerTransiting) return;
@@ -685,7 +675,6 @@ export const RoomPanel: React.FC = () => {
             noiseSuppressionEnabled={noiseSuppressionEnabled}
             echoCancellationEnabled={echoCancellationEnabled}
             autoGainControlEnabled={autoGainControlEnabled}
-            peakLimiterEnabled={peakLimiterEnabled}
             vocalEnhancerEnabled={vocalEnhancerEnabled}
             onToggleMute={handleMicToggle}
             onGainChange={(v) => {
@@ -699,12 +688,10 @@ export const RoomPanel: React.FC = () => {
             onNoiseSuppressionToggle={handleNoiseSuppressionToggle}
             onEchoCancellationToggle={handleEchoCancellationToggle}
             onAutoGainControlToggle={handleAutoGainControlToggle}
-            onPeakLimiterToggle={handlePeakLimiterToggle}
             onVocalEnhancerToggle={handleVocalEnhancerToggle}
             noiseTransiting={noiseTransiting}
             echoTransiting={echoTransiting}
             agcTransiting={agcTransiting}
-            peakLimiterTransiting={peakLimiterTransiting}
             vocalEnhancerTransiting={vocalEnhancerTransiting}
             inputs={audioInputs}
             outputs={audioOutputs}
