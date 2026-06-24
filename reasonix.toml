@@ -1,2 +1,36 @@
+default_model = "deepseek/deepseek-v4-flash"
 [permissions]
-allow = ["Bash(cd D:\\my_projects\\voice-chat-room && git status)", "Bash(cd D:\\my_projects\\voice-chat-room && git remote -v)", "Bash(cd /d/my_projects/voice-chat-room && git status)", "Bash(cd /d/my_projects/voice-chat-room && git remote -v)", "Bash(cd /d/my_projects/voice-chat-room && git add -A)", "Bash(cd /d/my_projects/voice-chat-room && git diff --cached --stat)", "Bash(cd /d/my_projects/voice-chat-room && git diff --cached -- backend/src/socket/events.js backend/src/utils/constants.ts)", "Bash(cd /d/my_projects/voice-chat-room && git commit -m \"feat: add user reconnection support with reconnecting/reconnected events\n\n- Add USER_RECONNECTING and USER_RECONNECTED socket events\n- Implement reconnection handling in backend connection handler\n- Update frontend socketService with reconnection logic\n- Update roomStore, Lobby, UserCard, and voiceSessionService for reconnection UX\n- Add .reasonix/ and reasonix.toml to version control\")", "Bash(git remote:*)"]
+allow = ["Bash(cd D:\\my_projects\\voice-chat-room && git status)", "Bash(cd D:\\my_projects\\voice-chat-room && git remote -v)", "Bash(cd /d/my_projects/voice-chat-room && git status)", "Bash(cd /d/my_projects/voice-chat-room && git remote -v)", "Bash(cd /d/my_projects/voice-chat-room && git add -A)", "Bash(cd /d/my_projects/voice-chat-room && git diff --cached --stat)", "Bash(cd /d/my_projects/voice-chat-room && git diff --cached -- backend/src/socket/events.js backend/src/utils/constants.ts)", "Bash(cd /d/my_projects/voice-chat-room && git commit -m \"feat: add user reconnection support with reconnecting/reconnected events\n\n- Add USER_RECONNECTING and USER_RECONNECTED socket events\n- Implement reconnection handling in backend connection handler\n- Update frontend socketService with reconnection logic\n- Update roomStore, Lobby, UserCard, and voiceSessionService for reconnection UX\n- Add .reasonix/ and reasonix.toml to version control\")", "Bash(git remote:*)", "Bash(git add docker/backend.Dockerfile && git commit -m \"fix(docker): 跳过 mediasoup-worker 预编译下载，改为本地编译（无 releases 镜像可用）\" && git push origin master && git config http.sslverify false && git push github master && git config http.sslverify true)", "Edit", "Bash(git add docker/backend.Dockerfile && git commit -m \"fix(docker): 使用本地 mediasoup-worker 预编译二进制，跳过下载和本地编译\" && git push origin master && git config http.sslverify false && git push github master && git config http.sslverify true)", "Bash(cat .gitignore 2>/dev/null | grep -i mediasoup; echo \"---\"; cat .dockerignore 2>/dev/null | grep -i mediasoup; echo \"exit: $?\")", "Bash(git add mediasoup_release/ && git commit -m \"chore: 添加 mediasoup-worker 预编译二进制 (kernel6)\" && git push origin master && git config http.sslverify false && git push github master && git config http.sslverify true)", "Bash(git add deploy-backend.sh && git commit -m \"fix(deploy): 适配本地 mediasoup-worker 预编译二进制流程，新增 --clean 参数\" && git push origin master && git config http.sslverify false && git push github master && git config http.sslverify true)"]
+
+
+[[providers]]
+name        = "deepseek-flash"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+model       = "deepseek-v4-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"
+context_window = 1000000
+price       = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }
+
+[[providers]]
+name        = "deepseek-pro"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+model       = "deepseek-v4-pro"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"
+context_window = 1000000
+price       = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" }
+
+[[providers]]
+name        = "deepseek"
+kind        = "openai"
+base_url    = "https://api.deepseek.com"
+models      = ["deepseek-v4-flash", "deepseek-v4-pro"]
+default     = "deepseek-v4-flash"
+api_key_env = "DEEPSEEK_API_KEY"
+balance_url = "https://api.deepseek.com/user/balance"
+context_window = 1000000
+price       = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }
+prices      = { "deepseek-v4-flash" = { cache_hit = 0.02, input = 1, output = 2, currency = "¥" }, "deepseek-v4-pro" = { cache_hit = 0.025, input = 3, output = 6, currency = "¥" } }

@@ -43,14 +43,17 @@ function handleProducerEvents(socket, io) {
       kind,
     });
 
-    if (isFirstProducer && !conn.suppressNextVoiceJoin) {
-      room.io.to(conn.currentRoom).emit(EVENTS.SERVER.USER_JOINED, {
+    if (isFirstProducer) {
+      const joinedPayload = {
         userId: conn.userId,
         nickname: conn.nickname,
         deviceId: conn.deviceId,
-      });
-    }
-    if (isFirstProducer) {
+      };
+      if (conn.suppressNextVoiceJoin) {
+        socket.emit(EVENTS.SERVER.USER_JOINED, joinedPayload);
+      } else {
+        room.io.to(conn.currentRoom).emit(EVENTS.SERVER.USER_JOINED, joinedPayload);
+      }
       conn.suppressNextVoiceJoin = false;
       broadcastAllRoomOnlineCounts(io);
     }

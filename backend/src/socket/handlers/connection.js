@@ -260,19 +260,15 @@ function handleConnection(socket, io) {
       if (conn.deviceId === deviceId && sid !== socket.id) {
         const existingSocket = io.sockets.sockets.get(sid);
         const stale = conn.lastSeenAt && Date.now() - conn.lastSeenAt > STALE_CONNECTION_MS;
+        if (recoverSession) {
+          conn.disconnected = true;
+          conn.disconnectedAt = conn.disconnectedAt || Date.now();
+          existingSocket?.disconnect(true);
+          recoveredConn = recoverDisconnectedConnection(sid, socket, conn, trimmed, io);
+          break;
+        }
         if (!existingSocket || !existingSocket.connected || stale) {
-          if (recoverSession && stale) {
-            conn.disconnected = true;
-            conn.disconnectedAt = conn.disconnectedAt || Date.now();
-            existingSocket?.disconnect(true);
-            recoveredConn = recoverDisconnectedConnection(sid, socket, conn, trimmed, io);
-            break;
-          }
           if (conn.disconnected && conn.disconnectedAt && Date.now() - conn.disconnectedAt <= RECONNECT_GRACE_MS) {
-            if (recoverSession) {
-              recoveredConn = recoverDisconnectedConnection(sid, socket, conn, trimmed, io);
-              break;
-            }
             clearSupersededLogin(sid, io, existingSocket);
             continue;
           }
