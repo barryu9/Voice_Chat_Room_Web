@@ -81,21 +81,28 @@ function handleProducerEvents(socket, io) {
     const room = getRoom(conn.currentRoom);
     if (!room) return;
 
-    const wasLastProducer = room.getProducersForUser(socket.id).length === 1;
-
-    const info = room.removeProducer(producerId);
-    if (info?.instance) {
-      try { info.instance.close(); } catch (e) { /* ignore */ }
+    const producers = room.getProducersForUser(socket.id);
+    const requested = producerId ? room.getProducer(producerId) : null;
+    if (requested && requested.socketId === socket.id && !producers.some((p) => p.producerId === producerId)) {
+      producers.push({ producerId, ...requested });
     }
-    room.removeConsumersForProducer(producerId);
-    socket.to(conn.currentRoom).emit(EVENTS.SERVER.PRODUCER_CLOSED, {
-      producerId,
-      userId: conn.userId,
-      deviceId: conn.deviceId,
-      reason: 'leave',
-    });
+    const hadProducers = producers.length > 0;
 
-    if (wasLastProducer) {
+    for (const p of producers) {
+      const info = room.removeProducer(p.producerId);
+      if (info?.instance) {
+        try { info.instance.close(); } catch (e) { /* ignore */ }
+      }
+      room.removeConsumersForProducer(p.producerId);
+      socket.to(conn.currentRoom).emit(EVENTS.SERVER.PRODUCER_CLOSED, {
+        producerId: p.producerId,
+        userId: conn.userId,
+        deviceId: conn.deviceId,
+        reason: 'leave',
+      });
+    }
+
+    if (hadProducers) {
       room.broadcast(conn.currentRoom, EVENTS.SERVER.USER_LEFT, {
         userId: conn.userId,
         deviceId: conn.deviceId,

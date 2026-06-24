@@ -5,7 +5,7 @@ import { useMediaStore } from '../../stores/mediaStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
-import { playSound } from '../../services/soundService';
+import { playSound, setSoundSinkId } from '../../services/soundService';
 import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, resumeAudioContext, setLocalAutoGainEnabled, setNoiseGateBackgroundBypass, togglePeakLimiter, toggleVocalEnhancer } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
 import { startRecording, stopRecording, getRecordedBuffer, playTest, destroyPreview } from '../../services/previewService';
@@ -233,6 +233,8 @@ export const RoomPanel: React.FC = () => {
   const handleVoiceDisconnect = useCallback(() => {
     if (connectionState !== 'connected') return;
     useMediaStore.getState().clearVoiceReconnect();
+    setCallSessionActive(false);
+    setDuration(0);
     stopProduce();
     cleanup();
     setVoiceConnected(false);
@@ -372,7 +374,10 @@ export const RoomPanel: React.FC = () => {
   const handleOutputChange = useCallback(async (deviceId: string) => {
     setSelectedOutput(deviceId);
     try {
-      await setAllSinkIds(deviceId);
+      await Promise.all([
+        setAllSinkIds(deviceId),
+        setSoundSinkId(deviceId),
+      ]);
     } catch (e) {
       console.warn('[RoomPanel] setSinkId failed:', e);
     }
@@ -741,7 +746,7 @@ export const RoomPanel: React.FC = () => {
               disabled={connecting || isConnectionRestoring}
               className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
-              {connecting || isConnectionRestoring ? '重连中' : '加入语音'}
+              {connecting || isConnectionRestoring ? '正在连接' : '加入语音'}
             </button>
           )}
         </div>

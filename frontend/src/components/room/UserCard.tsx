@@ -129,7 +129,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
       {/* Name + Badge */}
       <div className="text-center">
         {isReconnecting && (
-          <p className="text-[10px] text-yellow-400 mb-0.5">重连中</p>
+          <p className="text-[10px] text-yellow-400 mb-0.5">正在连接</p>
         )}
         {isMuted && (
           <p className="text-[10px] text-red-400 mb-0.5">已被你静音</p>
