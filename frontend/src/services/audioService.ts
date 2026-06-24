@@ -31,10 +31,10 @@ let lastAutoGainUpdate = 0;
 let gateOpen = false;
 let gateCloseAt = 0;
 let noiseGateBackgroundBypass = false;
-const AUTO_GAIN_TARGET_DB = -30;
+const AUTO_GAIN_TARGET_DB = -34;
 const AUTO_GAIN_MIN = 0.75;
-const AUTO_GAIN_MAX = 3;
-const AUTO_GAIN_STEP = 0.008;
+const AUTO_GAIN_MAX = 2.2;
+const AUTO_GAIN_STEP = 0.005;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const NOISE_GATE_HYSTERESIS_DB = 6;
 const NOISE_GATE_HOLD_SECONDS = 0.35;
@@ -303,11 +303,11 @@ export function setLocalAutoGainEnabled(enabled: boolean) {
 
 function configurePeakLimiter() {
   if (!peakLimiterNode) return;
-  peakLimiterNode.threshold.value = -3;
-  peakLimiterNode.knee.value = 0;
-  peakLimiterNode.ratio.value = 20;
-  peakLimiterNode.attack.value = 0.003;
-  peakLimiterNode.release.value = 0.08;
+  peakLimiterNode.threshold.value = -1;
+  peakLimiterNode.knee.value = 10;
+  peakLimiterNode.ratio.value = 8;
+  peakLimiterNode.attack.value = 0.006;
+  peakLimiterNode.release.value = 0.16;
 }
 
 function isPeakLimiterActive() {
