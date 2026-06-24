@@ -6,7 +6,7 @@ import { useAdminStore } from '../../stores/adminStore';
 import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
 import { playSound } from '../../services/soundService';
-import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, setLocalAutoGainEnabled, togglePeakLimiter, toggleVocalEnhancer } from '../../services/audioService';
+import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, resumeAudioContext, setLocalAutoGainEnabled, setNoiseGateBackgroundBypass, togglePeakLimiter, toggleVocalEnhancer } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
 import { startRecording, stopRecording, getRecordedBuffer, playTest, destroyPreview } from '../../services/previewService';
 import { VOICE_PRESETS } from '../../utils/voicePresets';
@@ -73,6 +73,11 @@ export const RoomPanel: React.FC = () => {
   const voiceReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceReconnectInFlightRef = useRef(false);
   const voiceReconnectAttemptsRef = useRef(0);
+  const backgroundSinceRef = useRef<number | null>(null);
+  const micRecoveryInFlightRef = useRef(false);
+  const lastMicRecoveryAtRef = useRef(0);
+  const lastMicRefreshAtRef = useRef(0);
+  const micWatchdogTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -80,6 +85,10 @@ export const RoomPanel: React.FC = () => {
       if (voiceReconnectTimerRef.current) {
         clearTimeout(voiceReconnectTimerRef.current);
         voiceReconnectTimerRef.current = null;
+      }
+      if (micWatchdogTimerRef.current) {
+        clearInterval(micWatchdogTimerRef.current);
+        micWatchdogTimerRef.current = null;
       }
     };
   }, []);
@@ -259,6 +268,95 @@ export const RoomPanel: React.FC = () => {
       console.warn('[RoomPanel] device switch failed:', e);
     }
   }, [setSelectedInput, getStream, switchStream, replaceTrack]);
+
+  const recoverMicInput = useCallback(async (forceRefresh = false) => {
+    if (!isVoiceConnected || connectionState !== 'connected') return;
+    if (micRecoveryInFlightRef.current) return;
+
+    const now = Date.now();
+    if (!forceRefresh && now - lastMicRecoveryAtRef.current < 3000) return;
+
+    micRecoveryInFlightRef.current = true;
+    lastMicRecoveryAtRef.current = now;
+
+    try {
+      await resumeAudioContext();
+      reconnectAudioGraph();
+
+      const producerTrack = useMediaStore.getState().producer?.track as MediaStreamTrack | undefined;
+      const trackLooksStale = !producerTrack || producerTrack.readyState !== 'live' || producerTrack.muted;
+      const hiddenTooLong = backgroundSinceRef.current != null && now - backgroundSinceRef.current >= 30000;
+      const refreshDue = now - lastMicRefreshAtRef.current >= 30000;
+      const shouldRefreshTrack = forceRefresh || trackLooksStale || (hiddenTooLong && refreshDue);
+
+      if (shouldRefreshTrack) {
+        const stream = await getStream(selectedInput || undefined);
+        const processedTrack = await switchStream(stream);
+        if (processedTrack) {
+          await replaceTrack(processedTrack);
+          lastMicRefreshAtRef.current = now;
+        }
+      }
+    } catch (e) {
+      console.warn('[RoomPanel] mic background watchdog failed:', e);
+    } finally {
+      micRecoveryInFlightRef.current = false;
+    }
+  }, [
+    connectionState,
+    getStream,
+    isVoiceConnected,
+    replaceTrack,
+    selectedInput,
+    switchStream,
+  ]);
+
+  useEffect(() => {
+    if (micWatchdogTimerRef.current) {
+      clearInterval(micWatchdogTimerRef.current);
+      micWatchdogTimerRef.current = null;
+    }
+
+    if (isVoiceConnected && connectionState === 'connected') {
+      micWatchdogTimerRef.current = setInterval(() => {
+        recoverMicInput();
+      }, 2000);
+      if (document.visibilityState === 'hidden') {
+        backgroundSinceRef.current = Date.now();
+        setNoiseGateBackgroundBypass(true);
+        recoverMicInput();
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        backgroundSinceRef.current = Date.now();
+        setNoiseGateBackgroundBypass(true);
+        recoverMicInput();
+        return;
+      }
+      backgroundSinceRef.current = null;
+      setNoiseGateBackgroundBypass(false);
+      recoverMicInput(true);
+    };
+
+    const handleFocus = () => recoverMicInput(true);
+    const handlePageShow = () => recoverMicInput(true);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      if (micWatchdogTimerRef.current) {
+        clearInterval(micWatchdogTimerRef.current);
+        micWatchdogTimerRef.current = null;
+      }
+      setNoiseGateBackgroundBypass(false);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [connectionState, isVoiceConnected, recoverMicInput]);
 
   const handleMicToggle = useCallback(() => {
     if (amIServerMuted) {

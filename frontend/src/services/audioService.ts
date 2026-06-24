@@ -30,6 +30,7 @@ let autoGainValue = 1;
 let lastAutoGainUpdate = 0;
 let gateOpen = false;
 let gateCloseAt = 0;
+let noiseGateBackgroundBypass = false;
 const AUTO_GAIN_TARGET_DB = -30;
 const AUTO_GAIN_MIN = 0.75;
 const AUTO_GAIN_MAX = 3;
@@ -225,6 +226,13 @@ export function updateNoiseGate(level: number, threshold: number) {
   noiseGateThreshold = threshold;
   updateAutoGain(level, threshold);
   const now = gateGainNode.context.currentTime;
+
+  if (noiseGateBackgroundBypass) {
+    gateGainNode.gain.cancelScheduledValues(now);
+    gateGainNode.gain.setTargetAtTime(micMuted ? 0 : 1.0, now, 0.02);
+    return;
+  }
+
   const openThreshold = threshold;
   const closeThreshold = threshold - NOISE_GATE_HYSTERESIS_DB;
 
@@ -258,12 +266,27 @@ export function setMicMute(muted: boolean) {
   if (gateGainNode) {
     const now = gateGainNode.context.currentTime;
     gateGainNode.gain.cancelScheduledValues(now);
-    gateGainNode.gain.setTargetAtTime(muted ? 0 : (gateOpen ? 1.0 : NOISE_GATE_CLOSED_GAIN), now, 0.02);
+    gateGainNode.gain.setTargetAtTime(muted ? 0 : (noiseGateBackgroundBypass || gateOpen ? 1.0 : NOISE_GATE_CLOSED_GAIN), now, 0.02);
   }
 }
 
 export function setNoiseGateThreshold(db: number) {
   noiseGateThreshold = db;
+}
+
+export function setNoiseGateBackgroundBypass(enabled: boolean) {
+  noiseGateBackgroundBypass = enabled;
+  if (!gateGainNode) return;
+
+  const now = gateGainNode.context.currentTime;
+  if (enabled) {
+    gateOpen = true;
+    gateCloseAt = now + NOISE_GATE_HOLD_SECONDS;
+  }
+
+  const target = micMuted ? 0 : enabled || gateOpen ? 1.0 : NOISE_GATE_CLOSED_GAIN;
+  gateGainNode.gain.cancelScheduledValues(now);
+  gateGainNode.gain.setTargetAtTime(target, now, enabled ? 0.02 : 0.08);
 }
 
 export function setLocalAutoGainEnabled(enabled: boolean) {
