@@ -62,6 +62,7 @@ export const RoomPanel: React.FC = () => {
 
   const [connecting, setConnecting] = useState(false);
   const [duration, setDuration] = useState(0);
+  const [callSessionActive, setCallSessionActive] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -160,6 +161,7 @@ export const RoomPanel: React.FC = () => {
       await startProduce();
       await startConsume();
       setVoiceConnected(true);
+      setCallSessionActive(true);
       useMediaStore.getState().clearVoiceReconnect();
       playSound('connected');
       showToast('已加入语音', 'success');
@@ -232,6 +234,8 @@ export const RoomPanel: React.FC = () => {
   const handleLeaveRoom = useCallback(() => {
     if (connectionState !== 'connected') return;
     useMediaStore.getState().clearVoiceReconnect();
+    setCallSessionActive(false);
+    setDuration(0);
     if (isVoiceConnected) {
       stopProduce();
       cleanup();
@@ -465,14 +469,14 @@ export const RoomPanel: React.FC = () => {
   }, [setMasterVolume]);
 
   useEffect(() => {
-    if (isVoiceConnected) {
-      durationRef.current = window.setInterval(() => setDuration((d) => d + 1), 1000);
-    } else {
-      clearInterval(durationRef.current);
+    clearInterval(durationRef.current);
+    if (!callSessionActive) {
       setDuration(0);
+      return;
     }
+    durationRef.current = window.setInterval(() => setDuration((d) => d + 1), 1000);
     return () => clearInterval(durationRef.current);
-  }, [isVoiceConnected]);
+  }, [callSessionActive]);
 
   const fmt = (d: number) => {
     const m = Math.floor(d / 60).toString().padStart(2, '0');
@@ -621,17 +625,18 @@ export const RoomPanel: React.FC = () => {
 
           <div className="flex-1" />
 
+          {callSessionActive && (
+            <span className="text-sm text-gray-400 font-mono tabular-nums">{fmt(duration)}</span>
+          )}
+
           {isVoiceConnected ? (
-            <>
-              <span className="text-sm text-gray-400 font-mono tabular-nums">{fmt(duration)}</span>
-              <button
-                onClick={handleVoiceDisconnect}
-                disabled={isConnectionRestoring}
-                className="semantic-red-button disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
-              >
-                断开语音
-              </button>
-            </>
+            <button
+              onClick={handleVoiceDisconnect}
+              disabled={isConnectionRestoring}
+              className="semantic-red-button disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
+            >
+              断开语音
+            </button>
           ) : (
             <button
               onClick={handleVoiceConnect}
