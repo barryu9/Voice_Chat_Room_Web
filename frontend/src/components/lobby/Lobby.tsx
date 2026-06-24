@@ -14,6 +14,7 @@ import { Announcement } from '../common/Announcement';
 import { showToast } from '../common/Toast';
 import { TechBackground } from '../common/TechBackground';
 import { SettingsPanel } from '../common/SettingsPanel';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 import { ChannelPasswordModal } from './ChannelPasswordModal';
 import { CreateUserChannelModal } from './CreateUserChannelModal';
 import { EditUserChannelModal } from './EditUserChannelModal';
@@ -36,6 +37,7 @@ export const Lobby: React.FC = () => {
   const showAdmin = useAdminStore((s) => s.isAdmin);
   const adminConfig = useAdminStore((s) => s.config);
   const setShowPanel = useAdminStore((s) => s.setShowPanel);
+  const { isSupported, isInstalled, installApp } = useInstallPrompt();
   const allowedBitrates = adminConfig.userChannelAllowedBitrates.split(',').filter(Boolean).map(Number);
   const showAdminEntry = new URLSearchParams(window.location.search).has('admin');
   const [editingNickname, setEditingNickname] = useState(false);
@@ -207,6 +209,17 @@ export const Lobby: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <SettingsPanel />
+            {isSupported && !isInstalled && (
+              <button
+                onClick={() => { installApp(); }}
+                title="安装到桌面"
+                className="p-3 sm:p-2 rounded-lg transition-all bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={handleLogout}
               title="退出登录"
