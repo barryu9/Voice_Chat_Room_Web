@@ -15,6 +15,13 @@ function clearReconnectTimer(conn) {
   }
 }
 
+function clearReconnectNotifyTimer(conn) {
+  if (conn?.reconnectNotifyTimer) {
+    clearTimeout(conn.reconnectNotifyTimer);
+    conn.reconnectNotifyTimer = null;
+  }
+}
+
 function buildReconnectUser(conn, socketId) {
   return {
     socketId,
@@ -117,6 +124,7 @@ function endConnection(sid, io, reason) {
   if (!conn) return;
 
   clearReconnectTimer(conn);
+  clearReconnectNotifyTimer(conn);
   cleanupConnectionResources(sid, conn, io, reason);
 
   const { removeAdmin } = require('../../services/adminService');
@@ -138,6 +146,7 @@ function finalizeDisconnectedConnection(sid, io) {
 
 function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
   clearReconnectTimer(conn);
+  clearReconnectNotifyTimer(conn);
   const recoveredRoom = conn.currentRoom;
   const disconnectedFor = conn.disconnectedAt ? Date.now() - conn.disconnectedAt : RECONNECT_GRACE_MS;
   let recoveredVoice = false;
@@ -184,6 +193,7 @@ function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
   conn.disconnected = false;
   conn.disconnectedAt = null;
   conn.reconnectTimer = null;
+  conn.reconnectNotifyTimer = null;
   conn.recoveredRoom = recoveredRoom;
   conn.recoveredVoice = recoveredVoice;
   conn.lastSeenAt = Date.now();
@@ -327,6 +337,7 @@ function handleConnection(socket, io) {
         disconnected: false,
         disconnectedAt: null,
         reconnectTimer: null,
+        reconnectNotifyTimer: null,
         reconnectNotified: false,
         recoveredRoom: null,
         recoveredVoice: false,
@@ -419,8 +430,14 @@ function handleConnection(socket, io) {
       }
       conn.disconnected = true;
       conn.disconnectedAt = Date.now();
-      notifyUserReconnecting(socket.id, conn);
       clearReconnectTimer(conn);
+      clearReconnectNotifyTimer(conn);
+      conn.reconnectNotifyTimer = setTimeout(() => {
+        const current = connections.get(socket.id);
+        if (!current || !current.disconnected) return;
+        current.reconnectNotifyTimer = null;
+        notifyUserReconnecting(socket.id, current);
+      }, FAST_RECONNECT_MS + 100);
       conn.reconnectTimer = setTimeout(() => {
         finalizeDisconnectedConnection(socket.id, io);
       }, RECONNECT_GRACE_MS);
