@@ -638,7 +638,7 @@ export const RoomPanel: React.FC = () => {
               disabled={connecting || isConnectionRestoring}
               className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
-              {connecting ? '连接中...' : '加入语音'}
+              {connecting || isConnectionRestoring ? '重连中' : '加入语音'}
             </button>
           )}
         </div>

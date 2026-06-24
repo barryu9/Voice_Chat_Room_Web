@@ -189,6 +189,7 @@ function registerListeners() {
       socket?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: roomToRestore });
     }
     if (socketReconnectWarningShown && roomToRestore && (!data.recoveredVoice || isVoiceConnected)) {
+      useRoomStore.getState().setNotification('重新连接成功');
       playSound('connected');
     }
     socketReconnectWarningShown = false;
