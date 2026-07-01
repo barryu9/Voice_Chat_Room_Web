@@ -13,6 +13,7 @@ import { VOICE_PRESETS } from '../../utils/voicePresets';
 import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
+import { useWakeLock } from '../../hooks/useWakeLock';
 import { UserGrid } from './UserGrid';
 import { AudioControls } from '../audio/AudioControls';
 import { showToast } from '../common/Toast';
@@ -57,6 +58,7 @@ export const RoomPanel: React.FC = () => {
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
   const { gain, muted, threshold, audioLevel, toggleMute, forceMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
+  useWakeLock(isVoiceConnected);
   const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
 
   const [connecting, setConnecting] = useState(false);
