@@ -5,14 +5,35 @@ import { useMediaStore } from '../stores/mediaStore';
 import { useUserStore } from '../stores/userStore';
 import { handleLocalVoiceSessionLost } from './voiceSessionService';
 
+const JOIN_TIMEOUT_MS = 15000;
+
+function timeoutPromise<T>(ms: number, label: string): Promise<T> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`${label} 超时，请检查网络连接或浏览器权限`)), ms);
+  });
+}
+
 export async function getRtpCapabilities(): Promise<any> {
   const socket = getSocket();
   if (!socket) throw new Error('Socket not connected');
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (result: any) => {
+      if (settled) return;
+      settled = true;
+      if (result?.error) {
+        reject(new Error(`获取 RTP 能力失败: ${result.error}`));
+      } else {
+        resolve(result);
+      }
+    };
+
     socket.emit(EVENTS.CLIENT.RTP_GET_CAPABILITIES, {}, (rtpCapabilities: any) => {
-      resolve(rtpCapabilities);
+      done(rtpCapabilities);
     });
+
+    setTimeout(() => done({ error: 'RTP 能力获取超时' }), JOIN_TIMEOUT_MS);
   });
 }
 
@@ -21,16 +42,43 @@ async function createTransport(direction: 'producer' | 'consumer'): Promise<any>
   const roomId = useUserStore.getState().currentRoom;
   if (!socket || !roomId) throw new Error('Not in room');
 
-  return new Promise((resolve) => {
-    socket.emit(EVENTS.CLIENT.TRANSPORT_CREATE, { roomId, direction });
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      socket.off(EVENTS.SERVER.TRANSPORT_CREATED, onCreated);
+      socket.off(EVENTS.SERVER.ERROR, onError);
+    };
 
     const onCreated = (data: any) => {
-      if (data.direction === direction) {
-        socket.off(EVENTS.SERVER.TRANSPORT_CREATED, onCreated);
-        resolve(data);
-      }
+      if (data.direction !== direction) return;
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(data);
     };
+
+    const onError = (data: any) => {
+      if (data.event !== EVENTS.CLIENT.TRANSPORT_CREATE) return;
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(data.message || 'Transport 创建失败'));
+    };
+
     socket.on(EVENTS.SERVER.TRANSPORT_CREATED, onCreated);
+    socket.on(EVENTS.SERVER.ERROR, onError);
+
+    timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(`${direction === 'producer' ? '发送' : '接收'}通道创建超时，请检查网络连接`));
+    }, JOIN_TIMEOUT_MS);
+
+    socket.emit(EVENTS.CLIENT.TRANSPORT_CREATE, { roomId, direction });
   });
 }
 
@@ -132,25 +180,57 @@ export async function consumeProducer(
   const roomId = useUserStore.getState().currentRoom;
   if (!socket || !roomId) return null;
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      socket.off(EVENTS.SERVER.CONSUMER_CREATED, onCreated);
+      socket.off(EVENTS.SERVER.ERROR, onError);
+    };
+
+    const onCreated = async (data: any) => {
+      if (data.producerId !== producerId) return;
+      if (settled) return;
+      settled = true;
+      cleanup();
+      try {
+        const consumer = await transport.consume({
+          id: data.consumerId,
+          producerId: data.producerId,
+          kind: data.kind,
+          rtpParameters: data.rtpParameters,
+        });
+        resolve(consumer);
+      } catch (e) {
+        resolve(null);
+      }
+    };
+
+    const onError = (data: any) => {
+      if (data.event !== EVENTS.CLIENT.CONSUMER_CREATE) return;
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(null);
+    };
+
+    socket.on(EVENTS.SERVER.CONSUMER_CREATED, onCreated);
+    socket.on(EVENTS.SERVER.ERROR, onError);
+
+    timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(null);
+    }, JOIN_TIMEOUT_MS);
+
     socket.emit(EVENTS.CLIENT.CONSUMER_CREATE, {
       transportId: transport.id,
       producerId,
       rtpCapabilities: device.rtpCapabilities,
     });
-
-    const onCreated = async (data: any) => {
-      if (data.producerId !== producerId) return;
-      socket.off(EVENTS.SERVER.CONSUMER_CREATED, onCreated);
-      const consumer = await transport.consume({
-        id: data.consumerId,
-        producerId: data.producerId,
-        kind: data.kind,
-        rtpParameters: data.rtpParameters,
-      });
-      resolve(consumer);
-    };
-    socket.on(EVENTS.SERVER.CONSUMER_CREATED, onCreated);
   });
 }
 

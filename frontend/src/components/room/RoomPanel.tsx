@@ -283,7 +283,6 @@ export const RoomPanel: React.FC = () => {
 
     try {
       await resumeAudioContext();
-      reconnectAudioGraph();
 
       const producerTrack = useMediaStore.getState().producer?.track as MediaStreamTrack | undefined;
       const trackLooksStale = !producerTrack || producerTrack.readyState !== 'live' || producerTrack.muted;
@@ -292,6 +291,7 @@ export const RoomPanel: React.FC = () => {
       const shouldRefreshTrack = forceRefresh || trackLooksStale || (hiddenTooLong && refreshDue);
 
       if (shouldRefreshTrack) {
+        reconnectAudioGraph();
         const stream = await getStream(selectedInput || undefined);
         const processedTrack = await switchStream(stream);
         if (processedTrack) {
@@ -322,7 +322,7 @@ export const RoomPanel: React.FC = () => {
     if (isVoiceConnected && connectionState === 'connected') {
       micWatchdogTimerRef.current = setInterval(() => {
         recoverMicInput();
-      }, 2000);
+      }, 8000);
       if (document.visibilityState === 'hidden') {
         backgroundSinceRef.current = Date.now();
         setNoiseGateBackgroundBypass(true);

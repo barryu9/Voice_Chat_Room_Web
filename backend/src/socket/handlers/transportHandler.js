@@ -11,10 +11,20 @@ function handleTransportEvents(socket) {
 
   socket.on(EVENTS.CLIENT.RTP_GET_CAPABILITIES, (_, cb) => {
     const conn = getConnection(socket.id);
-    if (!conn || !conn.currentRoom) return;
+    if (!conn || !conn.currentRoom) {
+      const err = { error: 'Not in a room' };
+      socket.emit(EVENTS.SERVER.RTP_CAPABILITIES, err);
+      if (typeof cb === 'function') cb(err);
+      return;
+    }
 
     const room = getRoom(conn.currentRoom);
-    if (!room) return;
+    if (!room) {
+      const err = { error: 'Room not found' };
+      socket.emit(EVENTS.SERVER.RTP_CAPABILITIES, err);
+      if (typeof cb === 'function') cb(err);
+      return;
+    }
 
     const rtpCapabilities = room.router.rtpCapabilities;
     socket.emit(EVENTS.SERVER.RTP_CAPABILITIES, { rtpCapabilities });

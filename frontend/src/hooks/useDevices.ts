@@ -22,22 +22,38 @@ export function getAudioInputConstraints(deviceId?: string, options: StreamOptio
   };
 }
 
+const MIC_TIMEOUT_MS = 20000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function getUserAudioStream(deviceId?: string, options: StreamOptions = {}): Promise<MediaStream> {
   const requestedEchoCancellation = options.echoCancellation ?? useMediaStore.getState().echoCancellationEnabled;
+
+  async function tryGetUserMedia(echoCancel: boolean): Promise<MediaStream> {
+    return withTimeout(
+      navigator.mediaDevices.getUserMedia({
+        audio: getAudioInputConstraints(deviceId, { ...options, echoCancellation: echoCancel }),
+        video: false,
+      }),
+      MIC_TIMEOUT_MS,
+      '麦克风权限请求超时，请检查浏览器是否已授权麦克风访问',
+    );
+  }
+
   try {
-    return await navigator.mediaDevices.getUserMedia({
-      audio: getAudioInputConstraints(deviceId, options),
-      video: false,
-    });
+    return await tryGetUserMedia(requestedEchoCancellation);
   } catch (error) {
     const name = (error as { name?: string }).name;
     const constraint = (error as { constraint?: string }).constraint;
     if (requestedEchoCancellation && name === 'OverconstrainedError' && (!constraint || constraint === 'echoCancellation')) {
       console.warn('[Devices] echoCancellation constraint unsupported, retrying without it:', error);
-      return navigator.mediaDevices.getUserMedia({
-        audio: getAudioInputConstraints(deviceId, { ...options, echoCancellation: false }),
-        video: false,
-      });
+      return tryGetUserMedia(false);
     }
     throw error;
   }

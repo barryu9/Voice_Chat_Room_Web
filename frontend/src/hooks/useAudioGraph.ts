@@ -5,7 +5,6 @@ import {
   initAudioContext, resumeAudioContext, setupLocalAudioGraph, setMicGain,
   setMicMute, setNoiseGateThreshold, getAudioLevel, cleanupLocalAudio,
   updateNoiseGate, getProcessedStream, toggleVoiceChanger,
-  reconnectAudioGraph,
 } from '../services/audioService';
 import { initVoiceChanger, destroyVoiceChanger } from '../services/voiceChangerService';
 
@@ -79,7 +78,6 @@ export function useAudioGraph() {
     const recoverAudio = async () => {
       try {
         await resumeAudioContext();
-        reconnectAudioGraph();
       } catch (e) {
         console.warn('[AudioGraph] audio context recovery failed:', e);
       }

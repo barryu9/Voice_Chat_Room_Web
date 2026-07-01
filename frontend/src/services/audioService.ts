@@ -33,11 +33,12 @@ let noiseGateBackgroundBypass = false;
 const AUTO_GAIN_TARGET_DB = -30;
 const AUTO_GAIN_MIN = 0.6;
 const AUTO_GAIN_MAX = 3;
-const AUTO_GAIN_STEP = 0.005;
+const AUTO_GAIN_STEP = 0.04;
 const AUTO_GAIN_UPDATE_INTERVAL = 0.05;
 const NOISE_GATE_HYSTERESIS_DB = 6;
 const NOISE_GATE_HOLD_SECONDS = 0.35;
 const NOISE_GATE_CLOSED_GAIN = 0.03;
+const NOISE_GATE_CLOSED_GAIN_SOFT = 0.2;
 const remoteAudioElements: Map<string, HTMLAudioElement> = new Map();
 let processedDestination: MediaStreamAudioDestinationNode | null = null;
 let rnnoiseConnected = false;
@@ -230,7 +231,13 @@ export function updateNoiseGate(level: number, threshold: number) {
     gateOpen = false;
   }
 
-  const target = micMuted ? 0 : gateOpen ? 1.0 : NOISE_GATE_CLOSED_GAIN;
+  // When AGC is enabled, use a softer closed gain to prevent the AGC-gate
+  // deadlock where AGC-reduced signal drops below the gate threshold and
+  // the gate closes to -30dB, starving the AGC of signal to recover from.
+  const agcActive = useMediaStore.getState().autoGainControlEnabled;
+  const closedGain = agcActive ? NOISE_GATE_CLOSED_GAIN_SOFT : NOISE_GATE_CLOSED_GAIN;
+
+  const target = micMuted ? 0 : gateOpen ? 1.0 : closedGain;
   gateGainNode.gain.cancelScheduledValues(now);
   const timeConstant = target > gateGainNode.gain.value ? 0.01 : 0.2;
   gateGainNode.gain.setTargetAtTime(target, now, timeConstant);
