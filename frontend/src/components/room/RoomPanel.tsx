@@ -5,7 +5,7 @@ import { useMediaStore } from '../../stores/mediaStore';
 import { useAdminStore } from '../../stores/adminStore';
 import { useVoiceChangerStore } from '../../stores/voiceChangerStore';
 import { getSocket } from '../../services/socketService';
-import { playSound, setSoundSinkId } from '../../services/soundService';
+import { playSound } from '../../services/soundService';
 import { toggleNoiseSuppressor, setAllSinkIds, muteAllRemotes, unmuteAllRemotes, applyMasterVolume, reconnectAudioGraph, resumeAudioContext, setLocalAutoGainEnabled, setNoiseGateBackgroundBypass, toggleVocalEnhancer } from '../../services/audioService';
 import { initVoiceChanger, switchPreset } from '../../services/voiceChangerService';
 import { startRecording, stopRecording, getRecordedBuffer, playTest, destroyPreview } from '../../services/previewService';
@@ -374,10 +374,7 @@ export const RoomPanel: React.FC = () => {
   const handleOutputChange = useCallback(async (deviceId: string) => {
     setSelectedOutput(deviceId);
     try {
-      await Promise.all([
-        setAllSinkIds(deviceId),
-        setSoundSinkId(deviceId),
-      ]);
+      await setAllSinkIds(deviceId);
     } catch (e) {
       console.warn('[RoomPanel] setSinkId failed:', e);
     }
