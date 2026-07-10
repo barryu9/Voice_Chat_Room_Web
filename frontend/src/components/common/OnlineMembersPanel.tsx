@@ -76,8 +76,8 @@ export const OnlineMembersPanel: React.FC = () => {
 
   return (
     <>
-      <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className="glass-panel fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 items-center gap-1.5 rounded-r-xl border-l-0 px-3 py-3 text-xs text-gray-400 transition-colors hover:text-primary-300 lg:flex" title={sidebarOpen ? '折叠在线成员侧边栏' : '展开在线成员侧边栏'}>
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarOpen ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} /></svg><span>在线成员</span>
+      <button type="button" onClick={() => setSidebarOpen(!sidebarOpen)} className={`glass-panel fixed top-1/2 z-30 hidden h-12 w-9 -translate-y-1/2 items-center justify-center rounded-full p-0 text-gray-400 shadow-lg transition-all duration-200 hover:scale-105 hover:text-primary-300 lg:flex ${sidebarOpen ? 'left-[15rem]' : 'left-3'}`} title={sidebarOpen ? '收起在线成员' : '展开在线成员'}>
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarOpen ? 'M15 19l-7-7 7-7' : 'M9 5l7 7-7 7'} /></svg>
       </button>
       <aside className={`fixed bottom-0 left-0 top-0 z-20 hidden w-64 flex-col border-r border-[var(--border)] bg-[var(--bg-panel)] p-4 shadow-2xl backdrop-blur-xl transition-transform duration-200 lg:flex ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} aria-label="在线成员">
         <div className="mb-2 flex items-center justify-between">
@@ -104,9 +104,9 @@ export const OnlineMembersPanel: React.FC = () => {
         </div>
       </aside>
 
-      <button type="button" onClick={() => setMobileOpen(true)} className="glass-card fixed left-3 top-3 z-30 flex h-9 items-center gap-1 px-2 text-xs text-gray-400 lg:hidden" aria-label="查看在线成员">
+      <button type="button" onClick={() => setMobileOpen(true)} className="glass-panel fixed bottom-24 left-3 z-30 flex h-10 w-10 items-center justify-center rounded-full text-gray-400 shadow-lg transition-all hover:scale-105 hover:text-primary-300 lg:hidden" aria-label="查看在线成员" title="在线成员">
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0" /></svg>
-        {orderedUsers.length}
+        <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-primary-500 px-1 text-center text-[9px] leading-4 text-white">{orderedUsers.length}</span>
       </button>
       {mobileOpen && <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
         <aside className="absolute bottom-0 left-0 top-0 w-72 border-r border-[var(--border)] bg-[var(--bg-panel)] p-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-left-2" onClick={(event) => event.stopPropagation()} aria-label="在线成员">
