@@ -104,8 +104,8 @@ export const OnlineMembersPanel: React.FC = () => {
         </div>
       </aside>
 
-      <button type="button" onClick={() => setMobileOpen(true)} className="glass-panel fixed bottom-24 left-3 z-30 flex h-10 w-10 items-center justify-center rounded-full text-gray-400 shadow-lg transition-all hover:scale-105 hover:text-primary-300 lg:hidden" aria-label="查看在线成员" title="在线成员">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0" /></svg>
+      <button type="button" onClick={() => setMobileOpen(true)} className="glass-panel fixed bottom-24 left-3 z-30 flex h-10 w-10 items-center justify-center overflow-visible rounded-full text-gray-400 shadow-lg transition-all hover:scale-105 hover:text-primary-300 lg:hidden" aria-label="查看在线成员" title="在线成员">
+        <svg className="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m12-10a4 4 0 100-8 4 4 0 000 8zm2 4h.01M6 11a4 4 0 100-8 4 4 0 000 8z" /></svg>
         <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-primary-500 px-1 text-center text-[9px] leading-4 text-white">{orderedUsers.length}</span>
       </button>
       {mobileOpen && <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
