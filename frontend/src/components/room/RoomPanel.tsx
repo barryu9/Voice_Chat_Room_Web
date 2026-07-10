@@ -93,6 +93,13 @@ export const RoomPanel: React.FC = () => {
   const lastMicRecoveryAtRef = useRef(0);
   const lastMicRefreshAtRef = useRef(0);
   const micWatchdogTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activityLogRef = useRef<HTMLDivElement | null>(null);
+  const activityAtBottomRef = useRef(true);
+
+  useEffect(() => {
+    const element = activityLogRef.current;
+    if (element && activityAtBottomRef.current) element.scrollTop = element.scrollHeight;
+  }, [activityLogs]);
 
   useEffect(() => {
     return () => {
@@ -820,10 +827,10 @@ export const RoomPanel: React.FC = () => {
               <p className="mt-0.5 text-xs text-gray-500">{channelOnlineUsers.length} 人在频道内 · {channelOnlineUsers.filter((user) => user.inVoice).length} 人正在语音</p>
             </div>
           </div>
-          <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {channelOnlineUsers.map((user) => {
               const isSelf = user.userId === myUserId;
-              return <div key={user.socketId} className={`glass-card flex items-center gap-2 px-3 py-2 ${isSelf ? 'border-primary-500/40' : ''}`}>
+              return <div key={user.socketId} className={`glass-card flex min-w-0 items-center gap-2 px-3 py-2 ${isSelf ? 'border-primary-500/40' : ''}`}>
                 <span className={`h-2 w-2 shrink-0 rounded-full ${user.inVoice ? 'bg-green-400' : 'bg-gray-500'}`} />
                 <span className="min-w-0 flex-1 truncate text-sm text-white">{user.nickname}{isSelf ? '（你）' : ''}</span>
                 {user.isAdmin && <span className="rounded bg-primary-500/20 px-1 py-0.5 text-[9px] text-primary-300">管理员</span>}
@@ -833,24 +840,45 @@ export const RoomPanel: React.FC = () => {
             })}
           </div>
           <UserGrid />
+          {isVoiceConnected && (
+            <div className="mt-4 flex items-center justify-between gap-3 border-t border-gray-700/40 pt-3">
+              <span className="shrink-0 text-xs text-gray-500">快速互动</span>
+              <div className="flex min-w-0 flex-wrap justify-end gap-1" aria-label="发送表情">
+                {['👍', '👏', '❤️', '😂', '🎉', '🤔', '👋', '🔥'].map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => getSocket()?.emit(EVENTS.CLIENT.EMOJI_SEND, { emoji })}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-base transition-all hover:bg-primary-500/15 hover:scale-110 active:scale-95"
+                    title={`发送 ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-
-        {isVoiceConnected && (
-          <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="发送表情">
-            {['👍', '👏', '❤️', '😂', '🎉', '🤔', '👋', '🔥'].map((emoji) => (
-              <button key={emoji} type="button" onClick={() => getSocket()?.emit(EVENTS.CLIENT.EMOJI_SEND, { emoji })} className="glass-card px-2 py-1 text-lg transition-transform hover:scale-110" title={`发送 ${emoji}`}>{emoji}</button>
-            ))}
-          </div>
-        )}
 
         <section className="glass-panel mt-4 p-3" aria-label="频道动态日志">
           <h3 className="mb-2 text-sm font-semibold text-white">频道动态</h3>
-          <div className="max-h-36 space-y-1 overflow-y-auto text-xs text-gray-500">
+          <div ref={activityLogRef} onScroll={(event) => { const node = event.currentTarget; activityAtBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 16; }} className="max-h-36 space-y-1 overflow-y-auto text-xs text-gray-500">
             {activityLogs.length === 0 ? <p>进入频道后将在这里显示动态</p> : activityLogs.map((log) => <p key={log.id}><span className="mr-2 text-gray-600">{new Date(log.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>{log.message}</p>)}
           </div>
         </section>
 
-        <div className="flex justify-center mt-4">
+        {isVoiceConnected && (
+          <div className="mt-4 flex justify-center">
+            <div className="glass-card flex items-center gap-3 px-3 py-1.5 text-[11px] text-gray-500" title="基于 WebRTC 发送统计的本地网络质量">
+              <span>发送质量：<span className="text-gray-300">{audioQuality.quality}</span></span>
+              <span>丢包 {audioQuality.loss.toFixed(1)}%</span>
+              <span>延迟 {Math.round(audioQuality.rtt)}ms</span>
+              <span>{Math.round(audioQuality.bitrate / 1000)}kbps</span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-center mt-3">
           <button
             onClick={() => {
               const url = `${window.location.origin}/?channel=${currentRoom}`;
@@ -868,17 +896,6 @@ export const RoomPanel: React.FC = () => {
             复制频道分享链接
           </button>
         </div>
-
-        {isVoiceConnected && (
-          <div className="mt-4 flex justify-center">
-            <div className="glass-card flex items-center gap-3 px-3 py-1.5 text-[11px] text-gray-500" title="基于 WebRTC 发送统计的本地网络质量">
-              <span>发送质量：<span className="text-gray-300">{audioQuality.quality}</span></span>
-              <span>丢包 {audioQuality.loss.toFixed(1)}%</span>
-              <span>延迟 {Math.round(audioQuality.rtt)}ms</span>
-              <span>{Math.round(audioQuality.bitrate / 1000)}kbps</span>
-            </div>
-          </div>
-        )}
 
         <footer className="mt-8 mb-20 text-center text-[11px] text-gray-500 sm:mb-2" aria-label="版本信息">
           {version || '2026.05.24.v1'}

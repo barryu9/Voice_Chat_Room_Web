@@ -1,4 +1,6 @@
 import { useMediaStore } from '../stores/mediaStore';
+import { useRoomStore } from '../stores/roomStore';
+import { useUserStore } from '../stores/userStore';
 
 let timer: ReturnType<typeof window.setInterval> | null = null;
 let appliedBitrate = 64000;
@@ -10,6 +12,7 @@ export function stopAudioQualityMonitor() {
 
 export function startAudioQualityMonitor(producer: any) {
   stopAudioQualityMonitor();
+  appliedBitrate = 0;
   const update = async () => {
     try {
       const stats: RTCStatsReport = await producer.getStats();
@@ -24,8 +27,12 @@ export function startAudioQualityMonitor(producer: any) {
       const lost = remoteInbound?.packetsLost || 0;
       const loss = packets ? (lost / (packets + lost)) * 100 : 0;
       const rtt = (remoteInbound?.roundTripTime || outbound.roundTripTime || 0) * 1000;
-      const target = loss > 8 || rtt > 450 ? 24000 : loss > 3 || rtt > 250 ? 40000 : 64000;
-      useMediaStore.getState().setAudioQuality({ loss, rtt, bitrate: target, quality: target === 64000 ? '良好' : target === 40000 ? '一般' : '较差' });
+      const currentRoom = useUserStore.getState().currentRoom;
+      const configuredKbps = useRoomStore.getState().channels.find((channel) => channel.roomId === currentRoom)?.audioBitrate ?? 64;
+      const ceiling = Math.max(24000, configuredKbps * 1000);
+      const target = loss > 8 || rtt > 450 ? Math.max(24000, Math.round(ceiling * 0.4)) : loss > 3 || rtt > 250 ? Math.max(32000, Math.round(ceiling * 0.65)) : ceiling;
+      const quality = target === ceiling ? '良好' : target >= ceiling * 0.6 ? '一般' : '较差';
+      useMediaStore.getState().setAudioQuality({ loss, rtt, bitrate: target, quality });
       if (target === appliedBitrate) return;
       const sender = producer.rtpSender as RTCRtpSender | undefined;
       if (!sender) return;
