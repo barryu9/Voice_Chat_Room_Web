@@ -26,6 +26,7 @@ import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { clearChannelUrlParam } from '../../utils/helpers';
+import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 
 const VoicePreviewModal = lazy(() => import('../audio/VoicePreviewModal').then((module) => ({ default: module.VoicePreviewModal })));
 const VoicePreflightModal = lazy(() => import('../audio/VoicePreflightModal').then((module) => ({ default: module.VoicePreflightModal })));
@@ -39,7 +40,6 @@ export const RoomPanel: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
   const notification = useRoomStore((s) => s.notification);
   const announcements = useRoomStore((s) => s.announcements);
-  const version = useRoomStore((s) => s.version);
   const peerLatencies = useRoomStore((s) => s.peerLatencies);
   const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
   const setVoiceConnected = useMediaStore((s) => s.setVoiceConnected);
@@ -67,6 +67,7 @@ export const RoomPanel: React.FC = () => {
   useWakeLock(isVoiceConnected);
   const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
   const { runChecks: runVoicePreflight, running: preflightRunning } = useVoicePreflight(selectedInput);
+  const { isSupported: installSupported, isInstalled, installApp } = useInstallPrompt();
 
   const [connecting, setConnecting] = useState(false);
   const [showPreflight, setShowPreflight] = useState(false);
@@ -659,6 +660,13 @@ export const RoomPanel: React.FC = () => {
                 </svg>
               </button>
             )}
+            <button onClick={() => {
+              const url = `${window.location.origin}/?channel=${currentRoom}`;
+              navigator.clipboard.writeText(url).then(() => showToast('复制频道分享链接成功', 'success')).catch(() => setShowShareModal(true));
+            }} title="分享频道" className="p-3 sm:p-2 rounded-lg bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-all">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342a3 3 0 010-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684m-5.367 12a3 3 0 105.368 2.684" /></svg>
+            </button>
+            {installSupported && !isInstalled && <button onClick={installApp} title="安装到桌面" className="p-3 sm:p-2 rounded-lg bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-all"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg></button>}
             <SettingsPanel />
             <button
               onClick={handleLeaveRoom}
@@ -734,6 +742,8 @@ export const RoomPanel: React.FC = () => {
             vcTransiting={vcTransiting}
           />
 
+          {isVoiceConnected && <div className="hidden sm:flex glass-card items-center gap-2 px-3 py-1.5 text-[11px] text-gray-500"><span>质量 <span className="text-gray-300">{audioQuality.quality}</span></span><span>{audioQuality.loss.toFixed(1)}%</span><span>{Math.round(audioQuality.rtt)}ms</span><span>{Math.round(audioQuality.bitrate / 1000)}kbps</span></div>}
+
           <div className="flex-1" />
 
           {callSessionActive && (
@@ -808,7 +818,7 @@ export const RoomPanel: React.FC = () => {
 
 
         {isVoiceConnected && (
-          <div className="mt-4 flex justify-center">
+          <div className="fixed bottom-[76px] left-1/2 z-30 -translate-x-1/2 sm:hidden">
             <div className="glass-card flex items-center gap-3 px-3 py-1.5 text-[11px] text-gray-500" title="基于 WebRTC 发送统计的本地网络质量">
               <span>发送质量：<span className="text-gray-300">{audioQuality.quality}</span></span>
               <span>丢包 {audioQuality.loss.toFixed(1)}%</span>
@@ -818,28 +828,6 @@ export const RoomPanel: React.FC = () => {
           </div>
         )}
 
-        <div className="flex justify-center mt-3">
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/?channel=${currentRoom}`;
-              navigator.clipboard.writeText(url).then(() => {
-                showToast('复制频道分享链接成功', 'success');
-              }).catch(() => {
-                setShowShareModal(true);
-              });
-            }}
-            className="text-sm text-gray-500 hover:text-gray-300 transition-colors inline-flex items-center gap-1"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            复制频道分享链接
-          </button>
-        </div>
-
-        <footer className="mt-8 mb-20 text-center text-[11px] text-gray-500 sm:mb-2" aria-label="版本信息">
-          {version || '2026.05.24.v1'}
-        </footer>
       </div>
 
       {showShareModal && (
