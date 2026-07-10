@@ -18,6 +18,8 @@ import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 import { ChannelPasswordModal } from './ChannelPasswordModal';
 import { CreateUserChannelModal } from './CreateUserChannelModal';
 import { EditUserChannelModal } from './EditUserChannelModal';
+import { ConfirmModal } from '../common/ConfirmModal';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 export const Lobby: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
@@ -47,6 +49,8 @@ export const Lobby: React.FC = () => {
   const [pwdError, setPwdError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editChannelRoomId, setEditChannelRoomId] = useState('');
+  const [deleteChannelRoomId, setDeleteChannelRoomId] = useState('');
+  const nicknameDialogRef = useModalDialog(() => setEditingNickname(false), editingNickname);
   const editChannel = channels.find(c => c.roomId === editChannelRoomId);
   const connectionState = useUserStore((s) => s.connectionState);
   const reconnectAttempt = useUserStore((s) => s.reconnectAttempt);
@@ -128,17 +132,17 @@ export const Lobby: React.FC = () => {
   };
 
   const handleDeleteChannel = (roomId: string) => {
-    if (window.confirm('确定要删除该频道吗？')) {
-      const socket = getSocket();
-      if (!socket) return;
-      socket.once('user:channel-deleted', () => {
-        showToast('频道已删除', 'success');
-      });
-      socket.once('user:channel-error', (data: any) => {
-        showToast(data.message || '删除失败', 'error');
-      });
-      socket.emit('user:channel-delete', { roomId });
-    }
+    setDeleteChannelRoomId(roomId);
+  };
+
+  const confirmDeleteChannel = () => {
+    const roomId = deleteChannelRoomId;
+    if (!roomId) return;
+    const socket = getSocket();
+    if (!socket) return;
+    socket.once('user:channel-deleted', () => { showToast('频道已删除', 'success'); setDeleteChannelRoomId(''); });
+    socket.once('user:channel-error', (data: any) => { showToast(data.message || '删除失败', 'error'); });
+    socket.emit('user:channel-delete', { roomId });
   };
 
   const handleLogout = () => {
@@ -177,7 +181,7 @@ export const Lobby: React.FC = () => {
   return (
     <div className="min-h-[100dvh] relative">
       <TechBackground />
-      <div className="max-w-5xl mx-auto px-4 py-8 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
         {connectionState !== 'connected' && (
           <div className={`mb-4 px-4 py-2 rounded-lg text-xs text-center ${
             connectionState === 'reconnecting' ? 'theme-notice' :
@@ -189,7 +193,7 @@ export const Lobby: React.FC = () => {
             {connectionState === 'failed' && '服务器连接失败，请刷新页面重试'}
           </div>
         )}
-        <header className="flex items-center justify-between mb-8">
+        <header className="flex items-start justify-between mb-6">
           <div>
             <h1 className="theme-brand-title text-3xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
               {siteName}
@@ -234,7 +238,7 @@ export const Lobby: React.FC = () => {
               <button
                 onClick={() => setShowPanel(true)}
                 title="管理面板"
-                className="p-3 sm:p-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-all"
+                className="p-3 sm:p-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg transition-all"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -304,9 +308,9 @@ export const Lobby: React.FC = () => {
       </div>
 
       {editingNickname && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-            <h3 className="text-lg font-semibold text-white mb-5">修改昵称</h3>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div ref={nicknameDialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-nickname-title" tabIndex={-1} className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
+            <h3 id="edit-nickname-title" className="text-lg font-semibold text-white mb-5">修改昵称</h3>
             <input
               value={newNickname}
               onChange={(e) => { setNewNickname(e.target.value); setEditError(''); }}
@@ -357,6 +361,7 @@ export const Lobby: React.FC = () => {
           voiceChangerGlobalEnabled={adminConfig.voiceChangerEnabled}
         />
       )}
+      {deleteChannelRoomId && <ConfirmModal title="删除频道" message="确定要删除该临时频道吗？频道内用户将被移出。" onCancel={() => setDeleteChannelRoomId('')} onConfirm={confirmDeleteChannel} />}
     </div>
   );
 };

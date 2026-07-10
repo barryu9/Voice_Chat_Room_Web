@@ -5,8 +5,11 @@ import { getSocket } from '../../services/socketService';
 import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
-import { DiagnosticsPanel } from './DiagnosticsPanel';
+import { ConfirmModal } from '../common/ConfirmModal';
 import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/constants';
+import { useModalDialog } from '../../hooks/useModalDialog';
+
+const DiagnosticsPanel = React.lazy(() => import('./DiagnosticsPanel').then((module) => ({ default: module.DiagnosticsPanel })));
 
 function saveSettingAck(key: string, value: any, successMsg: string) {
   const socket = getSocket();
@@ -334,7 +337,9 @@ export const AdminPanel: React.FC = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [createError, setCreateError] = useState('');
+  const createDialogRef = useModalDialog(() => { setShowCreate(false); setCreateError(''); }, showCreate);
   const [creating, setCreating] = useState(false);
+  const [deleteRoomId, setDeleteRoomId] = useState('');
   const [announcementText, setAnnouncementText] = useState('');
   const [siteNameText, setSiteNameText] = useState(siteName);
   const [versionText, setVersionText] = useState(useRoomStore((s) => s.version));
@@ -436,20 +441,25 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleDelete = (roomId: string) => {
-    if (window.confirm('确定要删除该频道吗？频道内的所有用户将被踢出。')) {
-      const socket = getSocket();
-      if (!socket) return;
-      const onSuccess = () => {
-        socket.off(EVENTS.SERVER.ERROR, onError);
-        showToast('频道已删除', 'success');
-      };
-      const onError = () => {
-        socket.off('admin:channel-deleted', onSuccess);
-      };
-      socket.once('admin:channel-deleted', onSuccess);
-      socket.once(EVENTS.SERVER.ERROR, onError);
-      socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
-    }
+    setDeleteRoomId(roomId);
+  };
+
+  const confirmDelete = () => {
+    const roomId = deleteRoomId;
+    if (!roomId) return;
+    const socket = getSocket();
+    if (!socket) return;
+    const onSuccess = () => {
+      socket.off(EVENTS.SERVER.ERROR, onError);
+      setDeleteRoomId('');
+      showToast('频道已删除', 'success');
+    };
+    const onError = () => {
+      socket.off('admin:channel-deleted', onSuccess);
+    };
+    socket.once('admin:channel-deleted', onSuccess);
+    socket.once(EVENTS.SERVER.ERROR, onError);
+    socket.emit(EVENTS.CLIENT.ADMIN_CHANNEL_DELETE, { roomId });
   };
 
   const handleDragStart = (index: number) => {
@@ -556,7 +566,7 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700/50 px-5 shrink-0">
+        <div className="flex overflow-x-auto border-b border-gray-700/50 px-5 shrink-0">
           {(['channels', 'announcement', 'bans', 'settings', 'userchannels', 'diagnostics'] as const).map((t) => (
             <button
               key={t}
@@ -579,7 +589,7 @@ export const AdminPanel: React.FC = () => {
               {/* Create button */}
               <button
                 onClick={() => { setShowCreate(true); setCreateError(''); }}
-                className="bg-violet-600 hover:bg-violet-500 text-white text-sm px-4 py-2 rounded-lg transition-all"
+                className="bg-primary-600 hover:bg-primary-500 text-white text-sm px-4 py-2 rounded-lg transition-all"
               >
                 + 新建频道
               </button>
@@ -774,15 +784,15 @@ export const AdminPanel: React.FC = () => {
           {tab === 'settings' && <SettingsPanel />}
 
            {tab === 'userchannels' && <UserChannelSettingsPanel />}
-           {tab === 'diagnostics' && <DiagnosticsPanel />}
+           {tab === 'diagnostics' && <React.Suspense fallback={<p className="text-sm text-gray-500 text-center py-8">正在加载诊断面板...</p>}><DiagnosticsPanel /></React.Suspense>}
 
         </div>
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="glass-panel p-5 w-full max-w-lg mx-4 animate-in zoom-in-95 fade-in duration-200">
-            <h3 className="text-lg font-semibold text-white mb-4">新建频道</h3>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div ref={createDialogRef} role="dialog" aria-modal="true" aria-labelledby="admin-create-channel-title" tabIndex={-1} className="glass-panel p-5 w-full max-w-lg mx-4 animate-in zoom-in-95 fade-in duration-200">
+            <h3 id="admin-create-channel-title" className="text-lg font-semibold text-white mb-4">新建频道</h3>
             <div className="space-y-3">
               <label className="block">
                 <span className="text-xs text-gray-400">频道名称</span>
@@ -824,12 +834,13 @@ export const AdminPanel: React.FC = () => {
               {createError && <p className="text-red-400 text-xs">{createError}</p>}
               <div className="flex gap-2 pt-2">
                 <button onClick={() => { setShowCreate(false); setCreateError(''); }} className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl" disabled={creating}>取消</button>
-                <button onClick={handleCreate} disabled={!newName.trim() || creating} className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2.5 rounded-xl">{creating ? '创建中...' : '创建'}</button>
+                <button onClick={handleCreate} disabled={!newName.trim() || creating} className="flex-1 bg-primary-600 hover:bg-primary-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2.5 rounded-xl">{creating ? '创建中...' : '创建'}</button>
               </div>
             </div>
           </div>
         </div>
       )}
+      {deleteRoomId && <ConfirmModal title="删除频道" message="确定要删除该频道吗？频道内的所有用户将被踢出。" onCancel={() => setDeleteRoomId('')} onConfirm={confirmDelete} />}
     </div>
   );
 };

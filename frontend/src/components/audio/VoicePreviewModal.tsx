@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { VOICE_PRESETS } from '../../utils/voicePresets';
 import { startRecording, stopRecording, getRecordedBuffer, playPreview, stopPreview, getIsRecording, getIsPlaying, destroyPreview } from '../../services/previewService';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 interface Props {
   onClose: () => void;
@@ -9,6 +10,7 @@ interface Props {
 const presetEntries = Object.entries(VOICE_PRESETS);
 
 export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
+  const dialogRef = useModalDialog(onClose);
   const [presetId, setPresetId] = useState(presetEntries[0]?.[0] || '');
   const [countdown, setCountdown] = useState(0);
   const [hasRecorded, setHasRecorded] = useState(false);
@@ -75,15 +77,15 @@ export const VoicePreviewModal: React.FC<Props> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-5 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="voice-preview-title" tabIndex={-1} className="glass-panel p-5 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
         <button
           onClick={onClose}
           className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors text-sm leading-none"
         >
           ✕
         </button>
-        <h3 className="text-base font-semibold text-white mb-4">变声预览</h3>
+        <h3 id="voice-preview-title" className="text-lg font-semibold text-white mb-4">变声预览</h3>
 
         <div className="space-y-4">
           <label className="block space-y-1.5">

@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { getSocket } from '../../services/socketService';
 import { AUDIO_QUALITY_TIERS } from '../../utils/constants';
 import { StepperInput } from '../common/StepperInput';
+import { showToast } from '../common/Toast';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 interface Props {
   onClose: () => void;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, maxUsers, allowedBitrates, voiceChangerGlobalEnabled }) => {
+  const dialogRef = useModalDialog(onClose);
   const [name, setName] = useState('');
   const [max, setMax] = useState(Math.min(10, maxUsers));
   const [bitrate, setBitrate] = useState(allowedBitrates[0] || 48);
@@ -45,6 +48,7 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
     const password = pwd.trim();
     getSocket()?.once('user:channel-created', () => {
       setLoading(false);
+      showToast('频道已创建', 'success');
       onClose();
     });
     getSocket()?.emit('user:channel-create', {
@@ -57,9 +61,9 @@ export const CreateUserChannelModal: React.FC<Props> = ({ onClose, maxNameLen, m
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <h3 className="text-lg font-semibold text-white mb-5">创建频道</h3>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="create-channel-title" tabIndex={-1} className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <h3 id="create-channel-title" className="text-lg font-semibold text-white mb-5">创建频道</h3>
         <div className="space-y-4">
           <label className="block space-y-1.5">
             <span className="text-xs text-gray-400">频道名 (≤{maxNameLen}字)</span>

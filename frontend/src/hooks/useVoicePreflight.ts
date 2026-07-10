@@ -38,12 +38,14 @@ export function useVoicePreflight(selectedInput: string) {
     const socketReady = !!socket?.connected;
     updateCheck('socket', socketReady ? 'passed' : 'failed', socketReady ? '已连接到语音服务器' : '服务器连接未建立，请等待重连后重试');
 
+    let microphoneReady = false;
     try {
       const stream = await getUserAudioStream(selectedInput || undefined);
       const track = stream.getAudioTracks()[0];
       const label = track?.label || '所选麦克风';
       stream.getTracks().forEach((item) => item.stop());
       updateCheck('microphone', 'passed', `${label} 可用`);
+      microphoneReady = true;
     } catch (error) {
       const name = (error as { name?: string }).name;
       const detail = name === 'NotAllowedError'
@@ -52,10 +54,12 @@ export function useVoicePreflight(selectedInput: string) {
       updateCheck('microphone', 'failed', detail);
     }
 
+    let mediaReady = false;
     if (socketReady) {
       try {
         const capabilities = await getRtpCapabilities();
         updateCheck('media', capabilities ? 'passed' : 'failed', capabilities ? '语音媒体服务响应正常' : '媒体服务未返回能力信息');
+        mediaReady = !!capabilities;
       } catch (error) {
         updateCheck('media', 'failed', (error as Error).message || '媒体服务不可用');
       }
@@ -64,6 +68,7 @@ export function useVoicePreflight(selectedInput: string) {
     }
 
     setRunning(false);
+    return secure && socketReady && microphoneReady && mediaReady;
   }, [selectedInput, updateCheck]);
 
   const canContinue = checks.every((check) => check.status === 'passed');

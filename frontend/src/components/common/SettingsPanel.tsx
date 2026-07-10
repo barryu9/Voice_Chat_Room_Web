@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSoundStore, SoundKey, SOUND_LABELS } from '../../stores/soundStore';
 import { previewSound } from '../../services/soundService';
 import { ThemeSwitcher } from './ThemeSwitcher';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 const SOUND_KEYS = Object.keys(SOUND_LABELS) as SoundKey[];
 
@@ -10,6 +11,7 @@ interface PreferencesModalProps {
 }
 
 export const PreferencesModal: React.FC<PreferencesModalProps> = ({ onClose }) => {
+  const dialogRef = useModalDialog(onClose);
   const enabled = useSoundStore((s) => s.enabled);
   const toggle = useSoundStore((s) => s.toggle);
 
@@ -23,15 +25,20 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ onClose }) =
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preferences-title"
+        tabIndex={-1}
         className="glass-panel w-full max-w-sm p-4 shadow-xl animate-in zoom-in-95 fade-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">偏好设置</h3>
+          <h3 id="preferences-title" className="text-lg font-semibold text-white">偏好设置</h3>
           <button
             type="button"
             onClick={onClose}

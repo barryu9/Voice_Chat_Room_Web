@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRoomStore } from '../../stores/roomStore';
 import type { UserInfo } from '../../utils/constants';
 import { getAvatarColor, getInitial, getLightAvatarColor } from '../../utils/helpers';
@@ -16,44 +16,33 @@ interface UserCardProps {
   user: UserInfo;
 }
 
-const SPEAKING_HOLD_MS = 200;
-
-export const UserCard: React.FC<UserCardProps> = ({ user }) => {
-  const activeSpeakers = useRoomStore((s) => s.activeSpeakers);
+export const UserCard: React.FC<UserCardProps> = React.memo(({ user }) => {
+  const speaker = useRoomStore((s) => s.activeSpeakers.get(user.deviceId));
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const currentUserId = useUserStore((s) => s.userId);
   const currentRoom = useUserStore((s) => s.currentRoom);
   const channels = useRoomStore((s) => s.channels);
   const currentChannel = channels.find(c => c.roomId === currentRoom);
   const isCreator = currentChannel?.type === 'user' && currentChannel?.creatorUserId === currentUserId;
-  const mutedUsers = useMediaStore((s) => s.mutedUsers);
+  const isMuted = useMediaStore((s) => s.mutedUsers.has(user.deviceId));
   const toggleMuteUser = useMediaStore((s) => s.toggleMuteUser);
   const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
-  const peerLatencies = useRoomStore((s) => s.peerLatencies);
-  const vcStates = useRoomStore((s) => s.vcStates);
+  const peerLatency = useRoomStore((s) => s.peerLatencies.get(user.deviceId));
+  const vcState = useRoomStore((s) => s.vcStates.get(user.deviceId));
+  const serverMutedExpires = useMediaStore((s) => s.serverMutedUsers.get(user.userId));
   const [showMenu, setShowMenu] = useState(false);
 
-  const vcState = vcStates.get(user.deviceId);
-  const speaker = activeSpeakers.get(user.deviceId);
   const isSelf = user.userId === currentUserId;
   const isReconnecting = !!user.reconnecting;
-  const speakingHoldUntil = useRef(0);
   const rawSpeaking = !!speaker?.isSpeaking;
-  if (rawSpeaking) {
-    speakingHoldUntil.current = Date.now() + SPEAKING_HOLD_MS;
-  }
-  const isSpeaking = rawSpeaking || Date.now() < speakingHoldUntil.current;
+  const isSpeaking = rawSpeaking;
   const speakingLevel = speaker?.level ?? -100;
-  const isMuted = mutedUsers.has(user.deviceId);
-  const serverMutedUsers = useMediaStore((s) => s.serverMutedUsers);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), SPEAKING_HOLD_MS);
+    if (!serverMutedExpires || !(isAdmin || isSelf)) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
-  const peerLatency = peerLatencies.get(user.deviceId);
-
-  const serverMutedExpires = serverMutedUsers.get(user.userId);
+  }, [serverMutedExpires, isAdmin, isSelf]);
   if (serverMutedExpires && serverMutedExpires <= now) {
     useMediaStore.getState().removeServerMutedUser(user.userId);
     if (isSelf) useMediaStore.getState().setAmIServerMuted(false);
@@ -240,4 +229,4 @@ export const UserCard: React.FC<UserCardProps> = ({ user }) => {
       )}
     </div>
   );
-};
+});

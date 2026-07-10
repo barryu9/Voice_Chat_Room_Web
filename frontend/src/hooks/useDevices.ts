@@ -69,6 +69,7 @@ export function useDevices() {
     return localStorage.getItem('vc_selected_output') || '';
   });
   const currentStreamRef = useRef<MediaStream | null>(null);
+  const requestedLabelsRef = useRef(false);
 
   const setSelectedInput = useCallback((deviceId: string) => {
     setSelectedInputState(deviceId);
@@ -81,11 +82,14 @@ export function useDevices() {
   }, []);
 
   const enumerate = useCallback(async () => {
-    try {
-      const permStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      permStream.getTracks().forEach((t) => t.stop());
-    } catch {
-      // 用户拒绝权限，仍然可以列出设备（标签为空）
+    if (!requestedLabelsRef.current) {
+      requestedLabelsRef.current = true;
+      try {
+        const permStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        permStream.getTracks().forEach((t) => t.stop());
+      } catch {
+        // 用户拒绝权限，仍然可以列出设备（标签为空）
+      }
     }
 
     const devices = await navigator.mediaDevices.enumerateDevices();

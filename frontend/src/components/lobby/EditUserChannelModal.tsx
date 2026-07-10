@@ -3,6 +3,7 @@ import { getSocket } from '../../services/socketService';
 import { AUDIO_QUALITY_TIERS } from '../../utils/constants';
 import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 interface Props {
   channel: { roomId: string; name: string; maxUsers: number; audioBitrate?: number; password?: string; hasPassword?: boolean; voiceChangerEnabled?: boolean };
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, maxUsers, allowedBitrates, onClose, voiceChangerGlobalEnabled }) => {
+  const dialogRef = useModalDialog(onClose);
   const [name, setName] = useState(channel.name);
   const [max, setMax] = useState(channel.maxUsers);
   const [bitrate, setBitrate] = useState(channel.audioBitrate || allowedBitrates[0] || 48);
@@ -68,9 +70,9 @@ export const EditUserChannelModal: React.FC<Props> = ({ channel, maxNameLen, max
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <h3 className="text-lg font-semibold text-white mb-5">编辑频道</h3>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="edit-channel-title" tabIndex={-1} className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <h3 id="edit-channel-title" className="text-lg font-semibold text-white mb-5">编辑频道</h3>
         <div className="space-y-4">
           <label className="block space-y-1.5">
             <span className="text-xs text-gray-400">频道名 (≤{maxNameLen}字)</span>

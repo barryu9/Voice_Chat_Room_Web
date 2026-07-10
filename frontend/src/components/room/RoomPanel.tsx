@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useCallback, useState, useEffect, useRef } from 'react';
 import { useUserStore } from '../../stores/userStore';
 import { useRoomStore } from '../../stores/roomStore';
 import { useMediaStore } from '../../stores/mediaStore';
@@ -14,6 +14,8 @@ import { useMediasoup } from '../../hooks/useMediasoup';
 import { useAudioGraph } from '../../hooks/useAudioGraph';
 import { useDevices } from '../../hooks/useDevices';
 import { useWakeLock } from '../../hooks/useWakeLock';
+import { useVoicePreflight } from '../../hooks/useVoicePreflight';
+import { useModalDialog } from '../../hooks/useModalDialog';
 import { UserGrid } from './UserGrid';
 import { AudioControls } from '../audio/AudioControls';
 import { showToast } from '../common/Toast';
@@ -21,11 +23,12 @@ import { Announcement } from '../common/Announcement';
 import { TechBackground } from '../common/TechBackground';
 import { SettingsPanel } from '../common/SettingsPanel';
 import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
-import { VoicePreviewModal } from '../audio/VoicePreviewModal';
-import { VoicePreflightModal } from '../audio/VoicePreflightModal';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { clearChannelUrlParam } from '../../utils/helpers';
+
+const VoicePreviewModal = lazy(() => import('../audio/VoicePreviewModal').then((module) => ({ default: module.VoicePreviewModal })));
+const VoicePreflightModal = lazy(() => import('../audio/VoicePreflightModal').then((module) => ({ default: module.VoicePreflightModal })));
 
 export const RoomPanel: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
@@ -61,6 +64,7 @@ export const RoomPanel: React.FC = () => {
   const { gain, muted, threshold, audioLevel, toggleMute, forceMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
   useWakeLock(isVoiceConnected);
   const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
+  const { runChecks: runVoicePreflight, running: preflightRunning } = useVoicePreflight(selectedInput);
 
   const [connecting, setConnecting] = useState(false);
   const [showPreflight, setShowPreflight] = useState(false);
@@ -69,6 +73,7 @@ export const RoomPanel: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const shareDialogRef = useModalDialog(() => setShowShareModal(false), showShareModal);
   const [testCountdown, setTestCountdown] = useState(0);
   const [testPlaying, setTestPlaying] = useState(false);
   const [voiceReconnectTick, setVoiceReconnectTick] = useState(0);
@@ -190,6 +195,16 @@ export const RoomPanel: React.FC = () => {
       setConnecting(false);
     }
   }, [connectionState, connecting, initDevice, startProduce, startConsume, stopProduce, cleanup, setVoiceConnected]);
+
+  const handleVoiceJoinRequest = useCallback(async () => {
+    if (connecting || preflightRunning) return;
+    const passed = await runVoicePreflight();
+    if (passed) {
+      await handleVoiceConnect();
+    } else {
+      setShowPreflight(true);
+    }
+  }, [connecting, preflightRunning, runVoicePreflight, handleVoiceConnect]);
 
   useEffect(() => {
     if (!voiceReconnectPending || !voiceReconnectTargetRoom || !voiceReconnectRoomReady) return;
@@ -607,7 +622,7 @@ export const RoomPanel: React.FC = () => {
     <div className="min-h-[100dvh] relative">
       <TechBackground />
       <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
-        <div className="flex items-center justify-between mb-6">
+        <header className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-1.5 flex-wrap mb-1">
               {currentChannel?.hasPassword && (
@@ -654,7 +669,7 @@ export const RoomPanel: React.FC = () => {
               </svg>
             </button>
           </div>
-        </div>
+        </header>
 
         {announcements.length > 0 && (
           <div className="mb-4">
@@ -669,7 +684,7 @@ export const RoomPanel: React.FC = () => {
           </div>
         )}
 
-        <div className="glass-panel p-3 sm:p-4 sm:mb-6 flex flex-wrap items-center gap-3 sm:gap-4 overflow-visible sm:static fixed bottom-0 left-0 right-0 z-40 rounded-none sm:rounded-2xl">
+        <div className="room-mobile-audio-bar glass-panel p-3 sm:p-4 sm:mb-6 flex flex-wrap items-center gap-3 sm:gap-4 overflow-visible sm:static fixed bottom-0 left-0 right-0 z-40 rounded-none sm:rounded-2xl">
           <AudioControls
             gain={gain}
             muted={muted}
@@ -739,11 +754,11 @@ export const RoomPanel: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => setShowPreflight(true)}
-              disabled={connecting}
+              onClick={handleVoiceJoinRequest}
+              disabled={connecting || preflightRunning}
               className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
-              {connecting ? '正在连接' : '加入语音'}
+              {preflightRunning ? '正在检查' : connecting ? '正在连接' : '加入语音'}
             </button>
           )}
         </div>
@@ -792,15 +807,15 @@ export const RoomPanel: React.FC = () => {
       </div>
 
       {showShareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div ref={shareDialogRef} role="dialog" aria-modal="true" aria-labelledby="share-channel-title" tabIndex={-1} className="glass-panel p-4 w-full max-w-xs mx-4 animate-in zoom-in-95 fade-in duration-200 relative">
             <button
               onClick={() => setShowShareModal(false)}
               className="absolute top-3 right-3 text-gray-500 hover:text-white transition-colors text-sm leading-none"
             >
               ✕
             </button>
-            <h3 className="text-base font-semibold text-white mb-3">分享频道链接</h3>
+            <h3 id="share-channel-title" className="text-lg font-semibold text-white mb-3">分享频道链接</h3>
             <input
               type="text"
               readOnly
@@ -814,15 +829,11 @@ export const RoomPanel: React.FC = () => {
       )}
 
       {showVoicePreview && (
-        <VoicePreviewModal onClose={() => setShowVoicePreview(false)} />
+        <Suspense fallback={null}><VoicePreviewModal onClose={() => setShowVoicePreview(false)} /></Suspense>
       )}
 
       {showPreflight && (
-        <VoicePreflightModal
-          selectedInput={selectedInput}
-          onClose={() => setShowPreflight(false)}
-          onContinue={() => { setShowPreflight(false); handleVoiceConnect(); }}
-        />
+        <Suspense fallback={null}><VoicePreflightModal selectedInput={selectedInput} onClose={() => setShowPreflight(false)} onContinue={() => { setShowPreflight(false); handleVoiceConnect(); }} /></Suspense>
       )}
 
       {showEditModal && currentChannel && (

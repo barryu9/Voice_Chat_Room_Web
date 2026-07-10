@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useVoicePreflight } from '../../hooks/useVoicePreflight';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 interface VoicePreflightModalProps {
   selectedInput: string;
@@ -9,15 +10,16 @@ interface VoicePreflightModalProps {
 
 export const VoicePreflightModal: React.FC<VoicePreflightModalProps> = ({ selectedInput, onClose, onContinue }) => {
   const { checks, running, canContinue, runChecks } = useVoicePreflight(selectedInput);
+  const dialogRef = useModalDialog(onClose);
 
   useEffect(() => {
     runChecks();
   }, [runChecks]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <h3 className="text-lg font-semibold text-white">加入语音前检查</h3>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="voice-preflight-title" tabIndex={-1} className="glass-panel p-5 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <h3 id="voice-preflight-title" className="text-lg font-semibold text-white">加入语音前检查</h3>
         <p className="text-xs text-gray-400 mt-1 mb-4">确认设备与语音服务可用，避免加入后无声或连接失败。</p>
         <div className="space-y-2">
           {checks.map((check) => {

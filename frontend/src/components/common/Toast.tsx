@@ -8,6 +8,7 @@ interface Toast {
 
 let toastId = 0;
 const listeners: Set<(toast: Toast) => void> = new Set();
+const MAX_VISIBLE_TOASTS = 3;
 
 export function showToast(message: string, type: Toast['type'] = 'info') {
   const toast: Toast = { id: ++toastId, message, type };
@@ -19,7 +20,7 @@ export const ToastContainer: React.FC = () => {
 
   useEffect(() => {
     const handler = (toast: Toast) => {
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => [...prev.filter((item) => item.message !== toast.message || item.type !== toast.type), toast].slice(-MAX_VISIBLE_TOASTS));
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id));
       }, 4000);
@@ -38,7 +39,7 @@ export const ToastContainer: React.FC = () => {
   };
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2">
+    <div className="fixed top-4 right-4 z-[80] flex flex-col gap-2" aria-live="polite" aria-atomic="true">
       {toasts.map((t) => (
         <div
           key={t.id}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 interface Props {
   channelName: string;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export const ChannelPasswordModal: React.FC<Props> = ({ channelName, onSubmit, onClose, error }) => {
+  const dialogRef = useModalDialog(onClose);
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -34,9 +36,9 @@ export const ChannelPasswordModal: React.FC<Props> = ({ channelName, onSubmit, o
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
-        <h3 className="text-lg font-semibold text-white mb-1">加密频道</h3>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="channel-password-title" tabIndex={-1} className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <h3 id="channel-password-title" className="text-lg font-semibold text-white mb-1">加密频道</h3>
         <p className="text-sm text-gray-400 mb-4">{channelName} 需要密码才能进入</p>
 
         <input

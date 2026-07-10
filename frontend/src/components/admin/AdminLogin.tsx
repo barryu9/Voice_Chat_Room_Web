@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getSocket } from '../../services/socketService';
 import { useAdminStore } from '../../stores/adminStore';
 import { EVENTS } from '../../utils/constants';
+import { useModalDialog } from '../../hooks/useModalDialog';
 
 const ADMIN_PASS_KEY = 'vc_admin_pass';
 
@@ -10,6 +11,8 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const isAdmin = useAdminStore((s) => s.isAdmin);
+  const close = () => { setShow(false); setPassword(''); setError(''); };
+  const dialogRef = useModalDialog(close, show);
 
   useEffect(() => {
     const saved = localStorage.getItem(ADMIN_PASS_KEY);
@@ -63,9 +66,9 @@ export const AdminLogin: React.FC = () => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in">
-        <h3 className="text-lg font-semibold text-white mb-4">管理员认证</h3>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="admin-login-title" tabIndex={-1} className="glass-panel p-6 w-full max-w-sm mx-4 animate-in zoom-in-95 fade-in">
+        <h3 id="admin-login-title" className="text-lg font-semibold text-white mb-4">管理员认证</h3>
         <form onSubmit={handleLogin} className="space-y-3">
           <input
             type="password"
@@ -79,7 +82,7 @@ export const AdminLogin: React.FC = () => {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => { setShow(false); setPassword(''); setError(''); }}
+              onClick={close}
               className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm py-2.5 rounded-xl transition-all"
             >
               取消

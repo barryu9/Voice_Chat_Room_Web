@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useEffect, useRef } from 'react';
 import { useUserStore } from './stores/userStore';
 import { useRoomStore } from './stores/roomStore';
 import { useSocket } from './hooks/useSocket';
@@ -11,10 +11,11 @@ import { useMediaStore } from './stores/mediaStore';
 import { preloadAllSounds, playSound, unlockAudio } from './services/soundService';
 import { Lobby } from './components/lobby/Lobby';
 import { RoomPanel } from './components/room/RoomPanel';
-import { AdminPanel } from './components/admin/AdminPanel';
 import { ToastContainer, showToast } from './components/common/Toast';
 import { useTheme } from './hooks/useTheme';
 import { clearChannelUrlParam } from './utils/helpers';
+
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then((module) => ({ default: module.AdminPanel })));
 
 const App: React.FC = () => {
   const currentRoom = useUserStore((s) => s.currentRoom);
@@ -186,7 +187,7 @@ const App: React.FC = () => {
   return (
     <>
       {currentRoom ? <RoomPanel /> : <Lobby />}
-      <AdminPanel />
+      <Suspense fallback={null}><AdminPanel /></Suspense>
       <ToastContainer />
     </>
   );

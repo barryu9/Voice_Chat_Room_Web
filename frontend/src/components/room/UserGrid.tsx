@@ -3,7 +3,7 @@ import { useRoomStore } from '../../stores/roomStore';
 import { useUserStore } from '../../stores/userStore';
 import { UserCard } from './UserCard';
 
-export const UserGrid: React.FC = () => {
+export const UserGrid: React.FC = React.memo(() => {
   const roomUsers = useRoomStore((s) => s.roomUsers);
   const userCount = useRoomStore((s) => s.userCount);
   const currentUserId = useUserStore((s) => s.userId);
@@ -32,4 +32,4 @@ export const UserGrid: React.FC = () => {
       </div>
     </div>
   );
-};
+});

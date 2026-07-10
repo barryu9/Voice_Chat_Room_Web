@@ -55,7 +55,7 @@ const Popover: React.FC<{
   const isMobile = window.innerWidth < 640;
   return createPortal(
     <div
-      className={`fixed glass-panel p-3 shadow-xl z-[9999] audio-popover animate-in fade-in duration-150 ${
+      className={`fixed glass-panel p-3 shadow-xl z-[70] audio-popover animate-in fade-in duration-150 ${
         isMobile ? 'slide-in-from-bottom-1' : 'slide-in-from-top-1'
       } ${className || ''}`}
       style={isMobile

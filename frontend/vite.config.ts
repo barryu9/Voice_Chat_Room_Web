@@ -28,4 +28,15 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/tone')) return 'audio-effects';
+          if (id.includes('node_modules/mediasoup-client')) return 'mediasoup';
+          if (id.includes('node_modules/react') || id.includes('node_modules/zustand')) return 'ui-vendor';
+        },
+      },
+    },
+  },
 });

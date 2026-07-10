@@ -450,6 +450,9 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-h); }
 
 @layer components {
+  .theme-error-page {
+    @apply bg-gray-950;
+  }
   .glass-panel {
     background: var(--bg-panel);
     border: 1px solid var(--border);
@@ -774,6 +777,10 @@ body {
 
 [data-theme-mode="light"] .avatar-circle.avatar-speaking {
   box-shadow: 0 0 20px var(--avatar-glow-light);
+}
+
+[data-theme-mode="light"] .theme-error-page {
+  @apply bg-white;
 }
 
 [data-theme] {
@@ -2354,4 +2361,26 @@ body {
   border-color: var(--speaking-color-muted) !important;
   border-width: var(--speaking-pulse-secondary-width) !important;
   animation-duration: var(--speaking-pulse-duration) !important;
+}
+
+/* A fixed mobile control bar meets the viewport edges. Keep only its top
+   separator so decorative card outlines and shadows do not show at the sides
+   or below the safe-area edge in speciality themes. */
+@media (max-width: 639px) {
+  .room-mobile-audio-bar {
+    border: 0 !important;
+    border-top: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 -10px 28px rgb(15 23 42 / 0.08) !important;
+  }
+
+  [data-theme="pure"] .room-mobile-audio-bar,
+  [data-theme="comic"] .room-mobile-audio-bar {
+    border-top: 2px solid #111827 !important;
+    box-shadow: 0 -3px 0 rgb(var(--color-primary-400)) !important;
+  }
+
+  [data-theme="midnight"] .room-mobile-audio-bar {
+    box-shadow: 0 -8px 20px rgb(var(--color-primary-500) / 0.14) !important;
+  }
 }

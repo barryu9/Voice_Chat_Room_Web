@@ -21,7 +21,7 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'compact
 
   if (variant === 'login') {
     return (
-      <div className="theme-switcher-login w-full rounded-2xl border border-gray-700/50 bg-gray-900/35 backdrop-blur-xl p-3 shadow-lg">
+      <div className="theme-switcher-login glass-card w-full rounded-2xl p-3 shadow-lg">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-medium text-gray-400">选择外观</p>
