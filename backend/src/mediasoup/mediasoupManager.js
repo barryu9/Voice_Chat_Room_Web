@@ -24,9 +24,10 @@ async function createRouter(opusMaxBitrate) {
     kind: 'audio',
     mimeType: 'audio/opus',
     clockRate: 48000,
-    // Voice is always mono/48 kHz. FEC protects isolated packet loss and DTX
-    // avoids spending bitrate during silence without changing speech quality.
-    channels: 1,
+    // mediasoup requires the standard Opus RTP capability declaration with two
+    // channels. Clients still request mono microphone capture, so this does not
+    // force stereo audio on the wire.
+    channels: 2,
     parameters: {
       useinbandfec: 1,
       usedtx: 1,
