@@ -814,9 +814,9 @@ export const RoomPanel: React.FC = () => {
           )}
         </div>
 
-        <section className="mt-6 border-y border-gray-700/40 py-4" aria-label="频道动态日志">
-          <div className="mb-2 flex items-center gap-2"><span className="h-px flex-1 bg-gray-700/40" /><h3 className="text-sm font-semibold text-gray-400">频道动态</h3><span className="h-px flex-1 bg-gray-700/40" /></div>
-          <div ref={activityLogRef} onScroll={(event) => { const node = event.currentTarget; activityAtBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 16; }} className="mx-auto max-h-36 max-w-3xl space-y-1 overflow-y-auto text-xs text-gray-500">
+        <section className="mx-auto mt-4 max-w-xl border-t border-gray-700/30 pt-3" aria-label="频道动态日志">
+          <div className="mb-1 flex items-center gap-2"><h3 className="text-[11px] font-medium text-gray-500">频道动态</h3><span className="h-px flex-1 bg-gray-700/20" /></div>
+          <div ref={activityLogRef} onScroll={(event) => { const node = event.currentTarget; activityAtBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 16; }} className="max-h-24 space-y-0.5 overflow-y-auto text-[11px] leading-5 text-gray-500">
             {activityLogs.length === 0 ? <p>进入频道后将在这里显示动态</p> : activityLogs.map((log) => <p key={log.id}><span className="mr-2 text-gray-600">{new Date(log.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>{log.message}</p>)}
           </div>
         </section>

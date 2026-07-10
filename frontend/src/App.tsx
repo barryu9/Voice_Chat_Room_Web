@@ -188,7 +188,7 @@ const App: React.FC = () => {
   return (
     <>
       {isLoggedIn && <OnlineMembersPanel />}
-      <div className={isLoggedIn ? 'lg:pl-64' : ''}>
+      <div>
         {currentRoom ? <RoomPanel /> : <Lobby />}
       </div>
       <Suspense fallback={null}><AdminPanel /></Suspense>

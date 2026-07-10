@@ -29,9 +29,19 @@ export const UserCard: React.FC<UserCardProps> = React.memo(({ user }) => {
   const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
   const peerLatency = useRoomStore((s) => s.peerLatencies.get(user.deviceId));
   const vcState = useRoomStore((s) => s.vcStates.get(user.deviceId));
-  const emoji = useRoomStore((s) => s.emojis.get(user.deviceId));
+  const emojis = useRoomStore((s) => s.emojis);
+  const emoji = emojis.get(user.deviceId);
   const serverMutedExpires = useMediaStore((s) => s.serverMutedUsers.get(user.userId));
   const [showMenu, setShowMenu] = useState(false);
+  const [emojiBubbles, setEmojiBubbles] = useState<Array<{ id: string; emoji: string; x: number }>>([]);
+
+  useEffect(() => {
+    if (!emoji) return;
+    const id = `${Date.now()}-${Math.random()}`;
+    setEmojiBubbles((items) => [...items, { id, emoji, x: 12 + Math.random() * 64 }].slice(-6));
+    const timer = window.setTimeout(() => setEmojiBubbles((items) => items.filter((item) => item.id !== id)), 3800);
+    return () => window.clearTimeout(timer);
+  }, [emojis, emoji]);
 
   const isSelf = user.userId === currentUserId;
   const isReconnecting = !!user.reconnecting;
@@ -98,7 +108,7 @@ export const UserCard: React.FC<UserCardProps> = React.memo(({ user }) => {
       } ${isReconnecting ? 'opacity-75 ring-1 ring-yellow-500/30' : ''}`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
-      {emoji && <span className="theme-emoji-bubble absolute -right-1 -top-3 z-10 px-2 py-1 text-lg" aria-label="表情">{emoji}</span>}
+      {emojiBubbles.map((bubble, index) => <span key={bubble.id} className="theme-emoji-bubble absolute top-2 z-10 px-2 py-1 text-lg" style={{ left: `${bubble.x}%`, animationDelay: `${index * 70}ms` }} aria-label="表情">{bubble.emoji}</span>)}
       {/* Avatar */}
       <div className="relative">
         <div
