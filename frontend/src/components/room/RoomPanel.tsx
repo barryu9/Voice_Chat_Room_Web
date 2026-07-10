@@ -742,7 +742,7 @@ export const RoomPanel: React.FC = () => {
             vcTransiting={vcTransiting}
           />
 
-          {isVoiceConnected && <div className="hidden sm:flex glass-card items-center gap-2 px-3 py-1.5 text-[11px] text-gray-500"><span>质量 <span className="text-gray-300">{audioQuality.quality}</span></span><span>{audioQuality.loss.toFixed(1)}%</span><span>{Math.round(audioQuality.rtt)}ms</span><span>{Math.round(audioQuality.bitrate / 1000)}kbps</span></div>}
+          {isVoiceConnected && <div className="hidden sm:flex items-center gap-2 px-1 text-[11px] text-gray-500"><span>质量 <span className="text-gray-300">{audioQuality.quality}</span></span><span>{audioQuality.loss.toFixed(1)}%</span><span>{Math.round(audioQuality.rtt)}ms</span><span>{Math.round(audioQuality.bitrate / 1000)}kbps</span></div>}
 
           <div className="flex-1" />
 
@@ -819,7 +819,7 @@ export const RoomPanel: React.FC = () => {
 
         {isVoiceConnected && (
           <div className="fixed bottom-[76px] left-1/2 z-30 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 sm:hidden">
-            <div className="glass-card flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 text-[10px] text-gray-500" title="基于 WebRTC 发送统计的本地网络质量">
+            <div className="flex items-center gap-1.5 whitespace-nowrap px-1 text-[10px] text-gray-500" title="基于 WebRTC 发送统计的本地网络质量">
               <span>质量 <span className="text-gray-300">{audioQuality.quality}</span></span>
               <span>{audioQuality.loss.toFixed(1)}%</span>
               <span>{Math.round(audioQuality.rtt)}ms</span>

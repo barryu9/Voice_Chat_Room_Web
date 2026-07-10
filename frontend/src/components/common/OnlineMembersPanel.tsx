@@ -105,7 +105,7 @@ export const OnlineMembersPanel: React.FC = () => {
       </aside>
 
       <button type="button" onClick={() => setMobileOpen(true)} className="glass-panel fixed bottom-24 left-3 z-30 flex h-10 w-10 items-center justify-center overflow-visible rounded-full text-gray-400 shadow-lg transition-all hover:scale-105 hover:text-primary-300 lg:hidden" aria-label="查看在线成员" title="在线成员">
-        <svg className="h-[18px] w-[18px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2m12-10a4 4 0 100-8 4 4 0 000 8zm2 4h.01M6 11a4 4 0 100-8 4 4 0 000 8z" /></svg>
+        <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" opacity=".72" /><path d="M2.5 20.5c0-3.2 2.45-5.5 5.5-5.5s5.5 2.3 5.5 5.5H2.5z" /><path d="M14 20.5c.15-2.05-.75-3.85-2.2-5.05.7-.3 1.45-.45 2.2-.45 2.8 0 5 2.15 5 5.5H14z" opacity=".72" /></svg>
         <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-primary-500 px-1 text-center text-[9px] leading-4 text-white">{orderedUsers.length}</span>
       </button>
       {mobileOpen && <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
