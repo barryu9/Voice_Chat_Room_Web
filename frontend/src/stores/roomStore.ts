@@ -7,6 +7,7 @@ interface RoomState {
   channels: Channel[];
   roomUsers: Map<string, UserInfo>;
   onlineUsers: OnlineUser[];
+  onlineSidebarOpen: boolean;
   activityLogs: { id: string; message: string; time: number }[];
   emojis: Map<string, string>;
   userCount: number;
@@ -26,6 +27,7 @@ interface RoomState {
   updateChannel: (roomId: string, updates: Partial<Channel>) => void;
   setRoomUsers: (users: UserInfo[]) => void;
   setOnlineUsers: (users: OnlineUser[]) => void;
+  setOnlineSidebarOpen: (open: boolean) => void;
   addActivityLog: (message: string) => void;
   clearActivityLogs: () => void;
   setEmoji: (deviceId: string, emoji: string) => void;
@@ -49,6 +51,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   channels: [],
   roomUsers: new Map(),
   onlineUsers: [],
+  onlineSidebarOpen: true,
   activityLogs: [],
   emojis: new Map(),
   userCount: 0,
@@ -78,6 +81,7 @@ export const useRoomStore = create<RoomState>((set) => ({
   setRoomUsers: (users) =>
     set({ roomUsers: new Map(users.map((u) => [u.userId, u])), userCount: users.length }),
   setOnlineUsers: (users) => set({ onlineUsers: users }),
+  setOnlineSidebarOpen: (onlineSidebarOpen) => set({ onlineSidebarOpen }),
   addActivityLog: (message) => set((s) => ({ activityLogs: [...s.activityLogs, { id: `${Date.now()}-${Math.random()}`, message, time: Date.now() }].slice(-80) })),
   clearActivityLogs: () => set({ activityLogs: [], emojis: new Map() }),
   setEmoji: (deviceId, emoji) => set((s) => { const emojis = new Map(s.emojis); emojis.set(deviceId, emoji); return { emojis }; }),

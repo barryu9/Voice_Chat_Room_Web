@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const isLoggedIn = useUserStore((s) => s.isLoggedIn);
   const channels = useRoomStore((s) => s.channels);
   const siteName = useRoomStore((s) => s.siteName);
+  const onlineSidebarOpen = useRoomStore((s) => s.onlineSidebarOpen);
   const appLoading = useUserStore((s) => s.appLoading);
   const setAppLoading = useUserStore((s) => s.setAppLoading);
   const connectionState = useUserStore((s) => s.connectionState);
@@ -188,7 +189,7 @@ const App: React.FC = () => {
   return (
     <>
       {isLoggedIn && <OnlineMembersPanel />}
-      <div>
+      <div className={`transition-[padding] duration-200 ${isLoggedIn && onlineSidebarOpen ? 'lg:pl-64' : ''}`}>
         {currentRoom ? <RoomPanel /> : <Lobby />}
       </div>
       <Suspense fallback={null}><AdminPanel /></Suspense>
