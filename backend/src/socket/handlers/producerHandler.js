@@ -172,7 +172,7 @@ function handleProducerEvents(socket, io) {
   socket.on(EVENTS.CLIENT.EMOJI_SEND, ({ emoji }) => {
     const conn = getConnection(socket.id);
     const allowed = new Set(['👍', '👏', '❤️', '😂', '🎉', '🤔', '👋', '🔥']);
-    if (!conn?.currentRoom || !allowed.has(emoji) || Date.now() - lastEmojiAt < 2000) return;
+    if (!conn?.currentRoom || !allowed.has(emoji) || Date.now() - lastEmojiAt < 700) return;
     const room = getRoom(conn.currentRoom);
     if (!room || room.getProducersForUser(socket.id).length === 0) return;
     lastEmojiAt = Date.now();

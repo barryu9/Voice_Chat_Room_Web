@@ -828,6 +828,35 @@ body {
   border-color: var(--speaking-color-muted);
 }
 
+@keyframes emoji-bubble-rise {
+  0% { opacity: 0; transform: translateY(10px) scale(0.55); }
+  22% { opacity: 1; transform: translateY(0) scale(1.12); }
+  72% { opacity: 1; transform: translateY(-10px) scale(1); }
+  100% { opacity: 0; transform: translateY(-20px) scale(0.92); }
+}
+
+.theme-emoji-bubble {
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--bg-panel);
+  box-shadow: 0 8px 20px rgb(var(--color-primary-500) / 0.18);
+  backdrop-filter: blur(10px);
+  animation: emoji-bubble-rise 3.8s ease-out both;
+}
+
+[data-theme="pure"] .theme-emoji-bubble,
+[data-theme="comic"] .theme-emoji-bubble {
+  border: 2px solid #111827;
+  box-shadow: 2px 2px 0 #111827;
+  backdrop-filter: none;
+}
+
+[data-theme="midnight"] .theme-emoji-bubble,
+[data-theme="neon"] .theme-emoji-bubble {
+  border-color: rgb(var(--color-primary-300) / 0.58);
+  box-shadow: 0 0 16px rgb(var(--color-primary-500) / 0.4);
+}
+
 [data-theme="pure"] .theme-speaking-card,
 [data-theme="comic"] .theme-speaking-card {
   box-shadow: 3px 3px 0 #111827, 0 0 0 2px var(--speaking-color-muted);

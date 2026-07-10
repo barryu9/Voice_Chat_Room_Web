@@ -98,7 +98,7 @@ export const UserCard: React.FC<UserCardProps> = React.memo(({ user }) => {
       } ${isReconnecting ? 'opacity-75 ring-1 ring-yellow-500/30' : ''}`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
-      {emoji && <span className="absolute -right-1 -top-3 z-10 animate-in zoom-in-75 rounded-full bg-white px-2 py-1 text-lg shadow-lg" aria-label="表情">{emoji}</span>}
+      {emoji && <span className="theme-emoji-bubble absolute -right-1 -top-3 z-10 px-2 py-1 text-lg" aria-label="表情">{emoji}</span>}
       {/* Avatar */}
       <div className="relative">
         <div
