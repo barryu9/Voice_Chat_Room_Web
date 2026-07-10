@@ -1,11 +1,14 @@
 import { create } from 'zustand';
-import type { Channel, UserInfo, Announcement } from '../utils/constants';
+import type { Channel, UserInfo, Announcement, OnlineUser } from '../utils/constants';
 
 let notificationTimer: ReturnType<typeof setTimeout> | null = null;
 
 interface RoomState {
   channels: Channel[];
   roomUsers: Map<string, UserInfo>;
+  onlineUsers: OnlineUser[];
+  activityLogs: { id: string; message: string; time: number }[];
+  emojis: Map<string, string>;
   userCount: number;
   activeSpeakers: Map<string, { level: number; isSpeaking: boolean }>;
   peerLatencies: Map<string, number>;
@@ -22,6 +25,10 @@ interface RoomState {
   removeChannel: (roomId: string) => void;
   updateChannel: (roomId: string, updates: Partial<Channel>) => void;
   setRoomUsers: (users: UserInfo[]) => void;
+  setOnlineUsers: (users: OnlineUser[]) => void;
+  addActivityLog: (message: string) => void;
+  clearActivityLogs: () => void;
+  setEmoji: (deviceId: string, emoji: string) => void;
   addUser: (user: UserInfo) => void;
   removeUser: (userId: string) => void;
   updateUserNickname: (userId: string, nickname: string) => void;
@@ -41,6 +48,9 @@ interface RoomState {
 export const useRoomStore = create<RoomState>((set) => ({
   channels: [],
   roomUsers: new Map(),
+  onlineUsers: [],
+  activityLogs: [],
+  emojis: new Map(),
   userCount: 0,
   activeSpeakers: new Map(),
   peerLatencies: new Map(),
@@ -67,6 +77,10 @@ export const useRoomStore = create<RoomState>((set) => ({
 
   setRoomUsers: (users) =>
     set({ roomUsers: new Map(users.map((u) => [u.userId, u])), userCount: users.length }),
+  setOnlineUsers: (users) => set({ onlineUsers: users }),
+  addActivityLog: (message) => set((s) => ({ activityLogs: [...s.activityLogs, { id: `${Date.now()}-${Math.random()}`, message, time: Date.now() }].slice(-80) })),
+  clearActivityLogs: () => set({ activityLogs: [], emojis: new Map() }),
+  setEmoji: (deviceId, emoji) => set((s) => { const emojis = new Map(s.emojis); emojis.set(deviceId, emoji); return { emojis }; }),
   addUser: (user) =>
     set((s) => {
       const m = new Map(s.roomUsers);

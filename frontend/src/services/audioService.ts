@@ -16,6 +16,8 @@ import * as Tone from 'tone';
 let audioContext: AudioContext | null = null;
 let localStream: MediaStream | null = null;
 let preProcessGainNode: GainNode | null = null;
+let highPassFilterNode: BiquadFilterNode | null = null;
+let dePopCompressorNode: DynamicsCompressorNode | null = null;
 let micGainNode: GainNode | null = null;
 let agcGainNode: GainNode | null = null;
 let agcAnalyserNode: AnalyserNode | null = null;
@@ -87,6 +89,16 @@ export async function setupLocalAudioGraph(stream: MediaStream): Promise<void> {
   localAudioSource = ctx.createMediaStreamSource(stream);
 
   preProcessGainNode = ctx.createGain();
+  highPassFilterNode = ctx.createBiquadFilter();
+  highPassFilterNode.type = 'highpass';
+  highPassFilterNode.frequency.value = 85;
+  highPassFilterNode.Q.value = 0.7;
+  dePopCompressorNode = ctx.createDynamicsCompressor();
+  dePopCompressorNode.threshold.value = -18;
+  dePopCompressorNode.knee.value = 12;
+  dePopCompressorNode.ratio.value = 3;
+  dePopCompressorNode.attack.value = 0.003;
+  dePopCompressorNode.release.value = 0.08;
   micGainNode = ctx.createGain();
   agcGainNode = ctx.createGain();
   agcAnalyserNode = ctx.createAnalyser();
@@ -149,10 +161,12 @@ export function getProcessedStream(): MediaStream | null {
 }
 
 export function reconnectAudioGraph() {
-  if (!localAudioSource || !preProcessGainNode || !micGainNode || !agcGainNode || !analyserNode || !agcAnalyserNode || !gateGainNode || !limiterNode || !processedDestination) return;
+  if (!localAudioSource || !preProcessGainNode || !highPassFilterNode || !dePopCompressorNode || !micGainNode || !agcGainNode || !analyserNode || !agcAnalyserNode || !gateGainNode || !limiterNode || !processedDestination) return;
 
   localAudioSource.disconnect();
   preProcessGainNode.disconnect();
+  highPassFilterNode.disconnect();
+  dePopCompressorNode.disconnect();
   agcGainNode.disconnect();
   micGainNode.disconnect();
   gateGainNode.disconnect();
@@ -199,7 +213,9 @@ export function reconnectAudioGraph() {
     isBypassMode = true;
   }
 
-  connectAgcStage(preAgcOutputNode);
+  preAgcOutputNode.connect(highPassFilterNode);
+  highPassFilterNode.connect(dePopCompressorNode);
+  connectAgcStage(dePopCompressorNode);
   micGainNode.connect(outputNode);
   gateGainNode.connect(limiterNode);
 
@@ -504,6 +520,14 @@ export function cleanupLocalAudio(options: { preserveRnnoise?: boolean } = {}) {
   if (preProcessGainNode) {
     preProcessGainNode.disconnect();
     preProcessGainNode = null;
+  }
+  if (highPassFilterNode) {
+    highPassFilterNode.disconnect();
+    highPassFilterNode = null;
+  }
+  if (dePopCompressorNode) {
+    dePopCompressorNode.disconnect();
+    dePopCompressorNode = null;
   }
   if (micGainNode) {
     micGainNode.disconnect();

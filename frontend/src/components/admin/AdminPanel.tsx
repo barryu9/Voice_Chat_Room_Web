@@ -554,7 +554,7 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-40 flex items-start justify-center pt-16 bg-black/40 backdrop-blur-sm">
-      <div className="glass-panel w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col animate-in slide-in-from-top-4 fade-in isolate">
+      <div className="theme-admin-panel glass-panel w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col animate-in slide-in-from-top-4 fade-in isolate">
         <div className="theme-admin-header shrink-0 backdrop-blur-xl p-5 border-b flex items-center justify-between rounded-t-2xl overflow-hidden">
           <h2 className="theme-admin-title text-xl font-bold">管理面板</h2>
           <button

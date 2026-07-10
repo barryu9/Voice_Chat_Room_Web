@@ -24,11 +24,20 @@ async function createRouter(opusMaxBitrate) {
     kind: 'audio',
     mimeType: 'audio/opus',
     clockRate: 48000,
-    channels: 2,
+    // Voice is always mono/48 kHz. FEC protects isolated packet loss and DTX
+    // avoids spending bitrate during silence without changing speech quality.
+    channels: 1,
+    parameters: {
+      useinbandfec: 1,
+      usedtx: 1,
+      minptime: 10,
+      maxptime: 20,
+    },
   };
 
   if (opusMaxBitrate) {
     opusCodec.parameters = {
+      ...opusCodec.parameters,
       'maxaveragebitrate': opusMaxBitrate * 1000,
     };
   }

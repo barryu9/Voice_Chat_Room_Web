@@ -2371,16 +2371,27 @@ body {
     border: 0 !important;
     border-top: 1px solid var(--border) !important;
     border-radius: 0 !important;
-    box-shadow: 0 -10px 28px rgb(15 23 42 / 0.08) !important;
+    box-shadow: none !important;
   }
 
   [data-theme="pure"] .room-mobile-audio-bar,
   [data-theme="comic"] .room-mobile-audio-bar {
     border-top: 2px solid #111827 !important;
-    box-shadow: 0 -3px 0 rgb(var(--color-primary-400)) !important;
+    box-shadow: none !important;
   }
 
   [data-theme="midnight"] .room-mobile-audio-bar {
-    box-shadow: 0 -8px 20px rgb(var(--color-primary-500) / 0.14) !important;
+    box-shadow: none !important;
   }
+}
+
+/* The neon appearance is always dark. Keep the panel surface explicit so it
+   cannot inherit a cached or nested light-surface background. */
+[data-theme="neon"] .theme-admin-panel {
+  background: rgba(12, 8, 28, 0.94) !important;
+  border-color: rgb(var(--color-primary-400) / 0.5) !important;
+  box-shadow:
+    0 0 0 1px rgb(var(--color-primary-500) / 0.22),
+    0 0 28px rgb(var(--color-primary-500) / 0.24),
+    inset 0 0 24px rgb(var(--color-primary-500) / 0.06) !important;
 }

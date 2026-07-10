@@ -29,6 +29,7 @@ export const UserCard: React.FC<UserCardProps> = React.memo(({ user }) => {
   const getProducerIdByDeviceId = useMediaStore((s) => s.getProducerIdByDeviceId);
   const peerLatency = useRoomStore((s) => s.peerLatencies.get(user.deviceId));
   const vcState = useRoomStore((s) => s.vcStates.get(user.deviceId));
+  const emoji = useRoomStore((s) => s.emojis.get(user.deviceId));
   const serverMutedExpires = useMediaStore((s) => s.serverMutedUsers.get(user.userId));
   const [showMenu, setShowMenu] = useState(false);
 
@@ -97,6 +98,7 @@ export const UserCard: React.FC<UserCardProps> = React.memo(({ user }) => {
       } ${isReconnecting ? 'opacity-75 ring-1 ring-yellow-500/30' : ''}`}
       onMouseLeave={() => { setShowMenu(false); }}
     >
+      {emoji && <span className="absolute -right-1 -top-3 z-10 animate-in zoom-in-75 rounded-full bg-white px-2 py-1 text-lg shadow-lg" aria-label="表情">{emoji}</span>}
       {/* Avatar */}
       <div className="relative">
         <div

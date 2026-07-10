@@ -8,6 +8,29 @@ const RECONNECT_GRACE_MS = 60000;
 const FAST_RECONNECT_MS = 5000;
 const STALE_CONNECTION_MS = 5000;
 
+function getOnlineUsers() {
+  const { getRoom } = require('../../mediasoup/roomManager');
+  const { isUserIdAdmin } = require('../../services/adminService');
+  return Array.from(connections.values())
+    .filter((conn) => !conn.disconnected)
+    .map((conn) => {
+      const room = conn.currentRoom ? getRoom(conn.currentRoom) : null;
+      return {
+        socketId: conn.socketId,
+        userId: conn.userId,
+        nickname: conn.nickname,
+        deviceId: conn.deviceId,
+        roomId: conn.currentRoom || null,
+        inVoice: !!room && room.getProducersForUser(conn.socketId).length > 0,
+        isAdmin: isUserIdAdmin(conn.userId),
+      };
+    });
+}
+
+function broadcastOnlineUsers(io) {
+  io.emit(EVENTS.SERVER.ONLINE_USERS, { users: getOnlineUsers() });
+}
+
 function clearReconnectTimer(conn) {
   if (conn?.reconnectTimer) {
     clearTimeout(conn.reconnectTimer);
@@ -157,6 +180,7 @@ function endConnection(sid, io, reason) {
   const { removeAdmin } = require('../../services/adminService');
   removeAdmin(sid);
   connections.delete(sid);
+  broadcastOnlineUsers(io);
 }
 
 function clearSupersededLogin(sid, io, existingSocket) {
@@ -209,6 +233,7 @@ function recoverDisconnectedConnection(oldSid, socket, conn, nickname, io) {
 
   conn.socketId = socket.id;
   conn.nickname = nickname;
+  conn.socketId = socket.id;
   conn.currentRoom = null;
   conn.disconnected = false;
   conn.disconnectedAt = null;
@@ -391,6 +416,11 @@ function handleConnection(socket, io) {
     socket.emit(EVENTS.SERVER.ANNOUNCEMENTS_UPDATED, { announcements });
     socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { siteName });
     socket.emit('site:info', { siteName, version, loginFooter });
+    broadcastOnlineUsers(io);
+  });
+
+  socket.on(EVENTS.CLIENT.ONLINE_USERS_GET, () => {
+    socket.emit(EVENTS.SERVER.ONLINE_USERS, { users: getOnlineUsers() });
   });
 
   socket.on('latency:ping', (cb) => {
@@ -421,6 +451,7 @@ function handleConnection(socket, io) {
     const conn = connections.get(socket.id);
     if (!conn) return;
     conn.nickname = trimmed;
+    broadcastOnlineUsers(io);
     if (conn.currentRoom) {
       const { getRoom } = require('../../mediasoup/roomManager');
       const room = getRoom(conn.currentRoom);
@@ -447,6 +478,7 @@ function handleConnection(socket, io) {
       }
       conn.disconnected = true;
       conn.disconnectedAt = Date.now();
+      broadcastOnlineUsers(io);
       clearReconnectTimer(conn);
       clearReconnectNotifyTimer(conn);
       conn.reconnectNotifyTimer = setTimeout(() => {
@@ -533,4 +565,4 @@ function getConnection(socketId) {
   return connections.get(socketId);
 }
 
-module.exports = { handleConnection, getConnections, getConnection };
+module.exports = { handleConnection, getConnections, getConnection, broadcastOnlineUsers };

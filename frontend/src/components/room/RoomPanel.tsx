@@ -26,6 +26,8 @@ import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { clearChannelUrlParam } from '../../utils/helpers';
+import { ConfirmModal } from '../common/ConfirmModal';
+import type { OnlineUser } from '../../utils/constants';
 
 const VoicePreviewModal = lazy(() => import('../audio/VoicePreviewModal').then((module) => ({ default: module.VoicePreviewModal })));
 const VoicePreflightModal = lazy(() => import('../audio/VoicePreflightModal').then((module) => ({ default: module.VoicePreflightModal })));
@@ -39,7 +41,10 @@ export const RoomPanel: React.FC = () => {
   const channels = useRoomStore((s) => s.channels);
   const notification = useRoomStore((s) => s.notification);
   const announcements = useRoomStore((s) => s.announcements);
+  const version = useRoomStore((s) => s.version);
   const peerLatencies = useRoomStore((s) => s.peerLatencies);
+  const onlineUsers = useRoomStore((s) => s.onlineUsers);
+  const activityLogs = useRoomStore((s) => s.activityLogs);
   const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
   const setVoiceConnected = useMediaStore((s) => s.setVoiceConnected);
   const isMicMuted = useMediaStore((s) => s.isMicMuted);
@@ -59,6 +64,7 @@ export const RoomPanel: React.FC = () => {
   const voiceReconnectPending = useMediaStore((s) => s.voiceReconnectPending);
   const voiceReconnectTargetRoom = useMediaStore((s) => s.voiceReconnectTargetRoom);
   const voiceReconnectRoomReady = useMediaStore((s) => s.voiceReconnectRoomReady);
+  const audioQuality = useMediaStore((s) => s.audioQuality);
 
   const { initDevice, startProduce, stopProduce, startConsume, replaceTrack } = useMediasoup();
   const { gain, muted, threshold, audioLevel, toggleMute, forceMute, updateGain, updateThreshold, cleanup, switchStream } = useAudioGraph();
@@ -73,6 +79,7 @@ export const RoomPanel: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [banTarget, setBanTarget] = useState<OnlineUser | null>(null);
   const shareDialogRef = useModalDialog(() => setShowShareModal(false), showShareModal);
   const [testCountdown, setTestCountdown] = useState(0);
   const [testPlaying, setTestPlaying] = useState(false);
@@ -617,6 +624,30 @@ export const RoomPanel: React.FC = () => {
   if (!currentRoom) return null;
 
   const activeKicked = kickedList.filter(k => k.expiresAt > Date.now());
+  const channelOnlineUsers = onlineUsers.filter((user) => user.roomId === currentRoom).sort((a, b) => {
+    if (a.userId === myUserId) return -1;
+    if (b.userId === myUserId) return 1;
+    if (a.isAdmin !== b.isAdmin) return a.isAdmin ? -1 : 1;
+    return a.nickname.localeCompare(b.nickname, 'zh-CN');
+  });
+
+  const confirmBan = () => {
+    if (!banTarget) return;
+    const socket = getSocket();
+    if (!socket) return showToast('连接已断开', 'error');
+    const cleanup = () => { socket.off(EVENTS.SERVER.ADMIN_BANNED, onBanned); socket.off(EVENTS.SERVER.ERROR, onError); };
+    const onBanned = (data: { deviceId: string }) => {
+      if (data.deviceId !== banTarget.deviceId) return;
+      cleanup(); setBanTarget(null); showToast('用户已封禁', 'success');
+    };
+    const onError = (data: { event?: string; message?: string }) => {
+      if (data.event !== EVENTS.CLIENT.ADMIN_BAN) return;
+      cleanup(); showToast(data.message || '封禁失败', 'error');
+    };
+    socket.on(EVENTS.SERVER.ADMIN_BANNED, onBanned);
+    socket.on(EVENTS.SERVER.ERROR, onError);
+    socket.emit(EVENTS.CLIENT.ADMIN_BAN, { targetDeviceId: banTarget.deviceId, reason: '管理员封禁' });
+  };
 
   return (
     <div className="min-h-[100dvh] relative">
@@ -783,8 +814,41 @@ export const RoomPanel: React.FC = () => {
         )}
 
         <div className="glass-panel p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-white">本频道成员</h3>
+              <p className="mt-0.5 text-xs text-gray-500">{channelOnlineUsers.length} 人在频道内 · {channelOnlineUsers.filter((user) => user.inVoice).length} 人正在语音</p>
+            </div>
+          </div>
+          <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {channelOnlineUsers.map((user) => {
+              const isSelf = user.userId === myUserId;
+              return <div key={user.socketId} className={`glass-card flex items-center gap-2 px-3 py-2 ${isSelf ? 'border-primary-500/40' : ''}`}>
+                <span className={`h-2 w-2 shrink-0 rounded-full ${user.inVoice ? 'bg-green-400' : 'bg-gray-500'}`} />
+                <span className="min-w-0 flex-1 truncate text-sm text-white">{user.nickname}{isSelf ? '（你）' : ''}</span>
+                {user.isAdmin && <span className="rounded bg-primary-500/20 px-1 py-0.5 text-[9px] text-primary-300">管理员</span>}
+                <span className={`text-[10px] ${user.inVoice ? 'text-green-400' : 'text-gray-500'}`}>{user.inVoice ? '语音中' : '仅在频道'}</span>
+                {isAdmin && !isSelf && !user.isAdmin && <button type="button" onClick={() => setBanTarget(user)} className="text-[10px] text-red-400 hover:text-red-300">封禁</button>}
+              </div>;
+            })}
+          </div>
           <UserGrid />
         </div>
+
+        {isVoiceConnected && (
+          <div className="mt-4 flex flex-wrap justify-center gap-2" aria-label="发送表情">
+            {['👍', '👏', '❤️', '😂', '🎉', '🤔', '👋', '🔥'].map((emoji) => (
+              <button key={emoji} type="button" onClick={() => getSocket()?.emit(EVENTS.CLIENT.EMOJI_SEND, { emoji })} className="glass-card px-2 py-1 text-lg transition-transform hover:scale-110" title={`发送 ${emoji}`}>{emoji}</button>
+            ))}
+          </div>
+        )}
+
+        <section className="glass-panel mt-4 p-3" aria-label="频道动态日志">
+          <h3 className="mb-2 text-sm font-semibold text-white">频道动态</h3>
+          <div className="max-h-36 space-y-1 overflow-y-auto text-xs text-gray-500">
+            {activityLogs.length === 0 ? <p>进入频道后将在这里显示动态</p> : activityLogs.map((log) => <p key={log.id}><span className="mr-2 text-gray-600">{new Date(log.time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>{log.message}</p>)}
+          </div>
+        </section>
 
         <div className="flex justify-center mt-4">
           <button
@@ -804,6 +868,21 @@ export const RoomPanel: React.FC = () => {
             复制频道分享链接
           </button>
         </div>
+
+        {isVoiceConnected && (
+          <div className="mt-4 flex justify-center">
+            <div className="glass-card flex items-center gap-3 px-3 py-1.5 text-[11px] text-gray-500" title="基于 WebRTC 发送统计的本地网络质量">
+              <span>发送质量：<span className="text-gray-300">{audioQuality.quality}</span></span>
+              <span>丢包 {audioQuality.loss.toFixed(1)}%</span>
+              <span>延迟 {Math.round(audioQuality.rtt)}ms</span>
+              <span>{Math.round(audioQuality.bitrate / 1000)}kbps</span>
+            </div>
+          </div>
+        )}
+
+        <footer className="mt-8 mb-20 text-center text-[11px] text-gray-500 sm:mb-2" aria-label="版本信息">
+          {version || '2026.05.24.v1'}
+        </footer>
       </div>
 
       {showShareModal && (
@@ -846,6 +925,7 @@ export const RoomPanel: React.FC = () => {
           voiceChangerGlobalEnabled={voiceChangerGlobalEnabled}
         />
       )}
+      {banTarget && <ConfirmModal title="封禁用户" message={`确定封禁“${banTarget.nickname}”吗？该用户将被强制下线。`} onCancel={() => setBanTarget(null)} onConfirm={confirmBan} />}
     </div>
   );
 };

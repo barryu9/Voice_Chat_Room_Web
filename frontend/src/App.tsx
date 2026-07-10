@@ -14,6 +14,7 @@ import { RoomPanel } from './components/room/RoomPanel';
 import { ToastContainer, showToast } from './components/common/Toast';
 import { useTheme } from './hooks/useTheme';
 import { clearChannelUrlParam } from './utils/helpers';
+import { OnlineMembersPanel } from './components/common/OnlineMembersPanel';
 
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then((module) => ({ default: module.AdminPanel })));
 
@@ -186,7 +187,10 @@ const App: React.FC = () => {
 
   return (
     <>
-      {currentRoom ? <RoomPanel /> : <Lobby />}
+      {isLoggedIn && <OnlineMembersPanel />}
+      <div className={isLoggedIn ? 'lg:pl-64' : ''}>
+        {currentRoom ? <RoomPanel /> : <Lobby />}
+      </div>
       <Suspense fallback={null}><AdminPanel /></Suspense>
       <ToastContainer />
     </>

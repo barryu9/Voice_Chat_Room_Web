@@ -33,6 +33,7 @@ interface MediaState {
   voiceReconnectPending: boolean;
   voiceReconnectTargetRoom: string | null;
   voiceReconnectRoomReady: boolean;
+  audioQuality: { loss: number; rtt: number; bitrate: number; quality: string };
 
   setProducerTransport: (t: any) => void;
   setConsumerTransport: (t: any) => void;
@@ -67,6 +68,7 @@ interface MediaState {
   requestVoiceReconnect: (roomId: string) => void;
   setVoiceReconnectRoomReady: (ready: boolean) => void;
   clearVoiceReconnect: () => void;
+  setAudioQuality: (value: { loss: number; rtt: number; bitrate: number; quality: string }) => void;
   resetVoice: () => void;
   reset: () => void;
 }
@@ -115,6 +117,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   voiceReconnectPending: false,
   voiceReconnectTargetRoom: null,
   voiceReconnectRoomReady: false,
+  audioQuality: { loss: 0, rtt: 0, bitrate: 64000, quality: '检测中' },
 
   setProducerTransport: (t) => set({ producerTransport: t }),
   setConsumerTransport: (t) => set({ consumerTransport: t }),
@@ -229,6 +232,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
   requestVoiceReconnect: (roomId) => set({ voiceReconnectPending: true, voiceReconnectTargetRoom: roomId, voiceReconnectRoomReady: false }),
   setVoiceReconnectRoomReady: (ready) => set({ voiceReconnectRoomReady: ready }),
   clearVoiceReconnect: () => set({ voiceReconnectPending: false, voiceReconnectTargetRoom: null, voiceReconnectRoomReady: false }),
+  setAudioQuality: (audioQuality) => set({ audioQuality }),
 
   toggleMuteUser: (deviceId) =>
     set((s) => {
@@ -251,6 +255,7 @@ export const useMediaStore = create<MediaState>((set, get) => ({
       consumingProducerIds: new Set(),
       isMicMuted: false,
       isVoiceConnected: false,
+      audioQuality: { loss: 0, rtt: 0, bitrate: 64000, quality: '检测中' },
     }),
 
   reset: () =>

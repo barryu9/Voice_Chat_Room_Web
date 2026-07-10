@@ -8,18 +8,14 @@ function getQualityName(bitrate?: number): string {
 }
 
 function fmtStatus(channel: Channel): string | null {
-  const isUserChannel = channel.type === 'user';
-  if (channel.voiceCount != null && channel.voiceCount > 0) {
-    return `${channel.voiceCount} 人正在语音中`;
-  }
-  if (isUserChannel) {
-    return null;
-  }
-  if (!channel.lastActivityAt && (channel.onlineCount ?? 0) === 0) return null;
+  const online = channel.onlineCount ?? 0;
+  const voice = channel.voiceCount ?? 0;
+  if (online > 0) return `${online} 人在线 · ${voice} 人语音中`;
+  if (!channel.lastActivityAt) return '暂无人在线';
   const elapsed = (Date.now() - new Date(channel.lastActivityAt || Date.now()).getTime()) / 1000;
   if (elapsed < 60) return '刚刚活跃';
-  const mins = Math.min(Math.ceil(elapsed / 60), 60);
-  return `${mins} 分钟前活跃`;
+  const mins = Math.ceil(elapsed / 60);
+  return mins <= 60 ? `${mins} 分钟前有人来过` : '暂无人在线';
 }
 
 interface ChannelCardProps {
@@ -120,10 +116,10 @@ export const ChannelCard: React.FC<ChannelCardProps> = ({
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <span>{displayOnline}/{displayMax}</span>
+            <span>{displayOnline}/{displayMax} 在线</span>
           </div>
           {status && (
-            <span className={`${channel.voiceCount && channel.voiceCount > 0 ? 'text-green-400' : isUserChannel ? 'text-orange-400' : 'text-gray-500'}`}>
+            <span className={`${channel.voiceCount && channel.voiceCount > 0 ? 'text-green-400' : 'text-gray-500'}`}>
               {status}
             </span>
           )}

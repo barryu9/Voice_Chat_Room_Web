@@ -19,6 +19,7 @@ import {
 } from '../services/audioService';
 import { EVENTS } from '../utils/constants';
 import { getUserAudioStream } from './useDevices';
+import { startAudioQualityMonitor, stopAudioQualityMonitor } from '../services/audioQualityService';
 
 export function useMediasoup() {
   const deviceRef = useRef<mediasoup.Device | null>(null);
@@ -53,6 +54,7 @@ export function useMediasoup() {
     const producerTrack = processedStream ? processedStream.getAudioTracks()[0] : track;
     const producer = await transport.produce({ track: producerTrack });
     useMediaStore.getState().setProducer(producer);
+    startAudioQualityMonitor(producer);
 
     return true;
   }, []);
@@ -141,6 +143,7 @@ export function useMediasoup() {
   }, []);
 
   const stopProduce = useCallback(() => {
+    stopAudioQualityMonitor();
     if (cleanupRef.current) {
       cleanupRef.current();
       cleanupRef.current = null;

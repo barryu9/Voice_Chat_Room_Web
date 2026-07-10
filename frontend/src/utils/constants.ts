@@ -6,6 +6,7 @@ export const EVENTS = {
     ROOM_JOIN:             'room:join',
     ROOM_LEAVE:            'room:leave',
     ROOM_USERS:            'room:users',
+    ONLINE_USERS_GET:      'online-users:get',
     RTP_GET_CAPABILITIES:  'rtp:getCapabilities',
     TRANSPORT_CREATE:      'transport:create',
     TRANSPORT_CONNECT:     'transport:connect',
@@ -15,6 +16,7 @@ export const EVENTS = {
     CONSUMER_PAUSE:        'consumer:pause',
     CONSUMER_RESUME:       'consumer:resume',
     USER_MUTE_SELF:        'user:mute-self',
+    EMOJI_SEND:            'emoji:send',
     ADMIN_AUTH:            'admin:auth',
     ADMIN_CHANNEL_CREATE:  'admin:channel-create',
     ADMIN_CHANNEL_UPDATE:  'admin:channel-update',
@@ -49,6 +51,8 @@ export const EVENTS = {
     USER_RECONNECTED:    'room:user-reconnected',
     ROOM_INFO_UPDATED:   'room:info-updated',
     ROOM_ONLINE_UPDATED: 'room:online-updated',
+    ONLINE_USERS:        'online-users',
+    ADMIN_BANNED:        'admin:banned',
     ANNOUNCEMENT:        'announcement',
     RTP_CAPABILITIES:    'rtp:capabilities',
     TRANSPORT_CREATED:   'transport:created',
@@ -60,6 +64,7 @@ export const EVENTS = {
     CONSUMER_PAUSED:     'consumer:paused',
     ACTIVE_SPEAKER:      'active-speaker',
     SELF_MUTED:          'self:muted',
+    EMOJI_RECEIVED:      'emoji:received',
     TARGET_MUTED:        'target:muted',
     TARGET_UNMUTED:      'target:unmuted',
     ERROR:               'error',
@@ -116,4 +121,14 @@ export type UserInfo = {
   nickname: string;
   deviceId: string;
   reconnecting?: boolean;
+};
+
+export type OnlineUser = {
+  socketId: string;
+  userId: string;
+  nickname: string;
+  deviceId: string;
+  roomId: string | null;
+  inVoice: boolean;
+  isAdmin: boolean;
 };

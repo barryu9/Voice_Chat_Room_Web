@@ -1,8 +1,9 @@
 const { getRoom, broadcastAllRoomOnlineCounts } = require('../../mediasoup/roomManager');
-const { getConnection } = require('./connection');
+const { getConnection, broadcastOnlineUsers } = require('./connection');
 const { EVENTS } = require('../events');
 
 function handleProducerEvents(socket, io) {
+  let lastEmojiAt = 0;
 
   socket.on(EVENTS.CLIENT.PRODUCER_CREATE, async ({ transportId, kind, rtpParameters }) => {
     const conn = getConnection(socket.id);
@@ -63,6 +64,7 @@ function handleProducerEvents(socket, io) {
       }
       conn.suppressNextVoiceJoin = false;
       broadcastAllRoomOnlineCounts(io);
+      broadcastOnlineUsers(io);
     }
 
     producer.on('transportclose', () => {
@@ -84,6 +86,7 @@ function handleProducerEvents(socket, io) {
           reason: 'disconnect',
         });
         broadcastAllRoomOnlineCounts(io);
+        broadcastOnlineUsers(io);
       }
     });
   });
@@ -123,6 +126,7 @@ function handleProducerEvents(socket, io) {
         reason: 'leave',
       });
       broadcastAllRoomOnlineCounts(io);
+      broadcastOnlineUsers(io);
     }
   });
 
@@ -163,6 +167,16 @@ function handleProducerEvents(socket, io) {
       deviceId: conn.deviceId,
       muted,
     });
+  });
+
+  socket.on(EVENTS.CLIENT.EMOJI_SEND, ({ emoji }) => {
+    const conn = getConnection(socket.id);
+    const allowed = new Set(['👍', '👏', '❤️', '😂', '🎉', '🤔', '👋', '🔥']);
+    if (!conn?.currentRoom || !allowed.has(emoji) || Date.now() - lastEmojiAt < 2000) return;
+    const room = getRoom(conn.currentRoom);
+    if (!room || room.getProducersForUser(socket.id).length === 0) return;
+    lastEmojiAt = Date.now();
+    room.broadcast(conn.currentRoom, EVENTS.SERVER.EMOJI_RECEIVED, { deviceId: conn.deviceId, nickname: conn.nickname, emoji });
   });
 }
 

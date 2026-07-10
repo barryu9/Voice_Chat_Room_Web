@@ -1,5 +1,5 @@
 const { getRoom, getRooms, broadcastAllRoomOnlineCounts, removeRoom } = require('../../mediasoup/roomManager');
-const { getConnection } = require('./connection');
+const { getConnection, broadcastOnlineUsers } = require('./connection');
 const { EVENTS } = require('../events');
 
 const autoDeleteTimers = new Map();
@@ -167,6 +167,7 @@ function handleRoomEvents(socket, io) {
     }
 
     broadcastAllRoomOnlineCounts(io);
+    broadcastOnlineUsers(io);
   });
 
   // Voice changer status relay
@@ -245,6 +246,7 @@ function leaveCurrentRoom(socket, io) {
 
   conn.currentRoom = null;
   broadcastAllRoomOnlineCounts(io);
+  broadcastOnlineUsers(io);
 
   console.log(`[AutoDelete] leaveCurrentRoom: roomId=${roomId}, users.size=${room.users.size}`);
   if (room.users.size === 0) {

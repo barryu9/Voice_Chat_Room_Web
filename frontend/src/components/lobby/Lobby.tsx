@@ -34,6 +34,7 @@ export const Lobby: React.FC = () => {
   const setNotification = useRoomStore((s) => s.setNotification);
   const announcements = useRoomStore((s) => s.announcements);
   const siteName = useRoomStore((s) => s.siteName);
+  const version = useRoomStore((s) => s.version);
   const pendingChannelId = useRoomStore((s) => s.pendingChannelId);
   const setPendingChannelId = useRoomStore((s) => s.setPendingChannelId);
   const showAdmin = useAdminStore((s) => s.isAdmin);
@@ -305,6 +306,10 @@ export const Lobby: React.FC = () => {
             )}
           </>
         )}
+
+        <footer className="mt-10 pb-2 text-center text-[11px] text-gray-500" aria-label="版本信息">
+          {version || '2026.05.24.v1'}
+        </footer>
       </div>
 
       {editingNickname && (

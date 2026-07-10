@@ -16,6 +16,9 @@ export function getAudioInputConstraints(deviceId?: string, options: StreamOptio
   const echoCancellation = options.echoCancellation ?? useMediaStore.getState().echoCancellationEnabled;
   return {
     deviceId: deviceId ? { exact: deviceId } : undefined,
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 },
+    sampleSize: { ideal: 16 },
     echoCancellation,
     noiseSuppression: false,
     autoGainControl: false,

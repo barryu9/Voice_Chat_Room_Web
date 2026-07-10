@@ -31,6 +31,7 @@ function handleAdminEvents(socket, io) {
     const conn = getConnection(socket.id);
     const success = authenticate(password, socket.id, conn?.deviceId || '');
     socket.emit(EVENTS.SERVER.ADMIN_AUTH_RESULT, { success, message: success ? 'Authenticated' : 'Wrong password' });
+    if (success) require('./connection').broadcastOnlineUsers(io);
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_CHANNEL_CREATE, async ({ name, maxUsers, roomId, sortOrder, audioBitrate, password, voiceChangerEnabled }) => {
@@ -311,20 +312,17 @@ function handleAdminEvents(socket, io) {
     let foundTarget = false;
     let targetIsAdmin = false;
     const socketsToDisconnect = [];
-    for (const [, room] of require('../../mediasoup/roomManager').getRooms()) {
-      for (const [sid, user] of room.users) {
-        if (user.deviceId === targetDeviceId) {
-          foundTarget = true;
-          if (isUserIdAdmin(user.userId)) { targetIsAdmin = true; continue; }
-          const targetSocket = io.sockets.sockets.get(sid);
-          if (targetSocket) {
-            const conn = getConnection(sid);
-            targetNickname = conn?.nickname || '';
-            leaveCurrentRoom(targetSocket, io);
-            targetSocket.emit(EVENTS.SERVER.BANNED, { reason: '你已被封禁' });
-            socketsToDisconnect.push(targetSocket);
-          }
-        }
+    const { getConnections } = require('./connection');
+    for (const [sid, targetConn] of getConnections()) {
+      if (targetConn.deviceId !== targetDeviceId || targetConn.disconnected) continue;
+      foundTarget = true;
+      if (isUserIdAdmin(targetConn.userId)) { targetIsAdmin = true; continue; }
+      const targetSocket = io.sockets.sockets.get(sid);
+      targetNickname = targetConn.nickname || '';
+      if (targetSocket) {
+        leaveCurrentRoom(targetSocket, io);
+        targetSocket.emit(EVENTS.SERVER.BANNED, { reason: '你已被封禁' });
+        socketsToDisconnect.push(targetSocket);
       }
     }
 
@@ -336,7 +334,8 @@ function handleAdminEvents(socket, io) {
     for (const ts of socketsToDisconnect) ts.disconnect(true);
 
     await addBan(targetDeviceId, targetNickname, reason || '违反规则');
-    socket.emit(EVENTS.SERVER.ANNOUNCEMENT, { message: '已封禁用户', type: 'warning' });
+    require('./connection').broadcastOnlineUsers(io);
+    socket.emit(EVENTS.SERVER.ADMIN_BANNED, { deviceId: targetDeviceId });
   });
 
   socket.on(EVENTS.CLIENT.ADMIN_UNBAN, async ({ deviceId }) => {

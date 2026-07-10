@@ -173,7 +173,7 @@ async function updateUserChannel(roomId, deviceId, updates) {
 }
 
 async function refreshActivity(roomId) {
-  await Channel.updateOne({ roomId, type: 'user' }, { $set: { lastActivityAt: new Date() } });
+  await Channel.updateOne({ roomId }, { $set: { lastActivityAt: new Date() } });
 }
 
 async function deleteUserChannel(roomId) {

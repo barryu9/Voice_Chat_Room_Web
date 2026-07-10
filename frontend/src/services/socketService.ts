@@ -213,6 +213,8 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.ROOM_USERS, (data) => {
     useUserStore.getState().setCurrentRoom(data.roomId);
     useRoomStore.getState().setRoomUsers(data.users || []);
+    useRoomStore.getState().clearActivityLogs();
+    useRoomStore.getState().addActivityLog('已进入频道，开始记录本频道动态');
     const { voiceReconnectPending, voiceReconnectTargetRoom } = useMediaStore.getState();
     if (voiceReconnectPending && voiceReconnectTargetRoom === data.roomId) {
       useMediaStore.getState().setVoiceReconnectRoomReady(true);
@@ -227,6 +229,7 @@ function registerListeners() {
 
   socket.on(EVENTS.SERVER.USER_JOINED, (data) => {
     useRoomStore.getState().addUser(data);
+    useRoomStore.getState().addActivityLog(`${data.nickname} 加入了语音`);
     if (data.userId !== useUserStore.getState().userId && !recentlyReconnectedUsers.has(data.userId)) {
       playSound('otherJoined');
     }
@@ -235,6 +238,7 @@ function registerListeners() {
   socket.on(EVENTS.SERVER.USER_LEFT, (data) => {
     useRoomStore.getState().removeUser(data.userId);
     useRoomStore.getState().removeVcState(data.deviceId);
+    useRoomStore.getState().addActivityLog(`${data.nickname} 离开了语音`);
     if (data.userId !== useUserStore.getState().userId && data.reason !== 'disconnect') {
       playSound('otherLeft');
     }
@@ -379,6 +383,13 @@ function registerListeners() {
     store.setActiveSpeaker(data.deviceId, -100, false);
     const timer = speakerExpiryTimers.get(data.deviceId);
     if (timer) { clearTimeout(timer); speakerExpiryTimers.delete(data.deviceId); }
+    useRoomStore.getState().addActivityLog(`${data.muted ? '一位成员关闭了麦克风' : '一位成员打开了麦克风'}`);
+  });
+
+  socket.on(EVENTS.SERVER.EMOJI_RECEIVED, (data: { deviceId: string; nickname: string; emoji: string }) => {
+    useRoomStore.getState().setEmoji(data.deviceId, data.emoji);
+    useRoomStore.getState().addActivityLog(`${data.nickname} 发送了 ${data.emoji}`);
+    window.setTimeout(() => useRoomStore.getState().setEmoji(data.deviceId, ''), 4000);
   });
 
   socket.on(EVENTS.SERVER.NEW_PRODUCER, (data) => {
@@ -397,6 +408,10 @@ function registerListeners() {
     if (data.userId !== useUserStore.getState().userId && data.reason === 'disconnect' && !user?.reconnecting) {
       playSound('otherDisconnected');
     }
+  });
+
+  socket.on(EVENTS.SERVER.ONLINE_USERS, (data: { users: import('../utils/constants').OnlineUser[] }) => {
+    useRoomStore.getState().setOnlineUsers(data.users || []);
   });
 
   socket.on(EVENTS.SERVER.ADMIN_AUTH_RESULT, (data) => {
