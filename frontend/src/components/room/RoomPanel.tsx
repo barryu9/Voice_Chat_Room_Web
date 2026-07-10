@@ -22,6 +22,7 @@ import { TechBackground } from '../common/TechBackground';
 import { SettingsPanel } from '../common/SettingsPanel';
 import { EditUserChannelModal } from '../lobby/EditUserChannelModal';
 import { VoicePreviewModal } from '../audio/VoicePreviewModal';
+import { VoicePreflightModal } from '../audio/VoicePreflightModal';
 import { LatencyIndicator } from './LatencyIndicator';
 import { EVENTS, getAudioQualityLabel } from '../../utils/constants';
 import { clearChannelUrlParam } from '../../utils/helpers';
@@ -62,6 +63,7 @@ export const RoomPanel: React.FC = () => {
   const { selectedInput, setSelectedInput, audioInputs, audioOutputs, selectedOutput, setSelectedOutput, getTrack, getStream } = useDevices();
 
   const [connecting, setConnecting] = useState(false);
+  const [showPreflight, setShowPreflight] = useState(false);
   const [duration, setDuration] = useState(0);
   const [callSessionActive, setCallSessionActive] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -262,6 +264,7 @@ export const RoomPanel: React.FC = () => {
 
   const handleDeviceChange = useCallback(async (deviceId: string) => {
     setSelectedInput(deviceId);
+    if (!isVoiceConnected) return;
     try {
       const stream = await getStream(deviceId);
       const gatedTrack = await switchStream(stream);
@@ -271,7 +274,7 @@ export const RoomPanel: React.FC = () => {
     } catch (e) {
       console.warn('[RoomPanel] device switch failed:', e);
     }
-  }, [setSelectedInput, getStream, switchStream, replaceTrack]);
+  }, [setSelectedInput, isVoiceConnected, getStream, switchStream, replaceTrack]);
 
   const recoverMicInput = useCallback(async (forceRefresh = false) => {
     if (!isVoiceConnected || connectionState !== 'connected') return;
@@ -339,13 +342,14 @@ export const RoomPanel: React.FC = () => {
         recoverMicInput();
         return;
       }
-      backgroundSinceRef.current = null;
+      const wasHiddenTooLong = backgroundSinceRef.current != null && Date.now() - backgroundSinceRef.current >= 30000;
       setNoiseGateBackgroundBypass(false);
-      recoverMicInput(true);
+      recoverMicInput(wasHiddenTooLong);
+      backgroundSinceRef.current = null;
     };
 
-    const handleFocus = () => recoverMicInput(true);
-    const handlePageShow = () => recoverMicInput(true);
+    const handleFocus = () => recoverMicInput();
+    const handlePageShow = () => recoverMicInput();
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
@@ -735,7 +739,7 @@ export const RoomPanel: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={handleVoiceConnect}
+              onClick={() => setShowPreflight(true)}
               disabled={connecting}
               className="semantic-green-button disabled:from-gray-700 disabled:to-gray-700 disabled:text-gray-500 text-sm font-medium px-5 py-2.5 rounded-xl transition-all active:scale-95"
             >
@@ -811,6 +815,14 @@ export const RoomPanel: React.FC = () => {
 
       {showVoicePreview && (
         <VoicePreviewModal onClose={() => setShowVoicePreview(false)} />
+      )}
+
+      {showPreflight && (
+        <VoicePreflightModal
+          selectedInput={selectedInput}
+          onClose={() => setShowPreflight(false)}
+          onContinue={() => { setShowPreflight(false); handleVoiceConnect(); }}
+        />
       )}
 
       {showEditModal && currentChannel && (

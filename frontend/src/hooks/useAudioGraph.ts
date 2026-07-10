@@ -9,6 +9,7 @@ import {
 import { initVoiceChanger, destroyVoiceChanger } from '../services/voiceChangerService';
 
 export function useAudioGraph() {
+  const isVoiceConnected = useMediaStore((s) => s.isVoiceConnected);
   const [gain, setGain] = useState(() => {
     const saved = localStorage.getItem('vc_gain');
     return saved ? parseFloat(saved) : 1.0;
@@ -57,6 +58,10 @@ export function useAudioGraph() {
   }, []);
 
   useEffect(() => {
+    if (!isVoiceConnected) {
+      setAudioLevel(-100);
+      return;
+    }
     const updateMeter = () => {
       const level = getAudioLevel();
       setAudioLevel(level);
@@ -65,14 +70,14 @@ export function useAudioGraph() {
     };
 
     updateMeter();
-    meterTimerRef.current = window.setInterval(updateMeter, 50);
+    meterTimerRef.current = window.setInterval(updateMeter, 100);
     return () => {
       if (meterTimerRef.current) {
         window.clearInterval(meterTimerRef.current);
         meterTimerRef.current = null;
       }
     };
-  }, [threshold]);
+  }, [threshold, isVoiceConnected]);
 
   useEffect(() => {
     const recoverAudio = async () => {
@@ -106,7 +111,7 @@ export function useAudioGraph() {
   }, []);
 
   const switchStream = useCallback(async (stream: MediaStream) => {
-    cleanupLocalAudio();
+    cleanupLocalAudio({ preserveRnnoise: true });
     await setupLocalAudioGraph(stream);
     return getProcessedStream()?.getAudioTracks()[0] || null;
   }, []);

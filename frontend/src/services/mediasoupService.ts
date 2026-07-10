@@ -130,18 +130,36 @@ export async function createProducerTransport(device: mediasoup.Device): Promise
     cb();
   });
 
-  transport.on('produce', async ({ kind, rtpParameters }: any, cb: any) => {
-    getSocket()?.emit(EVENTS.CLIENT.PRODUCER_CREATE, {
-      transportId: params.transportId,
-      kind,
-      rtpParameters,
-    });
+  transport.on('produce', ({ kind, rtpParameters }: any, cb: any, errback: (error: Error) => void) => {
+    const socket = getSocket();
+    if (!socket) {
+      errback(new Error('Socket not connected'));
+      return;
+    }
 
-    const onCreated = (data: any) => {
-      getSocket()?.off(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
-      cb({ id: data.producerId });
+    let settled = false;
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      socket.off(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
+      socket.off(EVENTS.SERVER.ERROR, onError);
     };
-    getSocket()?.on(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      fn();
+    };
+    const onCreated = (data: any) => finish(() => cb({ id: data.producerId }));
+    const onError = (data: any) => {
+      if (data.event === EVENTS.CLIENT.PRODUCER_CREATE) {
+        finish(() => errback(new Error(data.message || '创建音频流失败')));
+      }
+    };
+    const timeoutId = setTimeout(() => finish(() => errback(new Error('创建音频流超时'))), JOIN_TIMEOUT_MS);
+
+    socket.on(EVENTS.SERVER.PRODUCER_CREATED, onCreated);
+    socket.on(EVENTS.SERVER.ERROR, onError);
+    socket.emit(EVENTS.CLIENT.PRODUCER_CREATE, { transportId: params.transportId, kind, rtpParameters });
   });
 
   watchTransportConnection(transport, 'producer');

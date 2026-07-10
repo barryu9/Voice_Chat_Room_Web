@@ -17,7 +17,7 @@ export async function createNoiseSuppressor(ctx: AudioContext): Promise<{
   connectOutput: (target: AudioNode) => void;
   disconnectOutput: () => void;
 } | null> {
-  if (initialized) return buildGraph(ctx);
+  if (initialized) return getGraph();
 
   try {
     const assets = rnnoise_loadAssets({
@@ -46,6 +46,16 @@ function buildGraph(ctx: AudioContext): {
   noiseGain.gain.value = noiseEnabled ? COMPENSATION_GAIN : 0;
 
   rnnoiseNode.connect(noiseGain);
+
+  return getGraph();
+}
+
+function getGraph(): {
+  inputNode: AudioNode;
+  connectOutput: (target: AudioNode) => void;
+  disconnectOutput: () => void;
+} | null {
+  if (!rnnoiseNode || !noiseGain) return null;
 
   return {
     inputNode: rnnoiseNode,

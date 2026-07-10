@@ -1,10 +1,12 @@
 const SiteSettings = require('../../models/SiteSettings');
+const mongoose = require('mongoose');
 const { isAdmin, authenticate, removeAdmin, isUserIdAdmin } = require('../../services/adminService');
 const { isBanned, addBan, removeBan, getBanList } = require('../../services/banService');
 const { muteUsers, unmuteUsers, isUserMuted, getMutedList } = require('../../services/muteService');
 const { kickUser, unkickUser, isKicked, getKickedList } = require('../../services/kickService');
 const { createChannel, updateChannel, deleteChannel, getSiteName, serializeChannel, serializeChannels } = require('../../services/channelService');
-const { getRoom, createRoom, removeRoom } = require('../../mediasoup/roomManager');
+const { getRoom, getRooms, createRoom, removeRoom, renameRoom } = require('../../mediasoup/roomManager');
+const { getWorker } = require('../../mediasoup/mediasoupManager');
 const { getConnection } = require('./connection');
 const { leaveCurrentRoom } = require('./roomHandler');
 const { EVENTS } = require('../events');
@@ -57,11 +59,27 @@ function handleAdminEvents(socket, io) {
     if (!isAdmin(socket.id)) return;
 
     try {
-      const channel = await updateChannel(roomId, { name, maxUsers, newRoomId, sortOrder, audioBitrate, password, voiceChangerEnabled });
+      const targetRoomId = newRoomId?.trim() || roomId;
+      if (targetRoomId !== roomId && getRoom(targetRoomId)) {
+        throw new Error('目标频道 ID 已被占用');
+      }
+      const previousRoom = getRoom(roomId);
+      const channel = await updateChannel(roomId, {
+        name, maxUsers, newRoomId: targetRoomId !== roomId ? targetRoomId : undefined,
+        sortOrder, audioBitrate, password, voiceChangerEnabled,
+      });
       if (!channel) return;
 
-      const effectiveRoomId = newRoomId || roomId;
-      const room = getRoom(effectiveRoomId);
+      const room = targetRoomId !== roomId ? renameRoom(roomId, targetRoomId, io) : previousRoom;
+      if (targetRoomId !== roomId && previousRoom && !room) {
+        throw new Error('频道运行时迁移失败');
+      }
+      if (room && targetRoomId !== roomId) {
+        for (const socketId of room.users.keys()) {
+          const connection = getConnection(socketId);
+          if (connection) connection.currentRoom = targetRoomId;
+        }
+      }
       if (room) {
         room.name = channel.name;
         room.maxUsers = channel.maxUsers;
@@ -69,7 +87,7 @@ function handleAdminEvents(socket, io) {
       }
 
       io.emit(EVENTS.SERVER.ROOM_INFO_UPDATED, {
-        roomId, newRoomId: newRoomId || roomId,
+        roomId, newRoomId: targetRoomId,
         name: channel.name, maxUsers: channel.maxUsers,
         sortOrder: channel.sortOrder, audioBitrate: channel.audioBitrate,
         hasPassword: !!channel.password, voiceChangerEnabled: channel.voiceChangerEnabled,
@@ -137,6 +155,29 @@ function handleAdminEvents(socket, io) {
     const { getAllConfig } = require('../../services/configService');
     const config = await getAllConfig();
     socket.emit('admin:config-list', { config });
+  });
+
+  socket.on(EVENTS.CLIENT.ADMIN_DIAGNOSTICS_GET, () => {
+    if (!isAdmin(socket.id)) return;
+    const totals = { rooms: 0, roomUsers: 0, voiceUsers: 0, transports: 0, producers: 0, consumers: 0 };
+    const rooms = [];
+    for (const room of getRooms().values()) {
+      const entry = { roomId: room.roomId, name: room.name, users: room.users.size, voiceUsers: room.getVoiceUserCount(), transports: room.transports.size, producers: room.producers.size, consumers: room.consumers.size };
+      totals.rooms += 1;
+      totals.roomUsers += entry.users;
+      totals.voiceUsers += entry.voiceUsers;
+      totals.transports += entry.transports;
+      totals.producers += entry.producers;
+      totals.consumers += entry.consumers;
+      rooms.push(entry);
+    }
+    const memory = process.memoryUsage();
+    socket.emit(EVENTS.SERVER.ADMIN_DIAGNOSTICS, {
+      generatedAt: new Date().toISOString(), uptimeSeconds: Math.floor(process.uptime()),
+      memory: { rss: memory.rss, heapUsed: memory.heapUsed, heapTotal: memory.heapTotal },
+      socketCount: io.of('/').sockets.size, workerPid: getWorker()?.pid ?? null,
+      databaseState: mongoose.connection.readyState, totals, rooms,
+    });
   });
 
   socket.on('user:channel-config', async () => {

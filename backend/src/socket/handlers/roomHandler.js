@@ -5,29 +5,34 @@ const { EVENTS } = require('../events');
 const autoDeleteTimers = new Map();
 
 async function startAutoDelete(roomId, io) {
-  autoDeleteTimers.set(roomId, true);
-  try {
-    const room = getRoom(roomId);
-    if (!room || room.users.size > 0) {
-      autoDeleteTimers.delete(roomId);
-      return;
-    }
-    console.log(`[AutoDelete] Deleting empty user channel ${roomId}...`);
-    const { deleteUserChannel, getAllChannels } = require('../../services/channelService');
+  clearAutoDelete(roomId);
+  const room = getRoom(roomId);
+  if (!room || room.users.size > 0) return;
 
-    if (room) await room.close();
-    await deleteUserChannel(roomId);
-    removeRoom(roomId);
-    const allCh = await getAllChannels();
-    const { serializeChannels } = require('../../services/channelService');
-    io.emit('room:list', { rooms: serializeChannels(allCh) });
-  } catch (e) {
-    console.error(`[AutoDelete] Failed to delete ${roomId}:`, e);
-  }
-  autoDeleteTimers.delete(roomId);
+  const { getConfig } = require('../../services/configService');
+  const minutes = Number(await getConfig('config:user_channel_auto_delete'));
+  const delayMs = Math.max(1, Number.isFinite(minutes) ? minutes : 10) * 60 * 1000;
+  const timer = setTimeout(async () => {
+    autoDeleteTimers.delete(roomId);
+    try {
+      const currentRoom = getRoom(roomId);
+      if (!currentRoom || currentRoom.users.size > 0) return;
+      console.log(`[AutoDelete] Deleting empty user channel ${roomId}...`);
+      const { deleteUserChannel, getAllChannels, serializeChannels } = require('../../services/channelService');
+      await currentRoom.close();
+      await deleteUserChannel(roomId);
+      removeRoom(roomId);
+      io.emit('room:list', { rooms: serializeChannels(await getAllChannels()) });
+    } catch (e) {
+      console.error(`[AutoDelete] Failed to delete ${roomId}:`, e);
+    }
+  }, delayMs);
+  autoDeleteTimers.set(roomId, timer);
 }
 
 function clearAutoDelete(roomId) {
+  const timer = autoDeleteTimers.get(roomId);
+  if (timer) clearTimeout(timer);
   autoDeleteTimers.delete(roomId);
 }
 

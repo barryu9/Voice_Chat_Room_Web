@@ -1,6 +1,7 @@
 const { EVENTS } = require('../socket/events');
 
 async function createAudioLevelObserver(router, roomId, io) {
+  let observedRoomId = roomId;
   const audioLevelObserver = await router.createAudioLevelObserver({
     maxEntries: 3,
     threshold: -65,
@@ -14,14 +15,14 @@ async function createAudioLevelObserver(router, roomId, io) {
       const isSpeaking = level > -55;
 
       const { getRoom } = require('./roomManager');
-      const room = getRoom(roomId);
+      const room = getRoom(observedRoomId);
       if (!room) return;
 
       const producerInfo = room.getProducer(producerId);
       if (!producerInfo) return;
 
-      io.to(roomId).emit(EVENTS.SERVER.ACTIVE_SPEAKER, {
-        roomId,
+      io.to(observedRoomId).emit(EVENTS.SERVER.ACTIVE_SPEAKER, {
+        roomId: observedRoomId,
         deviceId: producerInfo.deviceId,
         level,
         isSpeaking,
@@ -32,6 +33,10 @@ async function createAudioLevelObserver(router, roomId, io) {
   audioLevelObserver.on('silence', () => {
     // silence detected - could broadcast to room if needed
   });
+
+  audioLevelObserver.setRoomId = (nextRoomId) => {
+    observedRoomId = nextRoomId;
+  };
 
   return audioLevelObserver;
 }

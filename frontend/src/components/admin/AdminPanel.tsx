@@ -5,6 +5,7 @@ import { getSocket } from '../../services/socketService';
 import { StepperInput } from '../common/StepperInput';
 import { showToast } from '../common/Toast';
 import { BanList } from './BanList';
+import { DiagnosticsPanel } from './DiagnosticsPanel';
 import { EVENTS, AUDIO_QUALITY_TIERS, getAudioQualityLabel } from '../../utils/constants';
 
 function saveSettingAck(key: string, value: any, successMsg: string) {
@@ -313,7 +314,7 @@ export const AdminPanel: React.FC = () => {
   const setChannels = useRoomStore((s) => s.setChannels);
   const siteName = useRoomStore((s) => s.siteName);
 
-  const [tab, setTab] = useState<'channels' | 'announcement' | 'bans' | 'settings' | 'userchannels'>('channels');
+  const [tab, setTab] = useState<'channels' | 'announcement' | 'bans' | 'settings' | 'userchannels' | 'diagnostics'>('channels');
   const [newName, setNewName] = useState('');
   const [newRoomId, setNewRoomId] = useState('');
   const [newMax, setNewMax] = useState(20);
@@ -556,7 +557,7 @@ export const AdminPanel: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-700/50 px-5 shrink-0">
-          {(['channels', 'announcement', 'bans', 'settings', 'userchannels'] as const).map((t) => (
+          {(['channels', 'announcement', 'bans', 'settings', 'userchannels', 'diagnostics'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -566,7 +567,7 @@ export const AdminPanel: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              {t === 'channels' ? '频道管理' : t === 'announcement' ? '公告设置' : t === 'bans' ? '封禁列表' : t === 'settings' ? '系统设置' : '临时频道'}
+              {t === 'channels' ? '频道管理' : t === 'announcement' ? '公告设置' : t === 'bans' ? '封禁列表' : t === 'settings' ? '系统设置' : t === 'userchannels' ? '临时频道' : '诊断'}
             </button>
           ))}
         </div>
@@ -772,7 +773,8 @@ export const AdminPanel: React.FC = () => {
 
           {tab === 'settings' && <SettingsPanel />}
 
-          {tab === 'userchannels' && <UserChannelSettingsPanel />}
+           {tab === 'userchannels' && <UserChannelSettingsPanel />}
+           {tab === 'diagnostics' && <DiagnosticsPanel />}
 
         </div>
       </div>

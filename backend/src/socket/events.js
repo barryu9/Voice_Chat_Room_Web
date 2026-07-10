@@ -34,6 +34,7 @@ const EVENTS = {
     ADMIN_ANNOUNCEMENT_CREATE:  'admin:announcement-create',
     ADMIN_ANNOUNCEMENT_DELETE:  'admin:announcement-delete',
     ADMIN_CHANNELS_REORDER:     'admin:channels-reorder',
+    ADMIN_DIAGNOSTICS_GET:      'admin:diagnostics-get',
     VC_STATUS:              'voicechanger:status',
   },
 
@@ -66,6 +67,7 @@ const EVENTS = {
     TARGET_MUTED:        'target:muted',
     TARGET_UNMUTED:      'target:unmuted',
     KICKED_LIST:         'admin:kicklist',
+    ADMIN_DIAGNOSTICS:    'admin:diagnostics',
     ERROR:               'error',
     ADMIN_AUTH_RESULT:   'admin:auth-result',
     ADMIN_BANLIST:       'admin:banlist',

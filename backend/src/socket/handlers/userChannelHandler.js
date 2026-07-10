@@ -43,7 +43,7 @@ function handleUserChannelEvents(socket, io) {
     try {
       const ch = await createUserChannel({
         name: data.name.trim(),
-        maxUsers: Math.min(data.maxUsers || 10, maxUsers),
+        maxUsers: Math.max(2, Math.min(Number(data.maxUsers) || 10, Number(maxUsers))),
         audioBitrate: data.audioBitrate || bitrates[0] || 48,
         password: data.password || '',
         voiceChangerEnabled: data.voiceChangerEnabled !== false,
@@ -108,8 +108,30 @@ function handleUserChannelEvents(socket, io) {
       return;
     }
 
+    const maxUsers = Number(await getConfig('config:user_channel_max_users'));
+    if (data.maxUsers !== undefined) {
+      const requestedMaxUsers = Number(data.maxUsers);
+      if (!Number.isInteger(requestedMaxUsers) || requestedMaxUsers < 2 || requestedMaxUsers > maxUsers) {
+        socket.emit('user:channel-error', { message: `人数上限需为 2-${maxUsers}` });
+        return;
+      }
+    }
+
+    const bitrates = (await getConfig('config:user_channel_allowed_bitrates')).toString().split(',').map(Number);
+    if (data.audioBitrate !== undefined && !bitrates.includes(Number(data.audioBitrate))) {
+      socket.emit('user:channel-error', { message: '不支持该音质设置' });
+      return;
+    }
+
     const deviceId = isAdmin(socket.id) ? null : conn.deviceId;
-    const ch = await updateUserChannel(data.roomId, deviceId, data);
+    const updates = {
+      name: data.name?.trim(),
+      maxUsers: data.maxUsers === undefined ? undefined : Number(data.maxUsers),
+      audioBitrate: data.audioBitrate === undefined ? undefined : Number(data.audioBitrate),
+      password: data.password,
+      voiceChangerEnabled: data.voiceChangerEnabled,
+    };
+    const ch = await updateUserChannel(data.roomId, deviceId, updates);
     if (!ch) {
       socket.emit('user:channel-error', { message: '无法修改' });
       return;

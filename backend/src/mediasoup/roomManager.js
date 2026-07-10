@@ -190,6 +190,25 @@ function removeRoom(roomId) {
   rooms.delete(roomId);
 }
 
+function renameRoom(roomId, newRoomId, io) {
+  if (roomId === newRoomId) return rooms.get(roomId) || null;
+  const room = rooms.get(roomId);
+  if (!room || rooms.has(newRoomId)) return null;
+
+  // Socket.IO room membership and the connection's current room must move with
+  // the mediasoup room; changing only the MongoDB channel ID leaves both stale.
+  for (const socketId of room.users.keys()) {
+    const client = io.sockets.sockets.get(socketId);
+    client?.leave(roomId);
+    client?.join(newRoomId);
+  }
+  rooms.delete(roomId);
+  room.roomId = newRoomId;
+  room.audioObserver?.setRoomId?.(newRoomId);
+  rooms.set(newRoomId, room);
+  return room;
+}
+
 async function destroyRoom(roomId) {
   const room = rooms.get(roomId);
   if (room) {
@@ -210,4 +229,4 @@ function broadcastAllRoomOnlineCounts(io) {
   io.emit(EVENTS.SERVER.ROOM_ONLINE_UPDATED, { counts });
 }
 
-module.exports = { rooms, getRooms, getRoom, createRoom, removeRoom, destroyRoom, broadcastAllRoomOnlineCounts };
+module.exports = { rooms, getRooms, getRoom, createRoom, removeRoom, renameRoom, destroyRoom, broadcastAllRoomOnlineCounts };

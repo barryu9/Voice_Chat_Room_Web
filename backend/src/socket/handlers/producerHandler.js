@@ -17,8 +17,15 @@ function handleProducerEvents(socket, io) {
       return;
     }
 
-    const encodings = kind === 'audio' ? [{ maxBitrate: room.audioBitrate * 1000 }] : undefined;
-    const producer = await transport.produce({ kind, rtpParameters, encodings });
+    let producer;
+    try {
+      const encodings = kind === 'audio' ? [{ maxBitrate: room.audioBitrate * 1000 }] : undefined;
+      producer = await transport.produce({ kind, rtpParameters, encodings });
+    } catch (e) {
+      console.error('[Producer] Failed to create producer:', e);
+      socket.emit(EVENTS.SERVER.ERROR, { event: EVENTS.CLIENT.PRODUCER_CREATE, message: '创建音频流失败' });
+      return;
+    }
     const producerInfo = {
       instance: producer,
       socketId: socket.id,
