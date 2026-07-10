@@ -664,7 +664,7 @@ export const RoomPanel: React.FC = () => {
               const url = `${window.location.origin}/?channel=${currentRoom}`;
               navigator.clipboard.writeText(url).then(() => showToast('复制频道分享链接成功', 'success')).catch(() => setShowShareModal(true));
             }} title="分享频道" className="p-3 sm:p-2 rounded-lg bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-all">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342a3 3 0 010-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684m-5.367 12a3 3 0 105.368 2.684" /></svg>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
             </button>
             {installSupported && !isInstalled && <button onClick={installApp} title="安装到桌面" className="p-3 sm:p-2 rounded-lg bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-all"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" /></svg></button>}
             <SettingsPanel />
