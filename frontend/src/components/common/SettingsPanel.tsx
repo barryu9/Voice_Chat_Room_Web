@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSoundStore, SoundKey, SOUND_LABELS } from '../../stores/soundStore';
 import { previewSound } from '../../services/soundService';
 import { ThemeSwitcher } from './ThemeSwitcher';
@@ -23,7 +24,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ onClose }) =
     });
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
       onClick={onClose}
@@ -98,7 +99,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ onClose }) =
         </div>
       </div>
     </div>
-  );
+  , document.body);
 };
 
 export const SettingsPanel: React.FC<{ textTrigger?: boolean }> = ({ textTrigger = false }) => {
@@ -108,11 +109,9 @@ export const SettingsPanel: React.FC<{ textTrigger?: boolean }> = ({ textTrigger
     <div className="relative">
       <button
         onClick={() => setOpen(true)}
-        className={`${textTrigger ? 'w-full rounded px-3 py-2 text-left text-sm' : 'p-3 sm:p-2 rounded-lg'} transition-all ${
-          open
-            ? 'bg-primary-600/30 text-primary-300'
-            : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'
-        }`}
+        className={textTrigger
+          ? `w-full rounded px-3 py-2 text-left text-sm transition-colors ${open ? 'bg-primary-600/20 text-primary-300' : 'bg-transparent text-gray-300 hover:bg-white/5 hover:text-white'}`
+          : `p-3 sm:p-2 rounded-lg transition-all ${open ? 'bg-primary-600/30 text-primary-300' : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'}`}
         title="提示音与外观设置"
       >
         {textTrigger ? '偏好设置' : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
