@@ -76,6 +76,7 @@ export const RoomPanel: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
   const shareDialogRef = useModalDialog(() => setShowShareModal(false), showShareModal);
   const [testCountdown, setTestCountdown] = useState(0);
   const [testPlaying, setTestPlaying] = useState(false);
@@ -228,13 +229,13 @@ export const RoomPanel: React.FC = () => {
 
       if (!useMediaStore.getState().voiceReconnectPending) return;
       voiceReconnectAttemptsRef.current += 1;
-      if (voiceReconnectAttemptsRef.current >= 5) {
+      if (voiceReconnectAttemptsRef.current >= 24) {
         useMediaStore.getState().clearVoiceReconnect();
         useRoomStore.getState().setNotification('语音自动重连失败，请手动加入语音');
         return;
       }
 
-      useRoomStore.getState().setNotification(`语音重连失败，正在重试 (${voiceReconnectAttemptsRef.current}/5)`);
+      useRoomStore.getState().setNotification(`语音重连失败，正在重试 (${voiceReconnectAttemptsRef.current}/24)`);
       voiceReconnectTimerRef.current = setTimeout(() => {
         voiceReconnectTimerRef.current = null;
         setVoiceReconnectTick((v) => v + 1);
@@ -625,7 +626,7 @@ export const RoomPanel: React.FC = () => {
     <div className="min-h-[100dvh] relative">
       <TechBackground />
       <div className="max-w-6xl mx-auto px-4 py-6 relative z-10">
-        <header className="flex items-start justify-between mb-6">
+        <header className="relative flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-1.5 flex-wrap mb-1">
               {currentChannel?.hasPassword && (
@@ -652,7 +653,7 @@ export const RoomPanel: React.FC = () => {
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3">
             {isCreator && (
               <button onClick={() => setShowEditModal(true)} className="text-gray-500 hover:text-gray-300 transition-colors p-1" title="编辑频道">
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -678,6 +679,18 @@ export const RoomPanel: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
             </button>
+          </div>
+          <div className="sm:hidden">
+            <button type="button" onClick={() => setShowMobileActions((value) => !value)} className="rounded-lg bg-white/5 p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white" title="频道菜单">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            {showMobileActions && <div className="glass-panel absolute right-0 top-11 z-[70] flex min-w-36 flex-col gap-1 p-2">
+              {isCreator && <button onClick={() => { setShowEditModal(true); setShowMobileActions(false); }} className="rounded px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5">编辑频道</button>}
+              <button onClick={() => { const url = `${window.location.origin}/?channel=${currentRoom}`; navigator.clipboard.writeText(url).then(() => showToast('复制频道分享链接成功', 'success')).catch(() => setShowShareModal(true)); setShowMobileActions(false); }} className="rounded px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5">分享频道</button>
+              {installSupported && !isInstalled && <button onClick={() => { installApp(); setShowMobileActions(false); }} className="rounded px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5">安装到桌面</button>}
+              <div className="px-1"><SettingsPanel /></div>
+              <button onClick={() => { setShowMobileActions(false); handleLeaveRoom(); }} disabled={isConnectionRestoring} className="rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10">退出频道</button>
+            </div>}
           </div>
         </header>
 

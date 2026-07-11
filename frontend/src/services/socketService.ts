@@ -103,12 +103,8 @@ function registerPageLifecycleListeners() {
   if (pageLifecycleRegistered) return;
   pageLifecycleRegistered = true;
 
-  window.addEventListener('pagehide', (event) => {
-    if (event.persisted) return;
-    const { isLoggedIn, connectionState } = useUserStore.getState();
-    if (!isLoggedIn || connectionState !== 'connected' || !socket?.connected) return;
-    endCurrentSession({ disconnect: true });
-  });
+  // Do not explicitly log out on pagehide: mobile browsers emit it when an app
+  // is backgrounded. Let Socket.IO and the server's reconnect grace handle it.
 }
 
 function registerConnectionListeners() {
@@ -143,12 +139,6 @@ function registerConnectionListeners() {
         useRoomStore.getState().setNotification('连接已断开，正在尝试重连服务器...');
       }
       playSound('connectionLost');
-    }
-    const media = useMediaStore.getState();
-    const hadVoice = media.isVoiceConnected || !!media.producer || media.consumers.size > 0;
-    if (hadVoice) {
-      handleLocalVoiceSessionLost('socket');
-      return;
     }
     socketDisconnectTimer = setTimeout(() => {
       socketDisconnectTimer = null;
@@ -194,9 +184,9 @@ function registerListeners() {
     if (roomToRestore) {
       socket?.emit(EVENTS.CLIENT.ROOM_JOIN, { roomId: roomToRestore });
     }
-    if (socketReconnectWarningShown && roomToRestore && (!data.recoveredVoice || isVoiceConnected)) {
-      useRoomStore.getState().setNotification('重新连接成功');
-      playSound('connected');
+    if (socketReconnectWarningShown && roomToRestore) {
+      useRoomStore.getState().setNotification(data.recoveredVoice ? '网络已恢复，正在恢复语音...' : '网络连接已恢复');
+      if (!data.recoveredVoice) playSound('connected');
     }
     socketReconnectWarningShown = false;
   });
@@ -430,6 +420,14 @@ function registerListeners() {
     const isPasswordError = data.message?.includes('密码');
     const isAdminEvent = data.event?.startsWith('admin:');
     if (isAdminEvent) return; // admin events have dedicated toast handlers
+    const media = useMediaStore.getState();
+    if (isRoomJoin && media.voiceReconnectPending && !isPasswordError) {
+      media.clearVoiceReconnect();
+      useUserStore.getState().setCurrentRoom(null);
+      clearChannelUrlParam();
+      useRoomStore.getState().setNotification(`恢复频道失败：${data.message || '频道不可用'}`);
+      return;
+    }
     if (!isRoomJoin || !isPasswordError) {
       useRoomStore.getState().setNotification(data.message);
     }
