@@ -641,7 +641,7 @@ export const RoomPanel: React.FC = () => {
               )}
               <span>{currentChannel?.name || currentRoom}</span>
               {selfLatency != null && (
-                <span className="hidden sm:inline-flex sm:ml-2 items-center align-middle"><LatencyIndicator latency={selfLatency} /></span>
+                <span className="inline-flex ml-1 sm:ml-2 items-center align-middle"><LatencyIndicator latency={selfLatency} /></span>
               )}
             </h1>
             <p className="text-gray-500 text-sm">

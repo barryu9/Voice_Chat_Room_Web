@@ -85,7 +85,7 @@ export const OnlineMembersPanel: React.FC = () => {
           <span className="rounded-full bg-primary-500/15 px-2 py-0.5 text-[10px] text-primary-300">{orderedUsers.length}</span>
         </div>
         <div className="min-h-0 space-y-3 overflow-y-auto pr-1">
-          {userGroups.map((group) => <div key={group.label}><p className="mb-1 px-1 text-[10px] font-medium text-gray-500">{group.label} · {group.users.length}</p>{group.users.map((user) => {
+          {userGroups.map((group) => <div key={group.label}><p className="mb-1.5 px-1 text-[10px] font-medium text-gray-500">{group.label} · {group.users.length}</p><div className="space-y-1.5">{group.users.map((user) => {
             const isSelf = user.userId === selfId;
             return (
               <div key={user.socketId} className={`rounded-lg px-2 py-2 ${isSelf ? 'bg-primary-500/10' : 'hover:bg-white/5'}`}>
@@ -100,7 +100,7 @@ export const OnlineMembersPanel: React.FC = () => {
                 <p className="ml-4 mt-1 truncate text-[10px] text-gray-500">{getStatus(user, channelNames)}</p>
               </div>
             );
-          })}</div>)}
+          })}</div></div>)}
         </div>
       </aside>
 
