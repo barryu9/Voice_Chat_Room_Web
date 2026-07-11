@@ -844,6 +844,13 @@ body {
   animation: emoji-bubble-rise 3.8s ease-out both;
 }
 
+.theme-exit-action { color: #ef4444 !important; }
+[data-theme-mode="dark"] .theme-exit-action { color: #fca5a5 !important; }
+.preferences-modal { transform: none !important; }
+@media (max-width: 639px) {
+  .preferences-modal .theme-switcher-login { transform: none !important; }
+}
+
 [data-theme="pure"] .theme-emoji-bubble,
 [data-theme="comic"] .theme-emoji-bubble {
   border: 2px solid #111827;

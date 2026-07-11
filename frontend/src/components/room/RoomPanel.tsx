@@ -684,12 +684,12 @@ export const RoomPanel: React.FC = () => {
             <button type="button" onClick={() => setShowMobileActions((value) => !value)} className="rounded-lg bg-white/5 p-2 text-gray-400 transition-colors hover:bg-white/10 hover:text-white" title="频道菜单">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            {showMobileActions && <div className="glass-panel absolute right-0 top-11 z-[70] flex min-w-36 flex-col gap-1 p-2">
+            {showMobileActions && <div className="glass-panel absolute right-0 top-11 z-50 flex min-w-36 flex-col gap-1 p-2">
               {isCreator && <button onClick={() => { setShowEditModal(true); setShowMobileActions(false); }} className="rounded px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5">编辑频道</button>}
               <button onClick={() => { const url = `${window.location.origin}/?channel=${currentRoom}`; navigator.clipboard.writeText(url).then(() => showToast('复制频道分享链接成功', 'success')).catch(() => setShowShareModal(true)); setShowMobileActions(false); }} className="rounded px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5">分享频道</button>
               {installSupported && !isInstalled && <button onClick={() => { installApp(); setShowMobileActions(false); }} className="rounded px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5">安装到桌面</button>}
-              <div className="px-1"><SettingsPanel /></div>
-              <button onClick={() => { setShowMobileActions(false); handleLeaveRoom(); }} disabled={isConnectionRestoring} className="rounded px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10">退出频道</button>
+              <div><SettingsPanel textTrigger /></div>
+              <button onClick={() => { setShowMobileActions(false); handleLeaveRoom(); }} disabled={isConnectionRestoring} className="theme-exit-action rounded px-3 py-2 text-left text-sm hover:bg-red-500/10">退出频道</button>
             </div>}
           </div>
         </header>

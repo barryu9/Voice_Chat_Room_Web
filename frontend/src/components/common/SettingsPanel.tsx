@@ -34,7 +34,7 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ onClose }) =
         aria-modal="true"
         aria-labelledby="preferences-title"
         tabIndex={-1}
-        className="glass-panel w-full max-w-sm p-4 shadow-xl animate-in zoom-in-95 fade-in duration-200"
+        className="preferences-modal glass-panel w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto p-4 shadow-xl animate-in zoom-in-95 fade-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
@@ -101,23 +101,23 @@ export const PreferencesModal: React.FC<PreferencesModalProps> = ({ onClose }) =
   );
 };
 
-export const SettingsPanel: React.FC = () => {
+export const SettingsPanel: React.FC<{ textTrigger?: boolean }> = ({ textTrigger = false }) => {
   const [open, setOpen] = useState(false);
 
   return (
     <div className="relative">
       <button
         onClick={() => setOpen(true)}
-        className={`p-3 sm:p-2 rounded-lg transition-all ${
+        className={`${textTrigger ? 'w-full rounded px-3 py-2 text-left text-sm' : 'p-3 sm:p-2 rounded-lg'} transition-all ${
           open
             ? 'bg-primary-600/30 text-primary-300'
             : 'bg-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/10'
         }`}
         title="提示音与外观设置"
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {textTrigger ? '偏好设置' : <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-        </svg>
+        </svg>}
       </button>
 
       {open && <PreferencesModal onClose={() => setOpen(false)} />}

@@ -105,7 +105,7 @@ export const OnlineMembersPanel: React.FC = () => {
       </aside>
 
       <button type="button" onClick={() => setMobileOpen(true)} className="glass-panel fixed bottom-24 left-3 z-30 flex h-10 w-10 items-center justify-center overflow-visible rounded-full text-gray-400 shadow-lg transition-all hover:scale-105 hover:text-primary-300 lg:hidden" aria-label="查看在线成员" title="在线成员">
-        <svg className="h-[18px] w-[18px] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="8" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" opacity=".72" /><path d="M2.5 20.5c0-3.2 2.45-5.5 5.5-5.5s5.5 2.3 5.5 5.5H2.5z" /><path d="M14 20.5c.15-2.05-.75-3.85-2.2-5.05.7-.3 1.45-.45 2.2-.45 2.8 0 5 2.15 5 5.5H14z" opacity=".72" /></svg>
+        <svg className="h-[19px] w-[19px] shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8" r="3.2" /><circle cx="5.5" cy="10" r="2.4" opacity=".7" /><circle cx="18.5" cy="10" r="2.4" opacity=".7" /><path d="M6.4 20c.35-3.35 2.55-5.45 5.6-5.45s5.25 2.1 5.6 5.45H6.4z" /><path d="M1.4 19.5c.2-2.2 1.6-3.8 3.85-3.8.8 0 1.5.2 2.1.55A7.1 7.1 0 006.2 20H1.4z" opacity=".7" /><path d="M22.6 19.5c-.2-2.2-1.6-3.8-3.85-3.8-.8 0-1.5.2-2.1.55.7.95 1.05 2.2 1.15 3.75h4.8z" opacity=".7" /></svg>
         <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-primary-500 px-1 text-center text-[9px] leading-4 text-white">{orderedUsers.length}</span>
       </button>
       {mobileOpen && <div className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)}>
